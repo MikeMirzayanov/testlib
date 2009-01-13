@@ -6,7 +6,7 @@
  * Copyright (c) 2005-2008
  */
 
-#define VERSION "0.5.1"
+#define VERSION "0.5.2"
 
 /* 
  * Mike Mirzayanov
@@ -30,7 +30,8 @@
  *   If result file is specified it will contain results.
  */
 
-char* latestFeatures[] = {
+const char* latestFeatures[] = {
+                          "Added InStream::readLong() and removed InStream::readLongint()",
                           "Now no footer added to each report by default (use directive FOOTER to switch on)",
                           "Now every checker has a name, use setName(const char* format, ...) to set it",
                           "Now it is compatible with TTS (by Kittens Computing)",
@@ -45,7 +46,7 @@ char* latestFeatures[] = {
 #include <string>
 #include <string.h>
 #include <stdarg.h>
-#include <process.h>
+#include <cstdlib>
 
 #if ( _WIN32 || __WIN32__ )
 #include <windows.h>
@@ -217,7 +218,7 @@ struct InStream
     std::string readWord(TCharSet before, TCharSet after);
     std::string readWord();
 
-    int readLongint();
+    long long readLong();
     int readInteger();
     int readInt();
 
@@ -508,9 +509,18 @@ int InStream::readInteger()
     return retval;
 }
 
-int InStream::readLongint()
+long long InStream::readLong()
 {
-    return readInteger();
+    char cur;
+    while (isNumberBefore(cur = (char)getc(file)));
+    if (cur == EOFCHAR)
+        quit(_pe, "Unexpected end of file - long expected");
+    ungetc(cur, file);
+    long long retval;
+    if (fscanf(file, "%I64d", &retval) != 1)
+        // todo: show insted-of
+        quit(_pe, "Expected long");
+    return retval;
 }
 
 int InStream::readInt()
@@ -629,12 +639,12 @@ void InStream::close()
     opened = false;
 }
 
-void quit(TResult result, std::string msg)
+void quit(TResult result, const std::string& msg)
 {
     ouf.quit(result, msg.c_str());
 }
 
-void quit(TResult result, char * msg)
+void quit(TResult result, const char * msg)
 {
     ouf.quit(result, msg);
 }
@@ -666,7 +676,7 @@ void registerTestlibCmd(int argc, char * argv[])
 
         std::printf("\n");
         std::printf("Latest features: \n");
-        for (int i = 0; i < sizeof(latestFeatures) / sizeof(char*); i++)
+        for (size_t i = 0; i < sizeof(latestFeatures) / sizeof(char*); i++)
         {
             std::printf("*) %s\n", latestFeatures[i]);
         }
@@ -786,6 +796,19 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                                   expected * (1.0 + MAX_DOUBLE_ERROR));
                     return result > minv && result < maxv;
                 }
+}
+
+double doubleDelta(double expected, double result)
+{
+    double absolute = ABS(result - expected);
+    
+    if (ABS(expected) > 1E-9)
+    {
+        double relative = ABS(absolute / expected);
+        return MIN(absolute, relative);
+    }
+    else
+        return absolute;
 }
 
 void ensure(bool cond, const std::string msg = "")
