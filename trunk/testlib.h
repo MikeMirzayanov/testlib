@@ -41,6 +41,10 @@ const char* latestFeatures[] = {
                           "Added compatibility with EJUDGE (compile with EJUDGE directive)"
                          };
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_DEPRECATE
+#endif
+
 #include <cstdio>
 #include <cctype>
 #include <string>
@@ -516,11 +520,36 @@ long long InStream::readLong()
     if (cur == EOFCHAR)
         quit(_pe, "Unexpected end of file - long expected");
     ungetc(cur, file);
-    long long retval;
-    if (fscanf(file, "%I64d", &retval) != 1)
-        // todo: show insted-of
-        quit(_pe, "Expected long");
-    return retval;
+    
+    long long retval = 0;
+    char buffer[32] = {0};
+    if (fscanf(file, "%s", buffer) != 1)
+        quit(_pe, "Expected int64");
+    else
+    {
+        bool minus = false;
+        size_t length = strlen(buffer);
+        
+        if (length > 1 && buffer[0] == '-')
+            minus = true;
+
+        if (length > 20)
+            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+        
+        for (size_t i = (minus ? 1 : 0); i < length; i++)
+        {
+            if (buffer[i] < '0' || buffer[i] > '9')
+                quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+            retval = retval * 10 + (buffer[i] - '0');
+        }
+
+        if (retval < 0)
+            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+        
+        return (minus ? -retval : +retval);
+    }
+
+    throw "it should not be executed";
 }
 
 int InStream::readInt()
