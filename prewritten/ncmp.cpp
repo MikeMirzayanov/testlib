@@ -19,9 +19,11 @@ string ending(long long x)
 
 string ltoa(long long n)
 {
-    char c[32];
-    sprintf(c, "%I64d", n);
-    return c;
+    stringstream ss;
+    ss << n;
+    string result;
+    ss >> result;
+    return result;
 }
 
 int main(int argc, char * argv[])
@@ -40,7 +42,7 @@ int main(int argc, char * argv[])
       long long j = ans.readLong();
       long long p = ouf.readLong();
       if (j != p)
-        quitf(_wa, "%d%s numbers differ - expected: '%I64d', found: '%I64d'", n, ending(n).c_str(), j, p);
+        quitf(_wa, "%d%s numbers differ - expected: '%s', found: '%s'", n, ending(n).c_str(), ltoa(j).c_str(), ltoa(p).c_str());
       else
         if (n <= 5)
         {
