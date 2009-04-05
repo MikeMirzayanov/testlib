@@ -3,7 +3,7 @@
 
 /*
  *
- * Copyright (c) 2005-2008
+ * Copyright (c) 2005-2009
  */
 
 #define VERSION "0.5.2"
@@ -513,6 +513,42 @@ int InStream::readInteger()
     return retval;
 }
 
+static bool equals(long long integer, const char* s)
+{
+    if (integer == -9223372036854775808LL)
+        return strcmp(s, "-9223372036854775808") == 0;
+
+    if (integer == 0LL)
+        return strcmp(s, "0") == 0;
+
+    size_t length = strlen(s);
+
+    if (length == 0)
+        return false;
+
+    if (integer < 0 && s[0] != '-')
+        return false;
+
+    if (integer < 0)
+        s++, length--, integer = -integer;
+
+    if (length == 0)
+        return false;
+
+    while (integer > 0)
+    {
+        int digit = integer % 10;
+
+        if (s[length - 1] != '0' + digit)
+            return false;
+
+        length--;
+        integer /= 10;
+    }
+
+    return length == 0;
+}
+
 long long InStream::readLong()
 {
     char cur;
@@ -527,6 +563,9 @@ long long InStream::readLong()
         quit(_pe, "Expected int64");
     else
     {
+        if (strcmp(buffer, "-9223372036854775808") == 0)
+            return -9223372036854775808LL;
+
         bool minus = false;
         size_t length = strlen(buffer);
         
@@ -546,7 +585,15 @@ long long InStream::readLong()
         if (retval < 0)
             quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
         
-        return (minus ? -retval : +retval);
+        retval = (minus ? -retval : +retval);
+
+        if (length < 19)
+            return retval;
+
+        if (equals(retval, buffer))
+            return retval;
+        else
+            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
     }
 
     throw "it should not be executed";
@@ -699,7 +746,7 @@ void registerTestlibCmd(int argc, char * argv[])
     {
         InStream::textColor(InStream::LightCyan);
         std::printf("TESTLIB %s ", VERSION);
-        std::printf("by Mike Mirzayanov, copyright(c) 2005-2006\n");
+        std::printf("by Mike Mirzayanov, copyright(c) 2005-2009\n");
         std::printf("Checker name: \"%s\"\n", checkerName.c_str());
         InStream::textColor(InStream::LightGray);
 
@@ -718,7 +765,10 @@ void registerTestlibCmd(int argc, char * argv[])
     }
 
     if (sizeof(int) != 4)
-        quit(_fail, "'testlib' unit assumes 'sizeof(integer) = 4'");
+        quit(_fail, "'testlib' unit assumes 'sizeof(int) = 4'");
+
+    if (sizeof(long long) != 8)
+        quit(_fail, "'testlib' unit assumes 'sizeof(long long) = 8'");
 
     if (argc  < 4 || argc > 6)
     {
