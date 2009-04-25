@@ -6,7 +6,7 @@
  * Copyright (c) 2005-2009
  */
 
-#define VERSION "0.5.2"
+#define VERSION "0.6.?"
 
 /* 
  * Mike Mirzayanov
@@ -45,17 +45,32 @@ const char* latestFeatures[] = {
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
+#define random __random_depricated
+#include <stdlib.h>
+#include <climits>
+#undef random
+
 #include <cstdio>
 #include <cctype>
 #include <string>
+#include <vector>
+#include <set>
+#include <sstream>
 #include <string.h>
 #include <stdarg.h>
-#include <cstdlib>
 
-#if ( _WIN32 || __WIN32__ )
+#include <fcntl.h>
+#include <io.h>
+
+#if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
 #include <windows.h>
+#define ON_WINDOWS
 #else
 #define WORD unsigned short
+#endif
+
+#ifndef LLONG_MIN
+#define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
 
 #define ABS(f) ((f) < 0 ? -(f) : (f))
@@ -64,18 +79,11 @@ const char* latestFeatures[] = {
 
 #define OUTPUT_BUFFER_SIZE (2097152)
 
-#define LF (char)10
-#define CR (char)13
-#define TAB (char)9
-#define SPACE (char)' '
-
-#define EOFCHAR (EOF)
-#define EOFREMAP SPACE
-#define NUMBERBEFORE LF, CR, SPACE, TAB, EOFCHAR
-#define NUMBERAFTER LF, CR, TAB, EOFCHAR
-#define LINEAFTER LF, CR, EOFCHAR
-#define BLANKS LF, CR, SPACE, TAB
-#define EOLNCHAR LF, CR, EOFCHAR
+#define LF ((char)10)
+#define CR ((char)13)
+#define TAB ((char)9)
+#define SPACE ((char)' ')
+#define EOFC ((char)26)
 
 #ifndef EJUDGE
 #define OK_EXIT_CODE 0
@@ -91,97 +99,476 @@ const char* latestFeatures[] = {
 #define DIRT_EXIT_CODE 6
 #endif
 
-inline bool isEofChar(char c)
+/* Random routine */
+class random;
+
+class pattern
 {
-    return (c == EOFCHAR);
+public:
+    pattern(std::string s);
+    std::string next(random& rnd) const;
+    bool matches(const std::string& s) const;
+
+private:
+    bool matches(const std::string& s, size_t pos) const;
+
+    std::vector<pattern> children;
+    std::set<char> chars;
+    int from;
+    int to;
+};
+
+class random
+{
+private:
+    long long seed;
+    static const long long multiplier;
+    static const long long addend;
+    static const long long mask;
+
+public:
+    long long nextBits(int bits) 
+    {
+        if (bits <= 48)
+        {
+            seed = (seed * multiplier + addend) & mask;
+            return (long long)(seed >> (48 - bits));
+        }
+        else
+        {
+            if (bits > 63)
+                throw "n must be less than 64";
+
+            return ((nextBits(31) << 32) ^ nextBits(31));
+        }
+    }
+
+public:
+    random()
+        : seed(3905348978240129619LL)
+    {
+    }
+
+    void setSeed(int argc, char* argv[])
+    {
+        random p;
+
+        seed = 3905348978240129619LL;
+        for (int i = 0; i < argc; i++)
+        {
+            std::size_t le = std::strlen(argv[i]);
+            for (std::size_t j = 0; j < le; j++)
+                seed = seed * multiplier * (unsigned int)(argv[i][j]) + addend;
+            seed += multiplier / addend;
+        }
+
+        seed = seed & mask;
+    }
+
+    void setSeed(long long _seed)
+    {
+        _seed = (_seed ^ multiplier) & mask;
+        seed = _seed;
+    }
+
+    int next(int n) 
+    {
+        if (n <= 0)
+            throw "n must be positive";
+
+        if ((n & -n) == n)  // n is a power of 2
+            return (int)((n * (long long)nextBits(31)) >> 31);
+
+        int bits, val;
+        
+        do 
+        {
+            bits = nextBits(31);
+            val = bits % n;
+        } while (bits - val + (n - 1) < 0);
+
+        return val;
+    }
+
+    int next(unsigned int n)
+    {
+        if (n >= INT_MAX)
+            throw "n must be less INT_MAX";
+        return next(int(n));
+    }
+
+    long long next(long long n) 
+    {
+        if (n <= 0)
+            throw "n must be positive";
+
+        long long bits, val;
+        
+        do 
+        {
+            bits = nextBits(63);
+            val = bits % n;
+        } while (bits - val + (n - 1) < 0);
+
+        return val;
+    }
+
+    int nextInt(int n)
+    {
+        return next(n);
+    }
+
+    long long nextLong(long long n)
+    {
+        return next(n);
+    }
+
+    double next() 
+    {
+        return (((long long)(nextBits(26)) << 27) + nextBits(27)) / (double)(1LL << 53);
+    }
+
+    double next(double n)
+    {
+        return n * next();
+    }
+
+    std::string next(const std::string& ptrn)
+    {
+        pattern p(ptrn);
+        return p.next(*this);
+    }
+};
+
+const long long random::multiplier = 0x5DEECE66DLL;
+const long long random::addend = 0xBLL;
+const long long random::mask = (1LL << 48) - 1;
+/* End of random routine */
+
+/* Pattern routine */
+bool pattern::matches(const std::string& s) const
+{
+    return matches(s, 0);
 }
 
-inline bool isEofRemap(char c)
+static bool __pattern_isSlash(const std::string& s, size_t pos)
 {
-    return (c == EOFREMAP);
+    return s[pos] == '\\';
 }
 
-inline bool isNumberBefore(char c)
+static bool __pattern_isCommandChar(const std::string& s, size_t pos, char value)
 {
-    return (c == LF || c == CR || c == SPACE || c == TAB);
+    if (pos >= s.length())
+        return false;
+
+    int slashes = 0;
+
+    int before = pos - 1;
+    while (before >= 0 && s[before] == '\\')
+        before--, slashes++;
+
+    return slashes % 2 == 0 && s[pos] == value;
 }
 
-inline bool isNumberAfter(char c)
+static char __pattern_getChar(const std::string& s, size_t& pos)
 {
-    return (c == LF || c == CR || c == SPACE || c == TAB || c == EOFCHAR || c == (char)26);
+    if (__pattern_isSlash(s, pos))
+        pos += 2;
+    else
+        pos++;
+
+    return s[pos - 1];
 }
 
-inline bool isLineAfter(char c)
+static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::set<char> chars)
 {
-    return (c == LF || c == CR || c == EOFCHAR || c == (char)26);
+    int result = 0;
+
+    while (pos < s.length())
+    {
+        char c = __pattern_getChar(s, pos);
+        if (chars.count(c) == 0)
+            break;
+        else
+            result++;
+    }
+
+    return result;
+}
+
+bool pattern::matches(const std::string& s, size_t pos) const
+{
+    std::string result;
+
+    if (to > 0)
+    {
+        int size = __pattern_greedyMatch(s, pos, chars);
+        if (size < from)
+            return false;
+        if (size > to)
+            size = to;
+        pos += size;
+    }
+
+    if (children.size() > 0)
+    {
+        for (size_t child = 0; child < children.size(); child++)
+            if (children[child].matches(s, pos))
+                return true;
+        return false;
+    }
+    else
+        return pos == s.length();
+}
+
+std::string pattern::next(random& rnd) const
+{
+    std::string result;
+
+    if (to == INT_MAX)
+        throw "Can't process character '*' for generation";
+
+    if (to > 0)
+    {
+        std::vector<char> possible(chars.begin(), chars.end());
+        int count = rnd.nextInt(to - from + 1) + from;
+        for (int i = 0; i < count; i++)
+            result += possible[rnd.nextInt(possible.size())];
+    }
+
+    if (children.size() > 0)
+    {
+        int child = rnd.nextInt(children.size());
+        result += children[child].next(rnd);
+    }
+
+    return result;
+}
+
+static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, int& to)
+{
+    if (pos >= s.length())
+    {
+        from = to = 1;
+        return;
+    }
+        
+    if (__pattern_isCommandChar(s, pos, '{'))
+    {
+        std::vector<std::string> parts;
+        std::string part;
+
+        pos++;
+
+        while (pos < s.length() && !__pattern_isCommandChar(s, pos, '}'))
+        {
+            if (__pattern_isCommandChar(s, pos, ','))
+                parts.push_back(part), part = "", pos++;
+            else
+                part += __pattern_getChar(s, pos);
+        }
+
+        if (part != "")
+            parts.push_back(part);
+
+        if (!__pattern_isCommandChar(s, pos, '}'))
+            throw "Illegal pattern";
+
+        pos++;
+
+        if (parts.size() < 1 || parts.size() > 2)
+            throw "Illegal pattern";
+
+        std::vector<int> numbers;
+
+        for (size_t i = 0; i < parts.size(); i++)
+        {
+            if (parts[i].length() == 0)
+                throw "Illegal pattern";
+            int number;
+            if (std::sscanf(parts[i].c_str(), "%d", &number) != 1)
+                throw "Illegal pattern";
+            numbers.push_back(number);
+        }
+
+        if (numbers.size() == 1)
+            from = to = numbers[0];
+        else
+            from = numbers[0], to = numbers[1];
+
+        if (from > to)
+            throw "Illegal pattern";
+    }
+    else
+    {
+        if (__pattern_isCommandChar(s, pos, '?'))
+        {
+            from = 0, to = 1, pos++;
+            return;
+        }
+
+        if (__pattern_isCommandChar(s, pos, '*'))
+        {
+            from = 0, to = INT_MAX, pos++;
+            return;
+        }
+
+        from = to = 1;
+    }
+}
+
+static std::set<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
+{
+    if (pos >= s.length())
+        throw "Illegal pattern";
+
+    std::set<char> result;
+
+    if (__pattern_isCommandChar(s, pos, '['))
+    {
+        pos++;
+        bool negative = __pattern_isCommandChar(s, pos, '^');
+
+        std::vector<std::string> parts;
+        char prev = 0;
+
+        while (pos < s.length() && !__pattern_isCommandChar(s, pos, ']'))
+        {
+            if (__pattern_isCommandChar(s, pos, '-') && prev != 0)
+            {
+                pos++;
+
+                if (pos + 1 == s.length())
+                {
+                    result.insert(prev);
+                    prev = '-';
+                    continue;
+                }
+                
+                char next = __pattern_getChar(s, pos);
+
+                if (prev > next)
+                    throw "Illegal pattern";
+
+                for (char c = prev; c <= next; c++)
+                    result.insert(c);
+            }
+            else
+            {
+                if (prev != 0)
+                    result.insert(prev);
+                prev = __pattern_getChar(s, pos);
+            }
+        }
+
+        if (prev != 0)
+            result.insert(prev);
+
+        if (!__pattern_isCommandChar(s, pos, ']'))
+            throw "Illegal pattern";
+
+        pos++;
+
+        if (negative)
+        {
+            std::set<char> actuals;
+            for (int code = 0; code < 255; code++)
+            {
+                char c = char(code);
+                if (result.count(c) == 0)
+                    actuals.insert(c);
+            }
+            result = actuals;
+        }
+    }
+    else
+        result.insert(__pattern_getChar(s, pos));
+
+    return result;
+}
+
+pattern::pattern(std::string s): from(0), to(0)
+{
+    std::string t;
+    for (size_t i = 0; i < s.length(); i++)
+        if (!__pattern_isCommandChar(s, i, ' '))
+            t += s[i];
+    s = t;
+
+    int opened = 0;
+    int firstClose = -1;
+    std::vector<int> seps;
+
+    for (size_t i = 0; i < s.length(); i++)
+    {
+        if (__pattern_isCommandChar(s, i, '('))
+        {
+            opened++;
+            continue;
+        }
+
+        if (__pattern_isCommandChar(s, i, ')'))
+        {
+            opened--;
+            if (opened == 0 && firstClose == -1)
+                firstClose = i;
+            continue;
+        }
+        
+        if (opened < 0)
+            throw "Illegal pattern";
+
+        if (__pattern_isCommandChar(s, i, '|') && opened == 0)
+            seps.push_back(i);
+    }
+
+    if (opened != 0)
+        throw "Illegal pattern";
+
+    if (seps.size() == 0 && firstClose + 1 == (int)s.length() 
+            && __pattern_isCommandChar(s, 0, '(') && __pattern_isCommandChar(s, s.length() - 1, ')'))
+    {
+        children.push_back(pattern(s.substr(1, s.length() - 2)));
+    }
+    else
+    {
+        if (seps.size() > 0)
+        {
+            seps.push_back(s.length());
+            int last = 0;
+
+            for (size_t i = 0; i < seps.size(); i++)
+            {
+                children.push_back(pattern(s.substr(last, seps[i] - last)));
+                last = seps[i] + 1;
+            }
+        }
+        else
+        {
+            size_t pos = 0;
+            chars = __pattern_scanCharSet(s, pos);
+            __pattern_scanCounts(s, pos, from, to);
+            if (pos < s.length())
+                children.push_back(pattern(s.substr(pos)));
+        }
+    }
+}
+/* End of pattern routine */
+
+inline bool isEof(char c)
+{
+    return (c == EOF || c == EOFC);
+}
+
+inline bool isEoln(char c)
+{
+    return (c == LF || c == CR);
 }
 
 inline bool isBlanks(char c)
 {
     return (c == LF || c == CR || c == SPACE || c == TAB);
 }
-
-inline bool isEolnChar(char c)
-{
-    return (c == LF || c == CR || c == EOFCHAR || c == (char)26);
-}
-
-struct TCharSet
-{
-    unsigned int data[64];
-    
-    void insert(char c)
-    {
-        int pc = (int)c;
-        data[pc >> 3] |= (1 << (pc & 7));
-    }
-
-    bool count(char c)
-    {
-        unsigned int pc = (unsigned char)c;
-        return (data[pc >> 3] & (1 << (pc & 7))) != 0;
-    }
-
-    void clear()
-    {
-        memset(data, 0, sizeof(data));
-    }
-
-    TCharSet()
-    {
-        clear();
-    }
-
-    TCharSet(char c0)
-    {
-        clear();
-        insert(c0);
-    }
-
-    TCharSet(char c0, char c1)
-    {
-        clear();
-        insert(c0); insert(c1);
-    }
-
-    TCharSet(char c0, char c1, char c2)
-    {
-        clear();
-        insert(c0); insert(c1); insert(c2);
-    }
-
-    TCharSet(char c0, char c1, char c2, char c3)
-    {
-        clear();
-        insert(c0); insert(c1); insert(c2); insert(c3);
-    }
-
-    TCharSet(char c0, char c1, char c2, char c3, char c4)
-    {
-        clear();
-        insert(c0); insert(c1); insert(c2); insert(c3); insert(c4);
-    }
-};
 
 enum TMode
 {
@@ -204,11 +591,22 @@ struct InStream
     std::string name;
     TMode mode;
     bool opened;
+    bool stdfile;
+    bool strict;
+
     void init(std::string fileName, TMode mode);
+    void init(std::FILE* f, TMode mode);
+
+    void skipBlanks();
     
     char curChar();
     void skipChar();
     char nextChar();
+    
+    char readChar();
+    char readChar(char c);
+    char readSpace();
+    void unreadChar(char c);
 
     void reset();
     bool eof();
@@ -218,18 +616,31 @@ struct InStream
     bool seekEoln();
 
     void nextLine();
-    void skip(TCharSet setof);
-    std::string readWord(TCharSet before, TCharSet after);
+
     std::string readWord();
+    std::string readToken();
+    std::string readWord(const std::string& ptrn);
+    std::string readToken(const std::string& ptrn);
 
     long long readLong();
     int readInteger();
     int readInt();
 
+    long long readLong(long long minv, long long maxv);
+    int readInteger(int minv, int maxv);
+    int readInt(int minv, int maxv);
+
     double readReal();
     double readDouble();
     
+    double readReal(double minv, double maxv);
+    double readDouble(double minv, double maxv);
+    
     std::string readString();
+    std::string readLine();
+
+    void readEoln();
+    void readEof();
 
     void quit(TResult result, const char * msg);
     void quits(TResult result, std::string msg);
@@ -253,15 +664,28 @@ InStream ans;
 bool appesMode;
 std::string resultName;
 std::string checkerName = "untitled checker";
+random rnd;
 
 /* implementation
  */
+
+template <typename T>
+static std::string vtos(const T& t)
+{
+    std::string s;
+    std::stringstream ss;
+    ss << t;
+    ss >> s;
+    return s;
+}
 
 InStream::InStream()
 {
     file = NULL;
     name = "";
     mode = _input;
+    strict = false;
+    stdfile = false;
 }
 
 int resultExitCode(TResult r)
@@ -281,7 +705,7 @@ int resultExitCode(TResult r)
 
 void InStream::textColor(WORD color)
 {
-#if ( _WIN32 || __WIN32__ )
+#ifdef ON_WINDOWS
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(handle, color);
 #endif
@@ -352,14 +776,7 @@ void InStream::quit(TResult result, const char * msg)
             fprintf(resultFile, "</result>\n");
         }
         else
-        {
-            /** old-style format
-             *   fprintf(resultFile, ".Testlib Result Number = %d\n", (int)result);
-             *   fprintf(resultFile, ".Result name (optional) = %s\n", errorName.c_str());
-             *   fprintf(resultFile, ".Check Comments = %s\n", msg);
-             */
              fprintf(resultFile, "%s", msg);
-        }
         if (NULL == resultFile || fclose(resultFile) != 0)
             quit(_fail, "Can not write to Result file");
     }
@@ -438,23 +855,58 @@ void InStream::quitscr(WORD color, const char * msg)
 
 void InStream::reset()
 {
+    if (opened && stdfile)
+        quit(_fail, "Can't reset standard handle");
+
     if (opened)
         close();
 
-    if (NULL == (file = std::fopen(name.c_str(), "r")))
-    {
-        if (mode == _output)
-            quits(_pe, std::string("File not found: \"") + name + "\"");
-    }
+    if (!stdfile)
+        if (NULL == (file = std::fopen(name.c_str(), "rb")))
+        {
+            if (mode == _output)
+                quits(_pe, std::string("File not found: \"") + name + "\"");
+        }
 
     opened = true;
+
+    if (NULL != file)
+    {
+#ifdef _MSC_VER
+        _setmode(_fileno(file), O_BINARY);
+#else
+        setmode(fileno(file), O_BINARY);
+#endif
+    }
 }
 
 void InStream::init(std::string fileName, TMode mode)
 {
     opened = false;
     name = fileName;
+    stdfile = false;
     this->mode = mode;
+    reset();
+}
+
+void InStream::init(std::FILE* f, TMode mode)
+{
+    opened = false;
+    
+    name = "untitled";
+    
+    if (f == stdin)
+        name = "stdin", stdfile = true;
+    
+    if (f == stdout)
+        name = "stdout", stdfile = true;
+    
+    if (f == stderr)
+        name = "stderr", stdfile = true;
+
+    this->file = f;
+    this->mode = mode;
+    
     reset();
 }
 
@@ -470,52 +922,105 @@ char InStream::nextChar()
     return (char)getc(file);
 }
 
+char InStream::readChar()
+{
+    return nextChar();
+}
+
+char InStream::readChar(char c)
+{
+    char found = readChar();
+    if (c != found)
+    {
+        if (!isEoln(found))
+            quit(_pe, ("Unexpected character '" + std::string(1, found) + "', but '" + std::string(1, c) + "' expected").c_str());
+        else
+            quit(_pe, ("Unexpected character " + ("#" + vtos(int(found))) + ", but '" + std::string(1, c) + "' expected").c_str());
+    }
+    return found;
+}
+
+char InStream::readSpace()
+{
+    return readChar(' ');
+}
+
+void InStream::unreadChar(char c)
+{
+    ungetc(c, file);
+}
+
 void InStream::skipChar()
 {
     getc(file);
 }
 
-std::string InStream::readWord(TCharSet before, TCharSet after)
+void InStream::skipBlanks()
 {
     char cur;
-    while (before.count(cur = (char)getc(file)) == 1);
-    if (cur == EOFCHAR && !after.count(cur))
-    {
-        quit(_pe, "Unexpected end of file");
-    }
-    std::string result = "";
-    while (!(after.count(cur) || cur == EOFCHAR))
-    {
-        result += cur;
-        cur = (char)getc(file);
-    }
-    ungetc(cur, file);
-
-    return result;
+    while (isBlanks(cur = readChar()));
+    unreadChar(cur);
 }
 
 std::string InStream::readWord()
 {
-    return readWord(TCharSet(BLANKS), TCharSet(BLANKS));
+    if (!strict)
+        skipBlanks();
+
+    char cur = readChar();
+
+    if (isEof(cur))
+        quit(_pe, "Unexpected end of file - token expected");
+
+    if (isBlanks(cur))
+        quit(_pe, "Unexpected white-space - token expected");
+
+    std::string result = "";
+
+    while (!(isBlanks(cur) || cur == EOF))
+    {
+        result += cur;
+        cur = nextChar();
+    }
+
+    unreadChar(cur);
+
+    if (result.length() == 0)
+        quit(_pe, "Unexpected end of file or white-space - token expected");
+
+    return result;
 }
 
-int InStream::readInteger()
+std::string InStream::readToken()
 {
-    char cur;
-    while (isNumberBefore(cur = (char)getc(file)));
-    if (cur == EOFCHAR)
-        quit(_pe, "Unexpected end of file - integer expected");
-    ungetc(cur, file);
-    int retval;
-    if (fscanf(file, "%d", &retval) != 1)
-        // todo: show insted-of
-        quit(_pe, "Expected integer");
-    return retval;
+    return readWord();
+}
+
+static std::string __testlib_part(const std::string& s)
+{
+    if (s.length() <= 64)
+        return s;
+    else
+        return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
+}
+
+std::string InStream::readWord(const std::string& ptrn)
+{
+    pattern p(ptrn);
+    std::string result = readWord();
+    if (!p.matches(result))
+        quit(_pe, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    return result;
+}
+
+std::string InStream::readToken(const std::string& ptrn)
+{
+    return readWord(ptrn);
 }
 
 static bool equals(long long integer, const char* s)
 {
-    if (integer == -9223372036854775808LL)
+    if (integer == LLONG_MIN)
         return strcmp(s, "-9223372036854775808") == 0;
 
     if (integer == 0LL)
@@ -549,54 +1054,103 @@ static bool equals(long long integer, const char* s)
     return length == 0;
 }
 
-long long InStream::readLong()
+static double stringToDouble(InStream& in, const char* buffer)
 {
-    char cur;
-    while (isNumberBefore(cur = (char)getc(file)));
-    if (cur == EOFCHAR)
-        quit(_pe, "Unexpected end of file - long expected");
-    ungetc(cur, file);
-    
-    long long retval = 0;
-    char buffer[32] = {0};
-    if (fscanf(file, "%s", buffer) != 1)
-        quit(_pe, "Expected int64");
+    double retval;
+
+    size_t length = strlen(buffer);
+
+    for (size_t i = 0; i < length; i++)
+        if (isBlanks(buffer[i]))
+            in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
+
+    if (std::sscanf(buffer, "%lf", &retval) == 1)
+        return retval;
     else
+        in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
+
+    throw "Unexpected exception";
+}
+
+static long long stringToLongLong(InStream& in, const char* buffer)
+{
+    if (strcmp(buffer, "-9223372036854775808") == 0)
+        return LLONG_MIN;
+
+    bool minus = false;
+    size_t length = strlen(buffer);
+    
+    if (length > 1 && buffer[0] == '-')
+        minus = true;
+
+    if (length > 20)
+        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+
+    long long retval = 0LL;
+
+    int zeroes = 0;
+    int processingZeroes = true;
+    
+    for (size_t i = (minus ? 1 : 0); i < length; i++)
     {
-        if (strcmp(buffer, "-9223372036854775808") == 0)
-            return -9223372036854775808LL;
-
-        bool minus = false;
-        size_t length = strlen(buffer);
-        
-        if (length > 1 && buffer[0] == '-')
-            minus = true;
-
-        if (length > 20)
-            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
-        
-        for (size_t i = (minus ? 1 : 0); i < length; i++)
-        {
-            if (buffer[i] < '0' || buffer[i] > '9')
-                quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
-            retval = retval * 10 + (buffer[i] - '0');
-        }
-
-        if (retval < 0)
-            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
-        
-        retval = (minus ? -retval : +retval);
-
-        if (length < 19)
-            return retval;
-
-        if (equals(retval, buffer))
-            return retval;
+        if (buffer[i] == '0' && processingZeroes)
+            zeroes++;
         else
-            quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+            processingZeroes = false;
+
+        if (buffer[i] < '0' || buffer[i] > '9')
+            in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+        retval = retval * 10 + (buffer[i] - '0');
     }
 
-    throw "it should not be executed";
+    if (retval < 0)
+        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+    
+    if ((zeroes > 0 && (retval != 0 || minus)) || zeroes > 1)
+        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+
+    retval = (minus ? -retval : +retval);
+
+    if (length < 19)
+        return retval;
+
+    if (equals(retval, buffer))
+        return retval;
+    else
+        in.quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+
+    throw "Unexpected exception";
+}
+
+int InStream::readInteger()
+{
+    if (!strict && seekEof())
+        quit(_pe, "Unexpected end of file - int32 expected");
+
+    std::string token = readWord();
+    long long value = stringToLongLong(*this, token.c_str());
+    if (value < INT_MIN || value > INT_MAX)
+        quit(_pe, ("Expected int32, but \"" + token + "\" found").c_str());
+    return value;
+}
+
+long long InStream::readLong()
+{
+    if (!strict && seekEof())
+        quit(_pe, "Unexpected end of file - int64 expected");
+
+    std::string token = readWord();
+    return stringToLongLong(*this, token.c_str());
+}
+
+long long InStream::readLong(long long minv, long long maxv)
+{
+    long long result = readLong();
+
+    if (result < minv || result > maxv)
+        quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+
+    return result;
 }
 
 int InStream::readInt()
@@ -604,16 +1158,27 @@ int InStream::readInt()
     return readInteger();
 }
 
+int InStream::readInt(int minv, int maxv)
+{
+    int result = readInt();
+
+    if (result < minv || result > maxv)
+        quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+
+    return result;
+}
+
+int InStream::readInteger(int minv, int maxv)
+{
+    return readInt(minv, maxv);
+}
+
 double InStream::readReal()
 {
-    if (seekEof())
+    if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - double expected");
 
-    double retval;
-    if (fscanf(file, "%lf", &retval) != 1)
-        // todo: show insted-of
-        quit(_pe, "Expected double");
-    return retval;
+    return stringToDouble(*this, readWord().c_str());
 }
 
 double InStream::readDouble()
@@ -621,48 +1186,139 @@ double InStream::readDouble()
     return readReal();
 }
 
-void InStream::skip(TCharSet setof)
+double InStream::readReal(double minv, double maxv)
 {
-    char cur;
-    while (setof.count(cur = (char)getc(file)) == 1);
-    ungetc(cur, file);
+    double result = readReal();
+
+    if (result < minv || result > maxv)
+        quit(_pe, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+
+    return result;
+}
+
+double InStream::readDouble(double minv, double maxv)
+{
+    return readReal(minv, maxv);
 }
 
 bool InStream::eof()
 {
-    return (NULL == file || feof(file) != 0);
+    if (!strict && NULL == file)
+        return true;
+
+    if (feof(file) != 0)
+        return true;
+    else
+    {
+        int cur = getc(file);
+
+        if (isEof(cur))
+            return true;
+        else
+        {
+            ungetc(cur, file);
+            return false;
+        }
+    }
 }
 
 bool InStream::seekEof()
 {
     if (NULL == file)
         return true;
-    char cur;
-    while (isBlanks(cur = (char)getc(file)));
-    ungetc(cur, file);
-    return (NULL == file || feof(file) != 0 || cur == EOF);
+    skipBlanks();
+    return eof();
 }
 
 bool InStream::eoln()
 {
-    if (NULL == file)
+    if (!strict && NULL == file)
         return true;
-    char c = curChar();
-    return isEolnChar(c);
+
+    char c = nextChar();
+
+    if (!strict)
+    {
+        if (isEof(c))
+            return true;
+
+        if (c == CR)
+        {
+            c = nextChar();
+
+            std::printf("%d\n", c);
+
+            if (c != LF)
+            {
+                unreadChar(CR);
+                unreadChar(c);
+                return false;
+            }
+            else
+                return true;
+        }
+        
+        if (c == LF)
+            return true;
+
+        unreadChar(c);
+        return false;
+    }
+    else
+    {
+        bool returnCr = false;
+
+#ifdef ON_WINDOWS
+        if (c != CR)
+        {
+            unreadChar(c);
+            return false;
+        }
+        else
+        {
+            if (!returnCr)
+                returnCr = true;
+            c = nextChar();
+        }
+#endif        
+        if (c != LF)
+        {
+            if (returnCr)
+                unreadChar(CR);
+            unreadChar(LF);
+            return false;
+        }
+
+        return true;
+    }
+}
+
+void InStream::readEoln()
+{
+    if (!eoln())
+        quit(_pe, "Expected EOLN");
+}
+
+void InStream::readEof()
+{
+    if (!eof())
+        quit(_pe, "Expected EOF");
 }
 
 bool InStream::seekEoln()
 {
     if (NULL == file)
         return true;
+    
     char cur;
     do
     {
-        cur = (char)getc(file);
+        cur = nextChar();
     } 
     while (cur == SPACE || cur == TAB);
     ungetc(cur, file);
-    return isEolnChar(cur);
+
+    return eoln();
 }
 
 void InStream::nextLine()
@@ -670,17 +1326,17 @@ void InStream::nextLine()
     if (NULL == file)
         return;
     char cur;
-    while (!isEolnChar(cur = (char)getc(file)));
+    while (!isEoln(cur = readChar()));
     if (cur == CR)
     {
-        cur = (char)getc(file);
+        cur = readChar();
         if (cur != LF)
-            ungetc(cur, file);
+            unreadChar(cur);
     }
     else
     {
         if (cur != LF)
-            ungetc(cur, file);
+            unreadChar(cur);
     }
 }
 
@@ -691,21 +1347,28 @@ std::string InStream::readString()
 
     std::string retval = "";
     char cur;
-    while (!isEolnChar(cur = (char)getc(file)))
+
+    while (true)
+    {
+        cur = readChar();
+
+        if (isEoln(cur))
+            break;
+
+        if (isEof(cur))
+            break;
+
         retval += cur;
-    if (cur == CR)
-    {
-        cur = (char)getc(file);
-        if (cur != LF)
-            ungetc(cur, file);
     }
-    else
-    {
-        if (cur != LF)
-            ungetc(cur, file);
-    }
-    
+
+    eoln();
+
     return retval;
+}
+
+std::string InStream::readLine()
+{
+    return readString();
 }
 
 void InStream::close()
@@ -738,6 +1401,17 @@ void quitf(TResult result, const char * format, ...)
     delete[] buffer;
 
     quit(result, output);
+}
+
+void registerGen(int argc, char* argv[])
+{
+    rnd.setSeed(argc, argv);
+}
+
+void registerValidation()
+{
+    inf.init(stdin, _input);
+    inf.strict = true;
 }
 
 void registerTestlibCmd(int argc, char * argv[])
@@ -890,12 +1564,27 @@ double doubleDelta(double expected, double result)
         return absolute;
 }
 
-void ensure(bool cond, const std::string msg = "")
+static void __testlib_ensure(bool cond, const std::string msg)
 {
     if (!cond)
-    {
         quitf(_fail, msg.c_str());
-    }
+}
+
+#define ensure(cond) __testlib_ensure(cond, std::string("Condition failed: \"") + #cond + "\"")
+
+void ensuref(bool cond, const char* format, ...)
+{
+    char * buffer = new char [OUTPUT_BUFFER_SIZE];
+    
+    va_list ap;
+    va_start(ap, format);
+    std::vsprintf(buffer, format, ap);
+    va_end(ap);
+
+    std::string message(buffer);
+    delete[] buffer;
+
+    __testlib_ensure(cond, message);
 }
 
 void setName(const char* format, ...)
