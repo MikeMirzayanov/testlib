@@ -6,7 +6,7 @@
  * Copyright (c) 2005-2009
  */
 
-#define VERSION "0.6.?"
+#define VERSION "0.6.1"
 
 /* 
  * Mike Mirzayanov
@@ -24,13 +24,25 @@
 
 /* NOTE: This file contains testlib library for C++.
  *
- *   Program, using testlib running format:
+ *   Check, using testlib running format:
  *     check.exe <Input_File> <Output_File> <Answer_File> [<Result_File> [-appes]],
- *
  *   If result file is specified it will contain results.
+ *
+ *   Validator, using testlib running format:                                          
+ *     validator.exe < input.txt,
+ *   It will return non-zero exit code and writes message to standard output.
+ *
+ *   Generator, using testlib running format:                                          
+ *     gen.exe [parameter-1] [parameter-2] [... paramerter-n],
+ *   You can write generated test(s) into standard output or into the file(s).
  */
 
 const char* latestFeatures[] = {
+                          "Package extended with samples of generators and validators",  
+                          "Written the documentation for classes and public methods in testlib.h",
+                          "Implemented random routine to support generators, use registerGen() to switch it on",
+                          "Implemented strict mode to validate tests, use registerValidation() to switch it on",
+                          "Now ncmp.cpp and wcmp.cpp are return WA if answer is suffix or prefix of the output",
                           "Added InStream::readLong() and removed InStream::readLongint()",
                           "Now no footer added to each report by default (use directive FOOTER to switch on)",
                           "Now every checker has a name, use setName(const char* format, ...) to set it",
@@ -55,12 +67,17 @@ const char* latestFeatures[] = {
 #include <string>
 #include <vector>
 #include <set>
+#include <cmath>
 #include <sstream>
-#include <string.h>
+#include <algorithm>
+#include <cstring>
 #include <stdarg.h>
 
 #include <fcntl.h>
+
+#if !defined(unix)
 #include <io.h>
+#endif
 
 #if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
 #include <windows.h>
@@ -73,11 +90,7 @@ const char* latestFeatures[] = {
 #define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
 
-#define ABS(f) ((f) < 0 ? -(f) : (f))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-#define OUTPUT_BUFFER_SIZE (2097152)
+#define MAX_FORMAT_BUFFER_SIZE (2097152)
 
 #define LF ((char)10)
 #define CR ((char)13)
@@ -99,25 +112,77 @@ const char* latestFeatures[] = {
 #define DIRT_EXIT_CODE 6
 #endif
 
-/* Random routine */
+/* Just to make testlib independent from "algorithm" */
+template<typename T>
+inline T __testlib_abs(const T& x)
+{
+    return x > 0 ? x : -x;
+}
+
+/*
+ * Very simple regex-like pattern.
+ * It used for two purposes: validation and generation.
+ * 
+ * For example, pattern("[a-z]{1,5}").next(rnd) will return
+ * random string from lowercase latin letters with length 
+ * from 1 to 5. It is easier to call rnd.next("[a-z]{1,5}") 
+ * for the same effect. 
+ * 
+ * Another samples:
+ * "mike|john" will generate (match) "mike" or "john";
+ * "-?[1-9][0-9]{0,3}" will generate (match) non-zero integers from -9999 to 9999;
+ * "id-([ac]|b{2})" will generate (match) "id-a", "id-bb", "id-c";
+ * "[^0-9]*" will match sequences (empty or non-empty) without digits, you can't 
+ * use it for generations.
+ *
+ * You can't use pattern for generation if it contains meta-symbol '*'. Also it
+ * is not recommended to use it for char-sets with meta-symbol '^' like [^a-z].
+ *
+ * For matching very simple greedy algorithm is used. For example, pattern
+ * "[0-9]?1" will not match "1", because of greedy nature of matching.
+ * Alternations (meta-symbols "|") are processed with brute-force algorithm, so 
+ * do not use many alternations in one expression.
+ *
+ * If you want to use one expression many times it is better to compile it into
+ * a single pattern like "pattern p("[a-z]+")". Later you can use 
+ * "p.matches(std::string s)" or "p.next(random& rd)" to check matching or generate
+ * new string by pattern.
+ * 
+ * Simpler way to read token and check it for pattern matching is "inf.readToken("[a-z]+")".
+ */
 class random;
 
 class pattern
 {
 public:
+    /* Create pattern instance by string. */
     pattern(std::string s);
+    /* Generate new string by pattern and given random. */
     std::string next(random& rnd) const;
+    /* Checks if given string match the pattern. */
     bool matches(const std::string& s) const;
 
 private:
     bool matches(const std::string& s, size_t pos) const;
 
     std::vector<pattern> children;
-    std::set<char> chars;
+    std::vector<char> chars;
     int from;
     int to;
 };
 
+/* 
+ * Use random instances to generate random values. It is preffered
+ * way to use randoms instead of rand() function or self-written 
+ * randoms.
+ *
+ * Testlib defines global variable "rnd" of random class.
+ * Use registerGen(argc, argv) to setup random seed be command
+ * line.
+ *
+ * Random generates uniformly distributed values if another strategy is
+ * not specified explicitly.
+ */
 class random
 {
 private:
@@ -125,8 +190,8 @@ private:
     static const long long multiplier;
     static const long long addend;
     static const long long mask;
-
-public:
+    static const int lim;
+    
     long long nextBits(int bits) 
     {
         if (bits <= 48)
@@ -144,11 +209,13 @@ public:
     }
 
 public:
+    /* New random with fixed seed. */
     random()
         : seed(3905348978240129619LL)
     {
     }
 
+    /* Sets seed by command line. */
     void setSeed(int argc, char* argv[])
     {
         random p;
@@ -165,12 +232,14 @@ public:
         seed = seed & mask;
     }
 
+    /* Sets seed by given value. */ 
     void setSeed(long long _seed)
     {
         _seed = (_seed ^ multiplier) & mask;
         seed = _seed;
     }
 
+    /* Random value in range [0, n-1]. */
     int next(int n) 
     {
         if (n <= 0)
@@ -190,6 +259,7 @@ public:
         return val;
     }
 
+    /* Random value in range [0, n-1]. */
     int next(unsigned int n)
     {
         if (n >= INT_MAX)
@@ -197,6 +267,7 @@ public:
         return next(int(n));
     }
 
+    /* Random value in range [0, n-1]. */
     long long next(long long n) 
     {
         if (n <= 0)
@@ -213,39 +284,232 @@ public:
         return val;
     }
 
-    int nextInt(int n)
+    /* Returns random value in range [from,to]. */
+    int next(int from, int to)
     {
-        return next(n);
+        return next(to - from + 1) + from;
     }
 
-    long long nextLong(long long n)
+    /* Returns random value in range [from,to]. */
+    int next(unsigned int from, unsigned int to)
     {
-        return next(n);
+        return next(to - from + 1) + from;
     }
 
+    /* Returns random value in range [from,to]. */
+    long long next(long long from, long long to)
+    {
+        return next(to - from + 1) + from;
+    }
+
+    /* Random double value in range [0, 1). */
     double next() 
     {
         return (((long long)(nextBits(26)) << 27) + nextBits(27)) / (double)(1LL << 53);
     }
 
+    /* Random double value in range [0, n). */
     double next(double n)
     {
         return n * next();
     }
 
+    /* Random double value in range [from, to). */
+    double next(double from, double to)
+    {
+        return next(to - from) + from;
+    }
+
+    /* Random string value by given pattern (see pattern documentation). */
     std::string next(const std::string& ptrn)
     {
         pattern p(ptrn);
         return p.next(*this);
     }
+
+    /* Random string value by given pattern (see pattern documentation). */
+    std::string next(const char* format, ...)
+    {
+        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+        
+        va_list ap;
+        va_start(ap, format);
+        std::vsprintf(buffer, format, ap);
+        va_end(ap);
+
+        std::string ptrn(buffer);
+        delete[] buffer;
+
+        return next(ptrn);
+    }
+
+    /* 
+     * Weighted next. If type == 0 than it is usual "next()".
+     *
+     * If type = 1, than it returns "max(next(), next())"
+     * (the number of "max" functions equals to "type").
+     *
+     * If type < 0, than "max" function replaces with "min".
+     */
+    int wnext(int n, int type)
+    {
+        if (n <= 0)
+            throw "n must be positive";
+        
+        if (abs(type) < random::lim)
+        {
+            int result = next(n);
+
+            for (int i = 0; i < +type; i++)
+                result = std::max(result, next(n));
+            
+            for (int i = 0; i < -type; i++)
+                result = std::min(result, next(n));
+
+            return result;
+        }
+        else
+        {
+            double p;
+            
+            if (type > 0)
+                p = std::pow(next() + 0.0, 1.0 / (type + 1));
+            else
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
+
+            return int(n * p);
+        }
+    }
+    
+    /* See wnext(int, int). It uses the same algorithms. */
+    int wnext(unsigned int n, int type)
+    {
+        if (n >= INT_MAX)
+            throw "n must be less INT_MAX";
+        return wnext(int(n), type);
+    }
+    
+    /* See wnext(int, int). It uses the same algorithms. */
+    long long wnext(long long n, int type)
+    {
+        if (n <= 0)
+            throw "n must be positive";
+        
+        if (abs(type) < random::lim)
+        {
+            long long result = next(n);
+
+            for (int i = 0; i < +type; i++)
+                result = std::max(result, next(n));
+            
+            for (int i = 0; i < -type; i++)
+                result = std::min(result, next(n));
+
+            return result;
+        }
+        else
+        {
+            double p;
+            
+            if (type > 0)
+                p = std::pow(next() + 0.0, 1.0 / (type + 1));
+            else
+                p = std::pow(next() + 0.0, - type + 1);
+
+            return (long long)(n * p);
+        }
+    }
+    
+    /* See wnext(int, int). It uses the same algorithms. */
+    double wnext(int type)
+    {
+        if (abs(type) < random::lim)
+        {
+            double result = next();
+
+            for (int i = 0; i < +type; i++)
+                result = std::max(result, next());
+            
+            for (int i = 0; i < -type; i++)
+                result = std::min(result, next());
+
+            return result;
+        }
+        else
+        {
+            double p;
+            
+            if (type > 0)
+                p = std::pow(next() + 0.0, 1.0 / (type + 1));
+            else
+                p = std::pow(next() + 0.0, - type + 1);
+
+            return p;
+        }
+    }
+    
+    /* See wnext(int, int). It uses the same algorithms. */
+    double wnext(double n, int type)
+    {
+        if (n <= 0)
+            throw "n must be positive";
+
+        if (abs(type) < random::lim)
+        {
+            double result = next();
+
+            for (int i = 0; i < +type; i++)
+                result = std::max(result, next());
+            
+            for (int i = 0; i < -type; i++)
+                result = std::min(result, next());
+
+            return n * result;
+        }
+        else
+        {
+            double p;
+            
+            if (type > 0)
+                p = std::pow(next() + 0.0, 1.0 / (type + 1));
+            else
+                p = std::pow(next() + 0.0, - type + 1);
+
+            return n * p;
+        }
+    }
+
+    /* Returns weighted random value in range [from, to]. */
+    int wnext(int from, int to, int type)
+    {
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random value in range [from, to]. */
+    int wnext(unsigned int from, unsigned int to, int type)
+    {
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random value in range [from, to]. */
+    long long wnext(long long from, long long to, int type)
+    {
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random double value in range [from, to). */
+    double wnext(double from, double to, int type)
+    {
+        return wnext(to - from, type) + from;
+    }
 };
 
+const int random::lim = 25;
 const long long random::multiplier = 0x5DEECE66DLL;
 const long long random::addend = 0xBLL;
 const long long random::mask = (1LL << 48) - 1;
-/* End of random routine */
 
-/* Pattern routine */
+/* Pattern implementation */
 bool pattern::matches(const std::string& s) const
 {
     return matches(s, 0);
@@ -280,14 +544,14 @@ static char __pattern_getChar(const std::string& s, size_t& pos)
     return s[pos - 1];
 }
 
-static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::set<char> chars)
+static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::vector<char> chars)
 {
     int result = 0;
 
     while (pos < s.length())
     {
         char c = __pattern_getChar(s, pos);
-        if (chars.count(c) == 0)
+        if (!std::binary_search(chars.begin(), chars.end(), c))
             break;
         else
             result++;
@@ -330,15 +594,14 @@ std::string pattern::next(random& rnd) const
 
     if (to > 0)
     {
-        std::vector<char> possible(chars.begin(), chars.end());
-        int count = rnd.nextInt(to - from + 1) + from;
+        int count = rnd.next(to - from + 1) + from;
         for (int i = 0; i < count; i++)
-            result += possible[rnd.nextInt(possible.size())];
+            result += chars[rnd.next(int(chars.size()))];
     }
 
     if (children.size() > 0)
     {
-        int child = rnd.nextInt(children.size());
+        int child = rnd.next(int(children.size()));
         result += children[child].next(rnd);
     }
 
@@ -417,19 +680,18 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
     }
 }
 
-static std::set<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
+static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
 {
     if (pos >= s.length())
         throw "Illegal pattern";
 
-    std::set<char> result;
+    std::vector<char> result;
 
     if (__pattern_isCommandChar(s, pos, '['))
     {
         pos++;
         bool negative = __pattern_isCommandChar(s, pos, '^');
 
-        std::vector<std::string> parts;
         char prev = 0;
 
         while (pos < s.length() && !__pattern_isCommandChar(s, pos, ']'))
@@ -440,7 +702,7 @@ static std::set<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
 
                 if (pos + 1 == s.length())
                 {
-                    result.insert(prev);
+                    result.push_back(prev);
                     prev = '-';
                     continue;
                 }
@@ -451,18 +713,20 @@ static std::set<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
                     throw "Illegal pattern";
 
                 for (char c = prev; c <= next; c++)
-                    result.insert(c);
+                    result.push_back(c);
+
+                prev = 0;
             }
             else
             {
                 if (prev != 0)
-                    result.insert(prev);
+                    result.push_back(prev);
                 prev = __pattern_getChar(s, pos);
             }
         }
 
         if (prev != 0)
-            result.insert(prev);
+            result.push_back(prev);
 
         if (!__pattern_isCommandChar(s, pos, ']'))
             throw "Illegal pattern";
@@ -471,18 +735,21 @@ static std::set<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
 
         if (negative)
         {
-            std::set<char> actuals;
+            std::sort(result.begin(), result.end());
+            std::vector<char> actuals;
             for (int code = 0; code < 255; code++)
             {
                 char c = char(code);
-                if (result.count(c) == 0)
-                    actuals.insert(c);
+                if (!std::binary_search(result.begin(), result.end(), c))
+                    actuals.push_back(c);
             }
             result = actuals;
         }
+
+        std::sort(result.begin(), result.end());
     }
     else
-        result.insert(__pattern_getChar(s, pos));
+        result.push_back(__pattern_getChar(s, pos));
 
     return result;
 }
@@ -553,7 +820,7 @@ pattern::pattern(std::string s): from(0), to(0)
         }
     }
 }
-/* End of pattern routine */
+/* End of pattern implementation */
 
 inline bool isEof(char c)
 {
@@ -583,8 +850,14 @@ enum TResult
 const std::string outcomes[] =
     {"accepted", "wrong-answer", "presentation-error", "fail", "fail"};
 
+/*
+ * Streams to be used for reading data in checkers or validators.
+ * Each read*() method moves pointer to the next character after the
+ * read value.
+ */
 struct InStream
 {
+    /* Do not use it. */
     InStream();
 
     std::FILE * file;
@@ -597,49 +870,106 @@ struct InStream
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
 
+    /* Moves stream pointer to the first non-white-space character or EOF. */ 
     void skipBlanks();
     
+    /* Returns current character in the stream. Doesn't remove it from stream. */
     char curChar();
+    /* Moves stream pointer one character forward. */
     void skipChar();
+    /* Returns current character and moves pointer one character forward. */
     char nextChar();
     
+    /* Returns current character and moves pointer one character forward. */
     char readChar();
+    /* As "readChar()" but ensures that the result is equal to given parameter. */
     char readChar(char c);
+    /* As "readChar()" but ensures that the result is equal to the space (code=32). */
     char readSpace();
+    /* Puts back the character into the stream. */
     void unreadChar(char c);
 
+    /* Reopens stream, you should not use it. */
     void reset();
+    /* Checks that current position is EOF. If not it doesn't move stream pointer. */
     bool eof();
+    /* Moves pointer to the first non-white-space character and calls "eof()". */
     bool seekEof();
 
+    /* 
+     * Checks that current position contains EOLN. 
+     * If not it doesn't move stream pointer. 
+     * In strict mode expects "#13#10" for windows or "#10" for other platforms.
+     */
     bool eoln();
+    /* Moves pointer to the first non-space and non-tab character and calls "eoln()". */
     bool seekEoln();
 
+    /* Moves stream pointer to the first character of the next line (if exists). */
     void nextLine();
 
+    /* 
+     * Reads new token. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     std::string readWord();
+    /* The same as "readWord()", it is preffered to use "readToken()". */
     std::string readToken();
+    /* The same as "readWord()", but ensures that token matches to given pattern. */
     std::string readWord(const std::string& ptrn);
+    /* The same as "readToken()", but ensures that token matches to given pattern. */
     std::string readToken(const std::string& ptrn);
 
+    /* 
+     * Reads new long long value. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     long long readLong();
+    /* 
+     * Reads new int. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     int readInteger();
+    /* 
+     * Reads new int. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     int readInt();
 
+    /* As "readLong()" but ensures that value in the range [minv,maxv]. */
     long long readLong(long long minv, long long maxv);
+    /* As "readInteger()" but ensures that value in the range [minv,maxv]. */
     int readInteger(int minv, int maxv);
+    /* As "readInt()" but ensures that value in the range [minv,maxv]. */
     int readInt(int minv, int maxv);
 
+    /* 
+     * Reads new double. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     double readReal();
+    /* 
+     * Reads new double. Ignores white-spaces into the non-strict mode 
+     * (strict mode is used in validators usually). 
+     */
     double readDouble();
     
+    /* As "readReal()" but ensures that value in the range [minv,maxv]. */
     double readReal(double minv, double maxv);
+    /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
     double readDouble(double minv, double maxv);
     
+    /* As readLine(). */
     std::string readString();
+    /* 
+     * Reads line from the current position to EOLN or EOF. Moves stream pointer to 
+     * the first character of the new line (if possible). 
+     */
     std::string readLine();
 
+    /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
+    /* Reads EOF or fails. Use it in validators. Calls "eof()" method internally. */
     void readEof();
 
     void quit(TResult result, const char * msg);
@@ -870,6 +1200,7 @@ void InStream::reset()
 
     opened = true;
 
+#if !defined(unix)
     if (NULL != file)
     {
 #ifdef _MSC_VER
@@ -878,6 +1209,7 @@ void InStream::reset()
         setmode(fileno(file), O_BINARY);
 #endif
     }
+#endif
 }
 
 void InStream::init(std::string fileName, TMode mode)
@@ -1390,7 +1722,7 @@ void quit(TResult result, const char * msg)
 
 void quitf(TResult result, const char * format, ...)
 {
-    char * buffer = new char [OUTPUT_BUFFER_SIZE];
+    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
@@ -1537,15 +1869,15 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                     return false;
                 }
                 else 
-                if(ABS(result - expected) < MAX_DOUBLE_ERROR)
+                if(__testlib_abs(result - expected) < MAX_DOUBLE_ERROR)
                 {
                     return true;
                 }
                 else
                 {
-                    double minv = MIN(expected * (1.0 - MAX_DOUBLE_ERROR),
+                    double minv = std::min(expected * (1.0 - MAX_DOUBLE_ERROR),
                                  expected * (1.0 + MAX_DOUBLE_ERROR));
-                    double maxv = MAX(expected * (1.0 - MAX_DOUBLE_ERROR),
+                    double maxv = std::max(expected * (1.0 - MAX_DOUBLE_ERROR),
                                   expected * (1.0 + MAX_DOUBLE_ERROR));
                     return result > minv && result < maxv;
                 }
@@ -1553,12 +1885,12 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 
 double doubleDelta(double expected, double result)
 {
-    double absolute = ABS(result - expected);
+    double absolute = __testlib_abs(result - expected);
     
-    if (ABS(expected) > 1E-9)
+    if (__testlib_abs(expected) > 1E-9)
     {
-        double relative = ABS(absolute / expected);
-        return MIN(absolute, relative);
+        double relative = __testlib_abs(absolute / expected);
+        return std::min(absolute, relative);
     }
     else
         return absolute;
@@ -1574,7 +1906,7 @@ static void __testlib_ensure(bool cond, const std::string msg)
 
 void ensuref(bool cond, const char* format, ...)
 {
-    char * buffer = new char [OUTPUT_BUFFER_SIZE];
+    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
@@ -1589,7 +1921,7 @@ void ensuref(bool cond, const char* format, ...)
 
 void setName(const char* format, ...)
 {
-    char * buffer = new char [OUTPUT_BUFFER_SIZE];
+    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
