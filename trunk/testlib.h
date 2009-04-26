@@ -601,7 +601,7 @@ std::string pattern::next(random& rnd) const
     std::string result;
 
     if (to == INT_MAX)
-        throw "Can't process character '*' for generation";
+        throw "Characters '*' and '+' are not supported in next()";
 
     if (to > 0)
     {
@@ -684,6 +684,12 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
         if (__pattern_isCommandChar(s, pos, '*'))
         {
             from = 0, to = INT_MAX, pos++;
+            return;
+        }
+
+        if (__pattern_isCommandChar(s, pos, '+'))
+        {
+            from = 1, to = INT_MAX, pos++;
             return;
         }
 
