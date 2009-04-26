@@ -112,11 +112,22 @@ const char* latestFeatures[] = {
 #define DIRT_EXIT_CODE 6
 #endif
 
-/* Just to make testlib independent from "algorithm" */
 template<typename T>
-inline T __testlib_abs(const T& x)
+static inline T __testlib_abs(const T& x)
 {
     return x > 0 ? x : -x;
+}
+
+template<typename T>
+static inline T __testlib_min(const T& a, const T& b)
+{
+    return a < b ? a : b;
+}
+
+template<typename T>
+static inline T __testlib_max(const T& a, const T& b)
+{
+    return a > b ? a : b;
 }
 
 /*
@@ -361,10 +372,10 @@ public:
             int result = next(n);
 
             for (int i = 0; i < +type; i++)
-                result = std::max(result, next(n));
+                result = __testlib_max(result, next(n));
             
             for (int i = 0; i < -type; i++)
-                result = std::min(result, next(n));
+                result = __testlib_min(result, next(n));
 
             return result;
         }
@@ -400,10 +411,10 @@ public:
             long long result = next(n);
 
             for (int i = 0; i < +type; i++)
-                result = std::max(result, next(n));
+                result = __testlib_max(result, next(n));
             
             for (int i = 0; i < -type; i++)
-                result = std::min(result, next(n));
+                result = __testlib_min(result, next(n));
 
             return result;
         }
@@ -428,10 +439,10 @@ public:
             double result = next();
 
             for (int i = 0; i < +type; i++)
-                result = std::max(result, next());
+                result = __testlib_max(result, next());
             
             for (int i = 0; i < -type; i++)
-                result = std::min(result, next());
+                result = __testlib_min(result, next());
 
             return result;
         }
@@ -459,10 +470,10 @@ public:
             double result = next();
 
             for (int i = 0; i < +type; i++)
-                result = std::max(result, next());
+                result = __testlib_max(result, next());
             
             for (int i = 0; i < -type; i++)
-                result = std::min(result, next());
+                result = __testlib_min(result, next());
 
             return n * result;
         }
@@ -1875,9 +1886,9 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                 }
                 else
                 {
-                    double minv = std::min(expected * (1.0 - MAX_DOUBLE_ERROR),
+                    double minv = __testlib_min(expected * (1.0 - MAX_DOUBLE_ERROR),
                                  expected * (1.0 + MAX_DOUBLE_ERROR));
-                    double maxv = std::max(expected * (1.0 - MAX_DOUBLE_ERROR),
+                    double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
                                   expected * (1.0 + MAX_DOUBLE_ERROR));
                     return result > minv && result < maxv;
                 }
@@ -1890,7 +1901,7 @@ double doubleDelta(double expected, double result)
     if (__testlib_abs(expected) > 1E-9)
     {
         double relative = __testlib_abs(absolute / expected);
-        return std::min(absolute, relative);
+        return __testlib_min(absolute, relative);
     }
     else
         return absolute;
