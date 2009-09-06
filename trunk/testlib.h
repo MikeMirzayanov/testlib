@@ -6,7 +6,7 @@
  * Copyright (c) 2005-2009
  */
 
-#define VERSION "0.6.1"
+#define VERSION "0.6.1.1"
 
 /* 
  * Mike Mirzayanov
@@ -38,6 +38,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Added readLine(const string& ptrn), fixed the logic of readLine() in the validation mode",  
                           "Package extended with samples of generators and validators",  
                           "Written the documentation for classes and public methods in testlib.h",
                           "Implemented random routine to support generators, use registerGen() to switch it on",
@@ -55,6 +56,7 @@ const char* latestFeatures[] = {
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
 #endif
 
 #define random __random_depricated
@@ -111,6 +113,8 @@ const char* latestFeatures[] = {
 #define FAIL_EXIT_CODE 6
 #define DIRT_EXIT_CODE 6
 #endif
+
+#define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition != 0) * 2 - 1];
 
 template<typename T>
 static inline T __testlib_abs(const T& x)
@@ -232,7 +236,7 @@ public:
         random p;
 
         seed = 3905348978240129619LL;
-        for (int i = 0; i < argc; i++)
+        for (int i = 1; i < argc; i++)
         {
             std::size_t le = std::strlen(argv[i]);
             for (std::size_t j = 0; j < le; j++)
@@ -263,7 +267,7 @@ public:
         
         do 
         {
-            bits = nextBits(31);
+            bits = int(nextBits(31));
             val = bits % n;
         } while (bits - val + (n - 1) < 0);
 
@@ -601,7 +605,7 @@ std::string pattern::next(random& rnd) const
     std::string result;
 
     if (to == INT_MAX)
-        throw "Characters '*' and '+' are not supported in next()";
+        throw "Can't process character '*' for generation";
 
     if (to > 0)
     {
@@ -692,7 +696,7 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
             from = 1, to = INT_MAX, pos++;
             return;
         }
-
+        
         from = to = 1;
     }
 }
@@ -983,6 +987,12 @@ struct InStream
      * the first character of the new line (if possible). 
      */
     std::string readLine();
+
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    std::string readLine(const std::string& ptrn);
+
+    /* See readLine(const std::string& ptrn). */
+    std::string readString(const std::string& ptrn);
 
     /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
@@ -1480,7 +1490,7 @@ int InStream::readInteger()
     long long value = stringToLongLong(*this, token.c_str());
     if (value < INT_MIN || value > INT_MAX)
         quit(_pe, ("Expected int32, but \"" + token + "\" found").c_str());
-    return value;
+    return int(value);
 }
 
 long long InStream::readLong()
@@ -1561,7 +1571,7 @@ bool InStream::eof()
     {
         int cur = getc(file);
 
-        if (isEof(cur))
+        if (isEof(char(cur)))
             return true;
         else
         {
@@ -1697,7 +1707,7 @@ std::string InStream::readString()
     std::string retval = "";
     char cur;
 
-    while (true)
+    for (;;)
     {
         cur = readChar();
 
@@ -1710,14 +1720,33 @@ std::string InStream::readString()
         retval += cur;
     }
 
-    eoln();
+    unreadChar(cur);
+
+    if (strict)
+        readEoln();
+    else
+        eoln();
 
     return retval;
+}
+
+std::string InStream::readString(const std::string& ptrn)
+{
+    pattern p(ptrn);
+    std::string result = readString();
+    if (!p.matches(result))
+        quit(_pe, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    return result;
 }
 
 std::string InStream::readLine()
 {
     return readString();
+}
+
+std::string InStream::readLine(const std::string& ptrn)
+{
+    return readString(ptrn);    
 }
 
 void InStream::close()
@@ -1787,11 +1816,11 @@ void registerTestlibCmd(int argc, char * argv[])
         std::exit(0);
     }
 
-    if (sizeof(int) != 4)
-        quit(_fail, "'testlib' unit assumes 'sizeof(int) = 4'");
+    // testlib assumes: sizeof(int) = 4.
+    __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
 
-    if (sizeof(long long) != 8)
-        quit(_fail, "'testlib' unit assumes 'sizeof(long long) = 8'");
+    // testlib assumes: sizeof(long long) = 8.
+    __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
     if (argc  < 4 || argc > 6)
     {
