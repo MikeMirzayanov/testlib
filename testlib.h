@@ -1605,8 +1605,6 @@ bool InStream::eoln()
         {
             c = nextChar();
 
-            std::printf("%d\n", c);
-
             if (c != LF)
             {
                 unreadChar(CR);
