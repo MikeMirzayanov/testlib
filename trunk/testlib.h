@@ -1,12 +1,29 @@
+/* 
+ * It is strictly recommended to include "testlib.h" before any other include 
+ * in your code. In this case testlib overrides compiler specific "random()".
+ *
+ * If you can't compile your code and compiler outputs something about 
+ * ambiguous call of "random_shuffle", "rand" or "srand" it means that 
+ * you shouldn't use them. Use "shuffle", and "rnd.next()" instead of them
+ * because these calls produce stable result for any C++ compiler. Read 
+ * sample generator sources for clarification.
+ *
+ * Please read the documentation for class "random" and use "rnd" instance in
+ * generators. Probably, these sample calls will be usefull for you:
+ *              rnd.next(); rnd.next(100); rnd.next(1, 2); 
+ *              rnd.next(3.14); rnd.next("[a-z]{1,100}").
+ *
+ * Also read about wnext() to generate off-center random distribution.
+ */
+
 #ifndef _TESTLIB_H_
 #define _TESTLIB_H_
 
 /*
- *
- * Copyright (c) 2005-2009
+ * Copyright (c) 2005-2009                                -*
  */
 
-#define VERSION "0.6.1.1"
+#define VERSION "0.6.2"
 
 /* 
  * Mike Mirzayanov
@@ -38,6 +55,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Added shuffle(begin, end), use it instead of random_shuffle(begin, end)",  
                           "Added readLine(const string& ptrn), fixed the logic of readLine() in the validation mode",  
                           "Package extended with samples of generators and validators",  
                           "Written the documentation for classes and public methods in testlib.h",
@@ -59,9 +77,12 @@ const char* latestFeatures[] = {
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#define random __random_depricated
+/* Overrides random() for Borland C++. */
+#define random __random_deprecated
 #include <stdlib.h>
+#include <cstdlib>
 #include <climits>
+#include <algorithm>
 #undef random
 
 #include <cstdio>
@@ -71,7 +92,6 @@ const char* latestFeatures[] = {
 #include <set>
 #include <cmath>
 #include <sstream>
-#include <algorithm>
 #include <cstring>
 #include <stdarg.h>
 
@@ -1976,6 +1996,40 @@ void setName(const char* format, ...)
     delete[] buffer;
 
     checkerName = name;
+}
+
+/* 
+ * Do not use random_shuffle, because it will produce different result
+ * for different C++ compilers.
+ *
+ * This implementation uses testlib random to produce random numbers, so
+ * it is stable.
+ */ 
+template<typename _RandomAccessIter>
+void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
+{
+    if (__first == __last) return;
+    for (_RandomAccessIter __i = __first + 1; __i != __last; ++__i)
+        iter_swap(__i, __first + rnd.next((__i - __first) + 1));
+}
+
+
+template<typename _RandomAccessIter>
+void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
+{
+    quitf(_fail, "Don't use random_shuffle(), use shuffle()");
+}
+
+int rand()
+{
+    quitf(_fail, "Don't use rand(), use rnd.next()");
+    return 0;
+}
+
+void srand(unsigned int seed)
+{
+    quitf(_fail, "Don't use srand(), you should use" 
+        "'registerGen(argc, argv);' to initialize generator.", seed);
 }
 
 #endif
