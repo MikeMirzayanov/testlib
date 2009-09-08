@@ -20,7 +20,7 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2009                                -*
+ * Copyright (c) 2005-2009                                
  */
 
 #define VERSION "0.6.2"
