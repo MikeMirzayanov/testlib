@@ -137,7 +137,7 @@ const char* latestFeatures[] = {
 #define PC_BASE_EXIT_CODE 0
 #endif
 
-#define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition != 0) * 2 - 1];
+#define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
 
 template<typename T>
 static inline T __testlib_abs(const T& x)
