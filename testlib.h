@@ -55,6 +55,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Supported \"partially correct\", example: quitf(_pc(13), \"result=%d\", result)",  
                           "Added shuffle(begin, end), use it instead of random_shuffle(begin, end)",  
                           "Added readLine(const string& ptrn), fixed the logic of readLine() in the validation mode",  
                           "Package extended with samples of generators and validators",  
@@ -126,12 +127,14 @@ const char* latestFeatures[] = {
 #define PE_EXIT_CODE 2
 #define FAIL_EXIT_CODE 3
 #define DIRT_EXIT_CODE 4
+#define PC_BASE_EXIT_CODE 0
 #else
 #define OK_EXIT_CODE 0
 #define WA_EXIT_CODE 5
 #define PE_EXIT_CODE 4
 #define FAIL_EXIT_CODE 6
 #define DIRT_EXIT_CODE 6
+#define PC_BASE_EXIT_CODE 0
 #endif
 
 #define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition != 0) * 2 - 1];
@@ -885,11 +888,13 @@ enum TMode
 
 enum TResult
 {
-    _ok, _wa, _pe, _fail, _dirt
+    _ok, _wa, _pe, _fail, _dirt, _partially
 };
 
+#define _pc(exitCode) (TResult(_partially + exitCode))
+
 const std::string outcomes[] =
-    {"accepted", "wrong-answer", "presentation-error", "fail", "fail"};
+    {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct"};
 
 /*
  * Streams to be used for reading data in checkers or validators.
@@ -1028,6 +1033,7 @@ struct InStream
     const static WORD LightRed = 0x0c;    
     const static WORD LightCyan = 0x0b;    
     const static WORD LightGreen = 0x0a;    
+    const static WORD LightYellow = 0x0e;    
 
     static void textColor(WORD color);
     static void quitscr(WORD color, const char * msg);
@@ -1077,6 +1083,8 @@ int resultExitCode(TResult r)
         return FAIL_EXIT_CODE;
     if (r == _dirt)
         return DIRT_EXIT_CODE;
+    if (r >= _partially)
+        return PC_BASE_EXIT_CODE + (r - _partially);
     return FAIL_EXIT_CODE;
 }
 
@@ -1113,6 +1121,8 @@ void InStream::quit(TResult result, const char * msg)
             quit(_dirt, "Extra information in the output file");
     }
 
+    int pctype = result - _partially;
+
     switch (result)
     {
     case _fail:
@@ -1137,7 +1147,15 @@ void InStream::quit(TResult result, const char * msg)
         quitscrS(LightRed, errorName);
         break;
     default:
-        quit(_fail, "What is the code ??? ");
+        if (result >= _partially)
+        {
+            char message[1023];
+            std::sprintf(message, "partially correct (%d) ", pctype);
+            errorName = std::string(message);
+            quitscrS(LightYellow, errorName);
+        }
+        else
+            quit(_fail, "What is the code ??? ");
     }
 
     if (resultName != "")
@@ -1148,7 +1166,10 @@ void InStream::quit(TResult result, const char * msg)
         if (appesMode)
         {
             fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
-            fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
+            if (result >= _partially)
+                fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">", outcomes[(int)_partially].c_str(), pctype);
+            else
+                fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
             xmlSafeWrite(resultFile, msg);
             fprintf(resultFile, "</result>\n");
         }
