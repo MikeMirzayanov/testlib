@@ -23,7 +23,7 @@
  * Copyright (c) 2005-2009                                
  */
 
-#define VERSION "0.6.2"
+#define VERSION "0.6.3-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -55,6 +55,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Improved ensuref(), fixed nextLine to work in case of EOF, added startTest()",  
                           "Supported \"partially correct\", example: quitf(_pc(13), \"result=%d\", result)",  
                           "Added shuffle(begin, end), use it instead of random_shuffle(begin, end)",  
                           "Added readLine(const string& ptrn), fixed the logic of readLine() in the validation mode",  
@@ -1721,21 +1722,7 @@ bool InStream::seekEoln()
 
 void InStream::nextLine()
 {
-    if (NULL == file)
-        return;
-    char cur;
-    while (!isEoln(cur = readChar()));
-    if (cur == CR)
-    {
-        cur = readChar();
-        if (cur != LF)
-            unreadChar(cur);
-    }
-    else
-    {
-        if (cur != LF)
-            unreadChar(cur);
-    }
+    readLine();
 }
 
 std::string InStream::readString()
@@ -1991,17 +1978,20 @@ static void __testlib_ensure(bool cond, const std::string msg)
 
 void ensuref(bool cond, const char* format, ...)
 {
-    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, format);
-    std::vsprintf(buffer, format, ap);
-    va_end(ap);
+    if (!cond)
+    {
+        char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+        
+        va_list ap;
+        va_start(ap, format);
+        std::vsprintf(buffer, format, ap);
+        va_end(ap);
 
-    std::string message(buffer);
-    delete[] buffer;
+        std::string message(buffer);
+        delete[] buffer;
 
-    __testlib_ensure(cond, message);
+        __testlib_ensure(cond, message);
+    }
 }
 
 void setName(const char* format, ...)
@@ -2051,6 +2041,14 @@ void srand(unsigned int seed)
 {
     quitf(_fail, "Don't use srand(), you should use" 
         "'registerGen(argc, argv);' to initialize generator.", seed);
+}
+
+void startTest(int test)
+{
+    char c[16];
+    sprintf(c, "%d", test);
+    fclose(stdout);
+    freopen(c, "wt", stdout);
 }
 
 #endif
