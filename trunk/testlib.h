@@ -14,13 +14,15 @@
  *              rnd.next(3.14); rnd.next("[a-z]{1,100}").
  *
  * Also read about wnext() to generate off-center random distribution.
+ *
+ * See http://code.google.com/p/testlib/ to get latest version or bug tracker.
  */
 
 #ifndef _TESTLIB_H_
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2009                                
+ * Copyright (c) 2005-2010                                
  */
 
 #define VERSION "0.6.3-SNAPSHOT"
@@ -1826,8 +1828,8 @@ void registerTestlibCmd(int argc, char * argv[])
     if (argc > 1 && !strcmp("--help", argv[1]))
     {
         InStream::textColor(InStream::LightCyan);
-        std::printf("TESTLIB %s ", VERSION);
-        std::printf("by Mike Mirzayanov, copyright(c) 2005-2009\n");
+        std::printf("TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
+        std::printf("by Mike Mirzayanov, copyright(c) 2005-2010\n");
         std::printf("Checker name: \"%s\"\n", checkerName.c_str());
         InStream::textColor(InStream::LightGray);
 
