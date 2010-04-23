@@ -91,7 +91,6 @@ const char* latestFeatures[] = {
 #include <cctype>
 #include <string>
 #include <vector>
-#include <set>
 #include <cmath>
 #include <sstream>
 #include <cstring>
@@ -157,6 +156,8 @@ static inline T __testlib_max(const T& a, const T& b)
 {
     return a > b ? a : b;
 }
+
+static void __testlib_fail(const std::string& message);
 
 /*
  * Very simple regex-like pattern.
@@ -241,7 +242,7 @@ private:
         else
         {
             if (bits > 63)
-                throw "n must be less than 64";
+                __testlib_fail("random::nextBits(int bits): n must be less than 64");
 
             return ((nextBits(31) << 32) ^ nextBits(31));
         }
@@ -282,7 +283,7 @@ public:
     int next(int n) 
     {
         if (n <= 0)
-            throw "n must be positive";
+            __testlib_fail("random::next(int n): n must be positive");
 
         if ((n & -n) == n)  // n is a power of 2
             return (int)((n * (long long)nextBits(31)) >> 31);
@@ -302,7 +303,7 @@ public:
     int next(unsigned int n)
     {
         if (n >= INT_MAX)
-            throw "n must be less INT_MAX";
+            __testlib_fail("random::next(unsigned int n): n must be less INT_MAX");
         return next(int(n));
     }
 
@@ -310,7 +311,7 @@ public:
     long long next(long long n) 
     {
         if (n <= 0)
-            throw "n must be positive";
+            __testlib_fail("random::next(long long n): n must be positive");
 
         long long bits, val;
         
@@ -393,7 +394,7 @@ public:
     int wnext(int n, int type)
     {
         if (n <= 0)
-            throw "n must be positive";
+            __testlib_fail("random::wnext(int n, int type): n must be positive");
         
         if (abs(type) < random::lim)
         {
@@ -424,7 +425,7 @@ public:
     int wnext(unsigned int n, int type)
     {
         if (n >= INT_MAX)
-            throw "n must be less INT_MAX";
+            __testlib_fail("random::wnext(unsigned int n, int type): n must be less INT_MAX");
         return wnext(int(n), type);
     }
     
@@ -432,7 +433,7 @@ public:
     long long wnext(long long n, int type)
     {
         if (n <= 0)
-            throw "n must be positive";
+            __testlib_fail("random::wnext(long long n, int type): n must be positive");
         
         if (abs(type) < random::lim)
         {
@@ -491,7 +492,7 @@ public:
     double wnext(double n, int type)
     {
         if (n <= 0)
-            throw "n must be positive";
+            __testlib_fail("random::wnext(double n, int type): n must be positive");
 
         if (abs(type) < random::lim)
         {
@@ -629,7 +630,7 @@ std::string pattern::next(random& rnd) const
     std::string result;
 
     if (to == INT_MAX)
-        throw "Can't process character '*' for generation";
+        __testlib_fail("pattern::next(random& rnd): can't process character '*' for generation");
 
     if (to > 0)
     {
@@ -674,22 +675,22 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
             parts.push_back(part);
 
         if (!__pattern_isCommandChar(s, pos, '}'))
-            throw "Illegal pattern";
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
         pos++;
 
         if (parts.size() < 1 || parts.size() > 2)
-            throw "Illegal pattern";
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
         std::vector<int> numbers;
 
         for (size_t i = 0; i < parts.size(); i++)
         {
             if (parts[i].length() == 0)
-                throw "Illegal pattern";
+                __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             int number;
             if (std::sscanf(parts[i].c_str(), "%d", &number) != 1)
-                throw "Illegal pattern";
+                __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             numbers.push_back(number);
         }
 
@@ -699,7 +700,7 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
             from = numbers[0], to = numbers[1];
 
         if (from > to)
-            throw "Illegal pattern";
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
     }
     else
     {
@@ -728,7 +729,7 @@ static void __pattern_scanCounts(const std::string& s, size_t& pos, int& from, i
 static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos)
 {
     if (pos >= s.length())
-        throw "Illegal pattern";
+        __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
     std::vector<char> result;
 
@@ -755,7 +756,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos
                 char next = __pattern_getChar(s, pos);
 
                 if (prev > next)
-                    throw "Illegal pattern";
+                    __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
                 for (char c = prev; c <= next; c++)
                     result.push_back(c);
@@ -774,7 +775,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos
             result.push_back(prev);
 
         if (!__pattern_isCommandChar(s, pos, ']'))
-            throw "Illegal pattern";
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
         pos++;
 
@@ -828,14 +829,14 @@ pattern::pattern(std::string s): from(0), to(0)
         }
         
         if (opened < 0)
-            throw "Illegal pattern";
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
         if (__pattern_isCommandChar(s, i, '|') && opened == 0)
             seps.push_back(i);
     }
 
     if (opened != 0)
-        throw "Illegal pattern";
+        __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
     if (seps.size() == 0 && firstClose + 1 == (int)s.length() 
             && __pattern_isCommandChar(s, 0, '(') && __pattern_isCommandChar(s, s.length() - 1, ')'))
@@ -1470,7 +1471,8 @@ static double stringToDouble(InStream& in, const char* buffer)
     else
         in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
 
-    throw "Unexpected exception";
+    __testlib_fail("Unexpected case in stringToDouble");
+    return retval;
 }
 
 static long long stringToLongLong(InStream& in, const char* buffer)
@@ -1520,7 +1522,8 @@ static long long stringToLongLong(InStream& in, const char* buffer)
     else
         in.quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
 
-    throw "Unexpected exception";
+    __testlib_fail("Unexpected case in stringToLongLong");
+    return retval;
 }
 
 int InStream::readInteger()
@@ -2039,8 +2042,8 @@ int rand()
 
 void srand(unsigned int seed)
 {
-    quitf(_fail, "Don't use srand(), you should use" 
-        "'registerGen(argc, argv);' to initialize generator.", seed);
+    quitf(_fail, "Don't use srand(), you should use " 
+        "'registerGen(argc, argv);' to initialize generator seed");
 }
 
 void startTest(int test)
@@ -2049,6 +2052,11 @@ void startTest(int test)
     sprintf(c, "%d", test);
     fclose(stdout);
     freopen(c, "wt", stdout);
+}
+
+static void __testlib_fail(const std::string& message)
+{
+    quitf(_fail, message.c_str());
 }
 
 #endif
