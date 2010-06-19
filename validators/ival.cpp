@@ -11,7 +11,7 @@ int main()
 {
     registerValidation();
     
-    inf.readInt(1, 100);
+    inf.readInt(1, 100, "n");
     inf.readEoln();
     inf.readEof();
 

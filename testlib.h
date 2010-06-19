@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2010                                
  */
 
-#define VERSION "0.6.3"
+#define VERSION "0.6.4-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -966,9 +966,9 @@ struct InStream
     /* The same as "readWord()", it is preffered to use "readToken()". */
     std::string readToken();
     /* The same as "readWord()", but ensures that token matches to given pattern. */
-    std::string readWord(const std::string& ptrn);
+    std::string readWord(const std::string& ptrn, const std::string variableName = "");
     /* The same as "readToken()", but ensures that token matches to given pattern. */
-    std::string readToken(const std::string& ptrn);
+    std::string readToken(const std::string& ptrn, const std::string variableName = "");
 
     /* 
      * Reads new long long value. Ignores white-spaces into the non-strict mode 
@@ -987,11 +987,11 @@ struct InStream
     int readInt();
 
     /* As "readLong()" but ensures that value in the range [minv,maxv]. */
-    long long readLong(long long minv, long long maxv);
+    long long readLong(long long minv, long long maxv, const std::string& variableName = "");
     /* As "readInteger()" but ensures that value in the range [minv,maxv]. */
-    int readInteger(int minv, int maxv);
+    int readInteger(int minv, int maxv, const std::string& variableName = "");
     /* As "readInt()" but ensures that value in the range [minv,maxv]. */
-    int readInt(int minv, int maxv);
+    int readInt(int minv, int maxv, const std::string& variableName = "");
 
     /* 
      * Reads new double. Ignores white-spaces into the non-strict mode 
@@ -1005,9 +1005,9 @@ struct InStream
     double readDouble();
     
     /* As "readReal()" but ensures that value in the range [minv,maxv]. */
-    double readReal(double minv, double maxv);
+    double readReal(double minv, double maxv, const std::string& variableName = "");
     /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
-    double readDouble(double minv, double maxv);
+    double readDouble(double minv, double maxv, const std::string& variableName = "");
     
     /* As readLine(). */
     std::string readString();
@@ -1018,10 +1018,10 @@ struct InStream
     std::string readLine();
 
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
-    std::string readLine(const std::string& ptrn);
+    std::string readLine(const std::string& ptrn, const std::string& variableName = "");
 
     /* See readLine(const std::string& ptrn). */
-    std::string readString(const std::string& ptrn);
+    std::string readString(const std::string& ptrn, const std::string& variableName = "");
 
     /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
@@ -1408,18 +1408,23 @@ static std::string __testlib_part(const std::string& s)
         return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
 }
 
-std::string InStream::readWord(const std::string& ptrn)
+std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
 {
     pattern p(ptrn);
     std::string result = readWord();
     if (!p.matches(result))
-        quit(_pe, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    {
+        if (variableName.empty())
+            quit(_pe, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+        else
+            quit(_pe, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    }
     return result;
 }
 
-std::string InStream::readToken(const std::string& ptrn)
+std::string InStream::readToken(const std::string& ptrn, const std::string& variableName)
 {
-    return readWord(ptrn);
+    return readWord(ptrn, variableName);
 }
 
 static bool equals(long long integer, const char* s)
@@ -1468,7 +1473,12 @@ static double stringToDouble(InStream& in, const char* buffer)
         if (isBlanks(buffer[i]))
             in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
 
-    if (std::sscanf(buffer, "%lf", &retval) == 1)
+    char* suffix = new char[length + 1];
+    int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
+    bool empty = strlen(suffix) == 0;
+    delete[] suffix;
+
+    if (scanned == 1 || (scanned == 2 && empty))
         return retval;
     else
         in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
@@ -1549,12 +1559,17 @@ long long InStream::readLong()
     return stringToLongLong(*this, token.c_str());
 }
 
-long long InStream::readLong(long long minv, long long maxv)
+long long InStream::readLong(long long minv, long long maxv, const std::string& variableName)
 {
     long long result = readLong();
 
     if (result < minv || result > maxv)
-        quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    {
+        if (variableName.empty())
+            quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        else
+            quit(_pe, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    }
 
     return result;
 }
@@ -1564,19 +1579,24 @@ int InStream::readInt()
     return readInteger();
 }
 
-int InStream::readInt(int minv, int maxv)
+int InStream::readInt(int minv, int maxv, const std::string& variableName)
 {
     int result = readInt();
 
     if (result < minv || result > maxv)
-        quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    {
+        if (variableName.empty())
+            quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        else
+            quit(_pe, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    }
 
     return result;
 }
 
-int InStream::readInteger(int minv, int maxv)
+int InStream::readInteger(int minv, int maxv, const std::string& variableName)
 {
-    return readInt(minv, maxv);
+    return readInt(minv, maxv, variableName);
 }
 
 double InStream::readReal()
@@ -1592,19 +1612,24 @@ double InStream::readDouble()
     return readReal();
 }
 
-double InStream::readReal(double minv, double maxv)
+double InStream::readReal(double minv, double maxv, const std::string& variableName)
 {
     double result = readReal();
 
     if (result < minv || result > maxv)
-        quit(_pe, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    {
+        if (variableName.empty())
+            quit(_pe, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        else
+            quit(_pe, ("Double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    }
 
     return result;
 }
 
-double InStream::readDouble(double minv, double maxv)
+double InStream::readDouble(double minv, double maxv, const std::string& variableName)
 {
-    return readReal(minv, maxv);
+    return readReal(minv, maxv, variableName);
 }
 
 bool InStream::eof()
@@ -1761,12 +1786,17 @@ std::string InStream::readString()
     return retval;
 }
 
-std::string InStream::readString(const std::string& ptrn)
+std::string InStream::readString(const std::string& ptrn, const std::string& variableName)
 {
     pattern p(ptrn);
     std::string result = readString();
     if (!p.matches(result))
-        quit(_pe, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    {
+        if (variableName.empty())
+            quit(_pe, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+        else
+            quit(_pe, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+    }
     return result;
 }
 
@@ -1775,7 +1805,7 @@ std::string InStream::readLine()
     return readString();
 }
 
-std::string InStream::readLine(const std::string& ptrn)
+std::string InStream::readLine(const std::string& ptrn, const std::string& variableName)
 {
     return readString(ptrn);    
 }
