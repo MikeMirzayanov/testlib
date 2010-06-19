@@ -12,7 +12,7 @@ int main()
 {
     registerValidation();
     
-    inf.readToken("[a-z]{1,100}");
+    inf.readToken("[a-z]{1,100}", "s");
     inf.readEoln();
     inf.readEof();
 

@@ -12,12 +12,12 @@ int main()
 {
     registerValidation();
     
-    int n = inf.readInt(1, 100000);
+    int n = inf.readInt(1, 100000, "n");
     inf.readEoln();
 
     for (int i = 0; i < n; i++)
     {
-        inf.readLong(-1000000000000000LL, 1000000000000000LL);
+        inf.readLong(-1000000000000000LL, 1000000000000000LL, "a[" + vtos(i + 1) + "]");
 
         if (i + 1 < n)
             inf.readSpace();
