@@ -2059,7 +2059,7 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 {
     if (__first == __last) return;
     for (_RandomAccessIter __i = __first + 1; __i != __last; ++__i)
-        iter_swap(__i, __first + rnd.next((__i - __first) + 1));
+        iter_swap(__i, __first + rnd.next(int(__i - __first) + 1));
 }
 
 
