@@ -57,6 +57,9 @@
  */
 
 const char* latestFeatures[] = {
+                          "Renamed class random -> class random_t",  
+                          "Supported name parameter for read-and-validation methods, like readInt(1, 2, \"n\")",  
+                          "Fixed bug in readDouble()",  
                           "Improved ensuref(), fixed nextLine to work in case of EOF, added startTest()",  
                           "Supported \"partially correct\", example: quitf(_pc(13), \"result=%d\", result)",  
                           "Added shuffle(begin, end), use it instead of random_shuffle(begin, end)",  
