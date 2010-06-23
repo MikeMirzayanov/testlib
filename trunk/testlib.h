@@ -8,7 +8,7 @@
  * because these calls produce stable result for any C++ compiler. Read 
  * sample generator sources for clarification.
  *
- * Please read the documentation for class "random" and use "rnd" instance in
+ * Please read the documentation for class "random_t" and use "rnd" instance in
  * generators. Probably, these sample calls will be usefull for you:
  *              rnd.next(); rnd.next(100); rnd.next(1, 2); 
  *              rnd.next(3.14); rnd.next("[a-z]{1,100}").
@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2010                                
  */
 
-#define VERSION "0.6.4-SNAPSHOT"
+#define VERSION "0.6.4"
 
 /* 
  * Mike Mirzayanov
@@ -187,20 +187,20 @@ static void __testlib_fail(const std::string& message);
  *
  * If you want to use one expression many times it is better to compile it into
  * a single pattern like "pattern p("[a-z]+")". Later you can use 
- * "p.matches(std::string s)" or "p.next(random& rd)" to check matching or generate
+ * "p.matches(std::string s)" or "p.next(random_t& rd)" to check matching or generate
  * new string by pattern.
  * 
  * Simpler way to read token and check it for pattern matching is "inf.readToken("[a-z]+")".
  */
-class random;
+class random_t;
 
 class pattern
 {
 public:
     /* Create pattern instance by string. */
     pattern(std::string s);
-    /* Generate new string by pattern and given random. */
-    std::string next(random& rnd) const;
+    /* Generate new string by pattern and given random_t. */
+    std::string next(random_t& rnd) const;
     /* Checks if given string match the pattern. */
     bool matches(const std::string& s) const;
 
@@ -214,18 +214,18 @@ private:
 };
 
 /* 
- * Use random instances to generate random values. It is preffered
+ * Use random_t instances to generate random values. It is preffered
  * way to use randoms instead of rand() function or self-written 
  * randoms.
  *
- * Testlib defines global variable "rnd" of random class.
- * Use registerGen(argc, argv) to setup random seed be command
+ * Testlib defines global variable "rnd" of random_t class.
+ * Use registerGen(argc, argv) to setup random_t seed be command
  * line.
  *
  * Random generates uniformly distributed values if another strategy is
  * not specified explicitly.
  */
-class random
+class random_t
 {
 private:
     long long seed;
@@ -244,15 +244,15 @@ private:
         else
         {
             if (bits > 63)
-                __testlib_fail("random::nextBits(int bits): n must be less than 64");
+                __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
 
             return ((nextBits(31) << 32) ^ nextBits(31));
         }
     }
 
 public:
-    /* New random with fixed seed. */
-    random()
+    /* New random_t with fixed seed. */
+    random_t()
         : seed(3905348978240129619LL)
     {
     }
@@ -260,7 +260,7 @@ public:
     /* Sets seed by command line. */
     void setSeed(int argc, char* argv[])
     {
-        random p;
+        random_t p;
 
         seed = 3905348978240129619LL;
         for (int i = 1; i < argc; i++)
@@ -285,7 +285,7 @@ public:
     int next(int n) 
     {
         if (n <= 0)
-            __testlib_fail("random::next(int n): n must be positive");
+            __testlib_fail("random_t::next(int n): n must be positive");
 
         if ((n & -n) == n)  // n is a power of 2
             return (int)((n * (long long)nextBits(31)) >> 31);
@@ -305,7 +305,7 @@ public:
     int next(unsigned int n)
     {
         if (n >= INT_MAX)
-            __testlib_fail("random::next(unsigned int n): n must be less INT_MAX");
+            __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
         return next(int(n));
     }
 
@@ -313,7 +313,7 @@ public:
     long long next(long long n) 
     {
         if (n <= 0)
-            __testlib_fail("random::next(long long n): n must be positive");
+            __testlib_fail("random_t::next(long long n): n must be positive");
 
         long long bits, val;
         
@@ -396,9 +396,9 @@ public:
     int wnext(int n, int type)
     {
         if (n <= 0)
-            __testlib_fail("random::wnext(int n, int type): n must be positive");
+            __testlib_fail("random_t::wnext(int n, int type): n must be positive");
         
-        if (abs(type) < random::lim)
+        if (abs(type) < random_t::lim)
         {
             int result = next(n);
 
@@ -427,7 +427,7 @@ public:
     int wnext(unsigned int n, int type)
     {
         if (n >= INT_MAX)
-            __testlib_fail("random::wnext(unsigned int n, int type): n must be less INT_MAX");
+            __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
         return wnext(int(n), type);
     }
     
@@ -435,9 +435,9 @@ public:
     long long wnext(long long n, int type)
     {
         if (n <= 0)
-            __testlib_fail("random::wnext(long long n, int type): n must be positive");
+            __testlib_fail("random_t::wnext(long long n, int type): n must be positive");
         
-        if (abs(type) < random::lim)
+        if (abs(type) < random_t::lim)
         {
             long long result = next(n);
 
@@ -465,7 +465,7 @@ public:
     /* See wnext(int, int). It uses the same algorithms. */
     double wnext(int type)
     {
-        if (abs(type) < random::lim)
+        if (abs(type) < random_t::lim)
         {
             double result = next();
 
@@ -494,9 +494,9 @@ public:
     double wnext(double n, int type)
     {
         if (n <= 0)
-            __testlib_fail("random::wnext(double n, int type): n must be positive");
+            __testlib_fail("random_t::wnext(double n, int type): n must be positive");
 
-        if (abs(type) < random::lim)
+        if (abs(type) < random_t::lim)
         {
             double result = next();
 
@@ -546,10 +546,10 @@ public:
     }
 };
 
-const int random::lim = 25;
-const long long random::multiplier = 0x5DEECE66DLL;
-const long long random::addend = 0xBLL;
-const long long random::mask = (1LL << 48) - 1;
+const int random_t::lim = 25;
+const long long random_t::multiplier = 0x5DEECE66DLL;
+const long long random_t::addend = 0xBLL;
+const long long random_t::mask = (1LL << 48) - 1;
 
 /* Pattern implementation */
 bool pattern::matches(const std::string& s) const
@@ -627,12 +627,12 @@ bool pattern::matches(const std::string& s, size_t pos) const
         return pos == s.length();
 }
 
-std::string pattern::next(random& rnd) const
+std::string pattern::next(random_t& rnd) const
 {
     std::string result;
 
     if (to == INT_MAX)
-        __testlib_fail("pattern::next(random& rnd): can't process character '*' for generation");
+        __testlib_fail("pattern::next(random_t& rnd): can't process character '*' for generation");
 
     if (to > 0)
     {
@@ -966,9 +966,9 @@ struct InStream
     /* The same as "readWord()", it is preffered to use "readToken()". */
     std::string readToken();
     /* The same as "readWord()", but ensures that token matches to given pattern. */
-    std::string readWord(const std::string& ptrn, const std::string variableName = "");
+    std::string readWord(const std::string& ptrn, const std::string& variableName = "");
     /* The same as "readToken()", but ensures that token matches to given pattern. */
-    std::string readToken(const std::string& ptrn, const std::string variableName = "");
+    std::string readToken(const std::string& ptrn, const std::string& variableName = "");
 
     /* 
      * Reads new long long value. Ignores white-spaces into the non-strict mode 
@@ -1051,7 +1051,7 @@ InStream ans;
 bool appesMode;
 std::string resultName;
 std::string checkerName = "untitled checker";
-random rnd;
+random_t rnd;
 
 /* implementation
  */
@@ -2048,7 +2048,7 @@ void setName(const char* format, ...)
  * Do not use random_shuffle, because it will produce different result
  * for different C++ compilers.
  *
- * This implementation uses testlib random to produce random numbers, so
+ * This implementation uses testlib random_t to produce random numbers, so
  * it is stable.
  */ 
 template<typename _RandomAccessIter>
@@ -2081,7 +2081,7 @@ void srand(unsigned int seed)
 void startTest(int test)
 {
     char c[16];
-    sprintf(c, "%d", test);
+    std::sprintf(c, "%d", test);
     fclose(stdout);
     freopen(c, "wt", stdout);
 }
