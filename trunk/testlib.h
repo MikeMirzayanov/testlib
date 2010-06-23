@@ -1810,7 +1810,7 @@ std::string InStream::readLine()
 
 std::string InStream::readLine(const std::string& ptrn, const std::string& variableName)
 {
-    return readString(ptrn);    
+    return readString(ptrn, variableName);
 }
 
 void InStream::close()
@@ -2077,6 +2077,7 @@ int rand()
 
 void srand(unsigned int seed)
 {
+    seed = 0; // to remove warning.
     quitf(_fail, "Don't use srand(), you should use " 
         "'registerGen(argc, argv);' to initialize generator seed");
 }
