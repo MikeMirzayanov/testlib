@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2010                                
+ * Copyright (c) 2005-2011                                
  */
 
-#define VERSION "0.6.4"
+#define VERSION "0.6.5-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Truncated checker output [patch by Stepan Gatilov]",  
                           "Renamed class random -> class random_t",  
                           "Supported name parameter for read-and-validation methods, like readInt(1, 2, \"n\")",  
                           "Fixed bug in readDouble()",  
@@ -1474,7 +1475,7 @@ static double stringToDouble(InStream& in, const char* buffer)
 
     for (size_t i = 0; i < length; i++)
         if (isBlanks(buffer[i]))
-            in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
+            in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char* suffix = new char[length + 1];
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
@@ -1484,7 +1485,7 @@ static double stringToDouble(InStream& in, const char* buffer)
     if (scanned == 1 || (scanned == 2 && empty))
         return retval;
     else
-        in.quit(_pe, ("Expected double, but \"" + (std::string)buffer + "\" found").c_str());
+        in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     __testlib_fail("Unexpected case in stringToDouble");
     return retval;
@@ -1502,7 +1503,7 @@ static long long stringToLongLong(InStream& in, const char* buffer)
         minus = true;
 
     if (length > 20)
-        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     long long retval = 0LL;
 
@@ -1517,15 +1518,15 @@ static long long stringToLongLong(InStream& in, const char* buffer)
             processingZeroes = false;
 
         if (buffer[i] < '0' || buffer[i] > '9')
-            in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+            in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
         retval = retval * 10 + (buffer[i] - '0');
     }
 
     if (retval < 0)
-        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     
     if ((zeroes > 0 && (retval != 0 || minus)) || zeroes > 1)
-        in.quit(_pe, ("Expected integer, but \"" + (std::string)buffer + "\" found").c_str());
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     retval = (minus ? -retval : +retval);
 
@@ -1535,7 +1536,7 @@ static long long stringToLongLong(InStream& in, const char* buffer)
     if (equals(retval, buffer))
         return retval;
     else
-        in.quit(_pe, ("Expected int64, but \"" + (std::string)buffer + "\" found").c_str());
+        in.quit(_pe, ("Expected int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     __testlib_fail("Unexpected case in stringToLongLong");
     return retval;
