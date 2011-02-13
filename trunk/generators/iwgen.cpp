@@ -15,7 +15,7 @@
  * If parameter "weight" < 0 then you can think about it as code like this:
  * <code>
  * result = rnd.next(1, 1000000);
- * for (int i = 0; i < weight; i++)
+ * for (int i = 0; i < -weight; i++)
  *     result = min(result, rnd.next(1, 1000000);
  * </code> 
  *

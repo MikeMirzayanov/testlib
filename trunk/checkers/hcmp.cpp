@@ -4,14 +4,6 @@
 
 using namespace std;
 
-string part(const string& s)
-{
-    if (s.length() <= 128)
-        return s;
-    else
-        return s.substr(0, 64) + "..." + s.substr(s.length() - 64, 64);
-}
-
 bool isNumeric(string p)
 {
     bool minus = false;
@@ -39,16 +31,16 @@ int main(int argc, char * argv[])
     string pa = ouf.readWord();
 
     if (!isNumeric(ja))
-        quitf(_fail, "%s is not valid integer", part(ja).c_str());
+        quitf(_fail, "%s is not valid integer", __testlib_part(ja).c_str());
 
     if (!ans.seekEof())
         quitf(_fail, "expected exactly one token in the answer file");
     
     if (!isNumeric(pa))
-        quitf(_pe, "%s is not valid integer", part(pa).c_str());
+        quitf(_pe, "%s is not valid integer", __testlib_part(pa).c_str());
 
     if (ja != pa)
-        quitf(_wa, "expected %s, found %s", part(ja).c_str(), part(pa).c_str());
+        quitf(_wa, "expected %s, found %s", __testlib_part(ja).c_str(), __testlib_part(pa).c_str());
     
-    quitf(_ok, "answer is %s", part(ja).c_str());
+    quitf(_ok, "answer is %s", __testlib_part(ja).c_str());
 }

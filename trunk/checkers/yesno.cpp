@@ -17,13 +17,13 @@ int main(int argc, char * argv[])
     std::string pa = upper(ouf.readWord());
 
     if (pa != "YES" && pa != "NO")
-        quitf(_pe, "YES or NO expected, but %s found", pa.c_str());
+        quitf(_pe, "YES or NO expected, but %s found", __testlib_part(pa).c_str());
 
     if (ja != "YES" && ja != "NO")
-        quitf(_fail, "YES or NO expected in answer, but %s found", ja.c_str());
+        quitf(_fail, "YES or NO expected in answer, but %s found", __testlib_part(ja).c_str());
 
     if (ja != pa)
-        quitf(_wa, "expected %s, found %s", ja.c_str(), pa.c_str());
+        quitf(_wa, "expected %s, found %s", __testlib_part(ja).c_str(), __testlib_part(pa).c_str());
 
     quitf(_ok, "answer is %s", ja.c_str());
 }
