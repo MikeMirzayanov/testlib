@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
       n++;
 
       if (j != p)
-        quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, ending(n).c_str(), j.c_str(), p.c_str());
+        quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, ending(n).c_str(), __testlib_part(j).c_str(), __testlib_part(p).c_str());
     }
     
     if (n == 1 && strAnswer.length() <= 128)

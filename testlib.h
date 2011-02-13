@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2011                                
  */
 
-#define VERSION "0.6.5-SNAPSHOT"
+#define VERSION "0.7.0"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,8 @@
  */
 
 const char* latestFeatures[] = {
+                          "ouf.readInt(1, 100) and similar calls return WA",  
+                          "Modified random_t to avoid integer overflow",  
                           "Truncated checker output [patch by Stepan Gatilov]",  
                           "Renamed class random -> class random_t",  
                           "Supported name parameter for read-and-validation methods, like readInt(1, 2, \"n\")",  
@@ -119,7 +121,7 @@ const char* latestFeatures[] = {
 #define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
 
-#define MAX_FORMAT_BUFFER_SIZE (2097152)
+#define MAX_FORMAT_BUFFER_SIZE (8388608)
 
 #define LF ((char)10)
 #define CR ((char)13)
@@ -144,6 +146,8 @@ const char* latestFeatures[] = {
 #endif
 
 #define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
+
+const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 
 template<typename T>
 static inline T __testlib_abs(const T& x)
@@ -271,7 +275,7 @@ public:
         {
             std::size_t le = std::strlen(argv[i]);
             for (std::size_t j = 0; j < le; j++)
-                seed = seed * multiplier * (unsigned int)(argv[i][j]) + addend;
+                seed = seed * multiplier + (unsigned int)(argv[i][j]) + addend;
             seed += multiplier / addend;
         }
 
@@ -286,7 +290,7 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    int next(int n) 
+    int next(int n)
     {
         if (n <= 0)
             __testlib_fail("random_t::next(int n): n must be positive");
@@ -294,15 +298,14 @@ public:
         if ((n & -n) == n)  // n is a power of 2
             return (int)((n * (long long)nextBits(31)) >> 31);
 
-        int bits, val;
+        const long long limit = INT_MAX / n * n;
         
-        do 
-        {
-            bits = int(nextBits(31));
-            val = bits % n;
-        } while (bits - val + (n - 1) < 0);
+        long long bits;
+        do {
+            bits = nextBits(31);
+        } while (bits >= limit);
 
-        return val;
+        return bits % n;
     }
 
     /* Random value in range [0, n-1]. */
@@ -319,15 +322,22 @@ public:
         if (n <= 0)
             __testlib_fail("random_t::next(long long n): n must be positive");
 
-        long long bits, val;
+        const long long limit = __TESTLIB_LONGLONG_MAX / n * n;
         
-        do 
-        {
+        long long bits;
+        do {
             bits = nextBits(63);
-            val = bits % n;
-        } while (bits - val + (n - 1) < 0);
+        } while (bits >= limit);
 
-        return val;
+        return bits % n;
+    }
+
+    /* Random value in range [0, n-1]. */
+    int next(unsigned long long n)
+    {
+        if (n >= __TESTLIB_LONGLONG_MAX)
+            __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
+        return next((long long)(n));
     }
 
     /* Returns random value in range [from,to]. */
@@ -1419,9 +1429,9 @@ std::string InStream::readWord(const std::string& ptrn, const std::string& varia
     if (!p.matches(result))
     {
         if (variableName.empty())
-            quit(_pe, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
         else
-            quit(_pe, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
     }
     return result;
 }
@@ -1570,9 +1580,9 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
     if (result < minv || result > maxv)
     {
         if (variableName.empty())
-            quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
         else
-            quit(_pe, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
 
     return result;
@@ -1590,9 +1600,9 @@ int InStream::readInt(int minv, int maxv, const std::string& variableName)
     if (result < minv || result > maxv)
     {
         if (variableName.empty())
-            quit(_pe, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
         else
-            quit(_pe, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
 
     return result;
@@ -1623,9 +1633,9 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
     if (result < minv || result > maxv)
     {
         if (variableName.empty())
-            quit(_pe, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
         else
-            quit(_pe, ("Double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            quit(_wa, ("Double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
 
     return result;
@@ -1797,9 +1807,9 @@ std::string InStream::readString(const std::string& ptrn, const std::string& var
     if (!p.matches(result))
     {
         if (variableName.empty())
-            quit(_pe, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
         else
-            quit(_pe, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
     }
     return result;
 }
@@ -1863,7 +1873,7 @@ void registerTestlibCmd(int argc, char * argv[])
     {
         InStream::textColor(InStream::LightCyan);
         std::printf("TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-        std::printf("by Mike Mirzayanov, copyright(c) 2005-2010\n");
+        std::printf("by Mike Mirzayanov, copyright(c) 2005-2011\n");
         std::printf("Checker name: \"%s\"\n", checkerName.c_str());
         InStream::textColor(InStream::LightGray);
 
@@ -1883,6 +1893,9 @@ void registerTestlibCmd(int argc, char * argv[])
 
     // testlib assumes: sizeof(int) = 4.
     __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
+
+    // testlib assumes: INT_MAX == 2147483647.
+    __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
 
     // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
