@@ -343,13 +343,13 @@ public:
     /* Returns random value in range [from,to]. */
     int next(int from, int to)
     {
-        return next(to - from + 1) + from;
+        return int(next((long long)to - from + 1) + from);
     }
 
     /* Returns random value in range [from,to]. */
-    int next(unsigned int from, unsigned int to)
+    unsigned int next(unsigned int from, unsigned int to)
     {
-        return next(to - from + 1) + from;
+        return (unsigned int)(next((long long)to - from + 1) + from);
     }
 
     /* Returns random value in range [from,to]. */
