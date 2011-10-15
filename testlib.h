@@ -606,7 +606,7 @@ static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::ve
 
     while (pos < s.length())
     {
-        char c = __pattern_getChar(s, pos);
+        char c = s[pos++];
         if (!std::binary_search(chars.begin(), chars.end(), c))
             break;
         else
