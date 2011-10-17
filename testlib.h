@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Some bug fixes",  
                           "ouf.readInt(1, 100) and similar calls return WA",  
                           "Modified random_t to avoid integer overflow",  
                           "Truncated checker output [patch by Stepan Gatilov]",  
@@ -1993,7 +1994,7 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                     return false;
                 }
                 else 
-                if(__testlib_abs(result - expected) < MAX_DOUBLE_ERROR)
+                if(__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15)
                 {
                     return true;
                 }
@@ -2003,7 +2004,7 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                                  expected * (1.0 + MAX_DOUBLE_ERROR));
                     double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
                                   expected * (1.0 + MAX_DOUBLE_ERROR));
-                    return result > minv && result < maxv;
+                    return result + 1E-15 >= minv && result <= maxv + 1E-15;
                 }
 }
 
@@ -2023,7 +2024,7 @@ double doubleDelta(double expected, double result)
 static void __testlib_ensure(bool cond, const std::string msg)
 {
     if (!cond)
-        quitf(_fail, msg.c_str());
+        quit(_fail, msg.c_str());
 }
 
 #define ensure(cond) __testlib_ensure(cond, std::string("Condition failed: \"") + #cond + "\"")
