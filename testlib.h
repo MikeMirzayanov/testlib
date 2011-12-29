@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2011                                
+ * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.7.2"
+#define VERSION "0.7.3"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed issues 19-21, added __attribute__ format printf",  
                           "Some bug fixes",  
                           "ouf.readInt(1, 100) and similar calls return WA",  
                           "Modified random_t to avoid integer overflow",  
@@ -336,9 +337,9 @@ public:
     /* Random value in range [0, n-1]. */
     int next(unsigned long long n)
     {
-        if (n >= __TESTLIB_LONGLONG_MAX)
+        if (n >= (unsigned long long)(__TESTLIB_LONGLONG_MAX))
             __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
-        return next((long long)(n));
+        return (int)next((long long)(n));
     }
 
     /* Returns random value in range [from,to]. */
@@ -385,6 +386,9 @@ public:
     }
 
     /* Random string value by given pattern (see pattern documentation). */
+#ifdef __GNUC__
+    __attribute__ ((format (printf, 2, 3)))
+#endif
     std::string next(const char* format, ...)
     {
         char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
@@ -775,8 +779,9 @@ static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos
                 if (prev > next)
                     __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
-                for (char c = prev; c <= next; c++)
+                for (char c = prev; c != next; c++)
                     result.push_back(c);
+                result.push_back(next);
 
                 prev = 0;
             }
@@ -1842,6 +1847,9 @@ void quit(TResult result, const char * msg)
     ouf.quit(result, msg);
 }
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 2, 3)))
+#endif
 void quitf(TResult result, const char * format, ...)
 {
     char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
@@ -1874,7 +1882,7 @@ void registerTestlibCmd(int argc, char * argv[])
     {
         InStream::textColor(InStream::LightCyan);
         std::printf("TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-        std::printf("by Mike Mirzayanov, copyright(c) 2005-2011\n");
+        std::printf("by Mike Mirzayanov, copyright(c) 2005-2012\n");
         std::printf("Checker name: \"%s\"\n", checkerName.c_str());
         InStream::textColor(InStream::LightGray);
 
@@ -2029,6 +2037,9 @@ static void __testlib_ensure(bool cond, const std::string msg)
 
 #define ensure(cond) __testlib_ensure(cond, std::string("Condition failed: \"") + #cond + "\"")
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 2, 3)))
+#endif
 void ensuref(bool cond, const char* format, ...)
 {
     if (!cond)
@@ -2047,6 +2058,9 @@ void ensuref(bool cond, const char* format, ...)
     }
 }
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
 void setName(const char* format, ...)
 {
     char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
@@ -2092,9 +2106,8 @@ int rand()
 
 void srand(unsigned int seed)
 {
-    seed = 0; // to remove warning.
     quitf(_fail, "Don't use srand(), you should use " 
-        "'registerGen(argc, argv);' to initialize generator seed");
+        "'registerGen(argc, argv);' to initialize generator seed [seed=%d ignored]", seed);
 }
 
 void startTest(int test)

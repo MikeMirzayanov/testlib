@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define EPS 1E-6
+const double EPS = 1E-6;
 
 int main(int argc, char * argv[])
 {
