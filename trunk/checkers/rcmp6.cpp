@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#define EPS 1E-6
+const double EPS = 1E-6;
 
 string ending(int x)
 {
