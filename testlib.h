@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "PC_BASE_EXIT_CODE=50 in case of defined TESTSYS",
                           "Fixed issues 19-21, added __attribute__ format printf",  
                           "Some bug fixes",  
                           "ouf.readInt(1, 100) and similar calls return WA",  
@@ -145,6 +146,11 @@ const char* latestFeatures[] = {
 #define FAIL_EXIT_CODE 6
 #define DIRT_EXIT_CODE 6
 #define PC_BASE_EXIT_CODE 0
+#endif
+
+#ifdef TESTSYS
+#undef PC_BASE_EXIT_CODE
+#define PC_BASE_EXIT_CODE 50
 #endif
 
 #define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
@@ -915,7 +921,7 @@ enum TResult
     _ok, _wa, _pe, _fail, _dirt, _partially
 };
 
-#define _pc(exitCode) (TResult(_partially + exitCode))
+#define _pc(exitCode) (TResult(_partially + (exitCode)))
 
 const std::string outcomes[] =
     {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct"};
