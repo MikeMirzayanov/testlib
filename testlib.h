@@ -109,7 +109,7 @@ const char* latestFeatures[] = {
 
 #include <fcntl.h>
 
-#if !defined(unix)
+#if !defined(unix) && !defined(__APPLE__)
 #include <io.h>
 #endif
 
@@ -1298,7 +1298,7 @@ void InStream::reset()
 
     opened = true;
 
-#if !defined(unix)
+#if !defined(unix) && !defined(__APPLE__)
     if (NULL != file)
     {
 #ifdef _MSC_VER
