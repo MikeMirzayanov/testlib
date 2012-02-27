@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.7.3"
+#define VERSION "0.7.4"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed to be compilable on Mac",  
                           "PC_BASE_EXIT_CODE=50 in case of defined TESTSYS",
                           "Fixed issues 19-21, added __attribute__ format printf",  
                           "Some bug fixes",  
@@ -341,11 +342,11 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    int next(unsigned long long n)
+    unsigned long long n next(unsigned long long n)
     {
         if (n >= (unsigned long long)(__TESTLIB_LONGLONG_MAX))
             __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
-        return (int)next((long long)(n));
+        return (unsigned long long)next((long long)(n));
     }
 
     /* Returns random value in range [from,to]. */
