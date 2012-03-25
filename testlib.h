@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.7.4"
+#define VERSION "0.7.5-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Supported TResult _points to output calculated score, use quitp(...) functions",  
                           "Fixed to be compilable on Mac",  
                           "PC_BASE_EXIT_CODE=50 in case of defined TESTSYS",
                           "Fixed issues 19-21, added __attribute__ format printf",  
@@ -139,6 +140,7 @@ const char* latestFeatures[] = {
 #define PE_EXIT_CODE 2
 #define FAIL_EXIT_CODE 3
 #define DIRT_EXIT_CODE 4
+#define POINTS_EXIT_CODE 7
 #define PC_BASE_EXIT_CODE 0
 #else
 #define OK_EXIT_CODE 0
@@ -146,6 +148,7 @@ const char* latestFeatures[] = {
 #define PE_EXIT_CODE 4
 #define FAIL_EXIT_CODE 6
 #define DIRT_EXIT_CODE 6
+#define POINTS_EXIT_CODE 7
 #define PC_BASE_EXIT_CODE 0
 #endif
 
@@ -342,7 +345,7 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    unsigned long long n next(unsigned long long n)
+    unsigned long long next(unsigned long long n)
     {
         if (n >= (unsigned long long)(__TESTLIB_LONGLONG_MAX))
             __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
@@ -919,13 +922,13 @@ enum TMode
 
 enum TResult
 {
-    _ok, _wa, _pe, _fail, _dirt, _partially
+    _ok, _wa, _pe, _fail, _dirt, _partially, _points
 };
 
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
 
 const std::string outcomes[] =
-    {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct"};
+    {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct", "points"};
 
 /*
  * Streams to be used for reading data in checkers or validators.
@@ -1114,6 +1117,8 @@ int resultExitCode(TResult r)
         return FAIL_EXIT_CODE;
     if (r == _dirt)
         return DIRT_EXIT_CODE;
+    if (r == _points)
+        return POINTS_EXIT_CODE;
     if (r >= _partially)
         return PC_BASE_EXIT_CODE + (r - _partially);
     return FAIL_EXIT_CODE;
@@ -1176,6 +1181,10 @@ void InStream::quit(TResult result, const char * msg)
     case _wa:
         errorName = "wrong answer ";
         quitscrS(LightRed, errorName);
+        break;
+    case _points:
+        errorName = "points ";
+        quitscrS(LightYellow, errorName);
         break;
     default:
         if (result >= _partially)
@@ -1852,6 +1861,50 @@ void quit(TResult result, const std::string& msg)
 void quit(TResult result, const char * msg)
 {
     ouf.quit(result, msg);
+}
+
+void __testlib_quitp(double points, const char* message)
+{
+    char buffer[512];
+    if (NULL == message || 0 == strlen(message))
+        sprintf(buffer, "points=%.10lf", points);
+    else
+        sprintf(buffer, "points=%.10lf, %s", points, message);
+    quit(_points, buffer);
+}
+
+void quitp(float points, const std::string& message = "")
+{
+    __testlib_quitp(double(points), message.c_str());
+}
+
+void quitp(double points, const std::string& message = "")
+{
+    __testlib_quitp(points, message.c_str());
+}
+
+void quitp(long double points, const std::string& message = "")
+{
+    __testlib_quitp(points, message.c_str());
+}
+
+template<typename F>
+#ifdef __GNUC__
+__attribute__ ((format (printf, 2, 3)))
+#endif
+void quitp(F points, const char * format, ...)
+{
+    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+    
+    va_list ap;
+    va_start(ap, format);
+    std::vsprintf(buffer, format, ap);
+    va_end(ap);
+
+    std::string output(buffer);
+    delete[] buffer;
+
+    quitp(points, output);
 }
 
 #ifdef __GNUC__
