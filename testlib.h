@@ -52,7 +52,7 @@
  *   It will return non-zero exit code and writes message to standard output.
  *
  *   Generator, using testlib running format:                                          
- *     gen.exe [parameter-1] [parameter-2] [... paramerter-n],
+ *     gen.exe [parameter-1] [parameter-2] [... paramerter-n]
  *   You can write generated test(s) into standard output or into the file(s).
  */
 
