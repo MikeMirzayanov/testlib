@@ -108,6 +108,7 @@ const char* latestFeatures[] = {
 #include <vector>
 #include <cmath>
 #include <sstream>
+#include <fstream>
 #include <cstring>
 #include <stdarg.h>
 
