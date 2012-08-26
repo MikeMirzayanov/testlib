@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.7.5-SNAPSHOT"
+#define VERSION "0.8.0-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -57,6 +57,8 @@
  */
 
 const char* latestFeatures[] = {
+                          "Support registerInteraction(argc, argv)",  
+                          "Print checker message to the stderr instead of stdout",  
                           "Supported TResult _points to output calculated score, use quitp(...) functions",  
                           "Fixed to be compilable on Mac",  
                           "PC_BASE_EXIT_CODE=50 in case of defined TESTSYS",
@@ -111,12 +113,9 @@ const char* latestFeatures[] = {
 
 #include <fcntl.h>
 
-#if !defined(unix) && !defined(__APPLE__)
-#include <io.h>
-#endif
-
 #if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
 #include <windows.h>
+#include <io.h>
 #define ON_WINDOWS
 #else
 #define WORD unsigned short
@@ -317,7 +316,7 @@ public:
             bits = nextBits(31);
         } while (bits >= limit);
 
-        return bits % n;
+        return int(bits % n);
     }
 
     /* Random value in range [0, n-1]. */
@@ -1083,6 +1082,10 @@ std::string resultName;
 std::string checkerName = "untitled checker";
 random_t rnd;
 
+/* Interactor streams.
+ */
+std::fstream tout;
+
 /* implementation
  */
 
@@ -1136,8 +1139,8 @@ void halt(int exitCode)
 {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
-    std::printf("Checker: \"%s\"\n", checkerName.c_str());
-    std::printf("Exit code: %d\n", exitCode);
+    std::fprintf(stderr, "Checker: \"%s\"\n", checkerName.c_str());
+    std::fprintf(stderr, "Exit code: %d\n", exitCode);
     InStream::textColor(InStream::LightGray);
 #endif
     std::exit(exitCode);
@@ -1220,7 +1223,7 @@ void InStream::quit(TResult result, const char * msg)
     }
 
     quitscr(LightGray, msg);
-    std::printf("\n");
+    std::fprintf(stderr, "\n");
 
     if (inf.file)
         fclose(inf.file);
@@ -1228,11 +1231,13 @@ void InStream::quit(TResult result, const char * msg)
         fclose(ouf.file);
     if (ans.file)
         fclose(ans.file);
+    if (tout.is_open())
+        tout.close();
 
     textColor(LightGray);
 
     if (resultName != "")
-        std::printf("See file to check exit message\n");
+        std::fprintf(stderr, "See file to check exit message\n");
 
     halt(resultExitCode(result));
 }
@@ -1286,7 +1291,7 @@ void InStream::quitscr(WORD color, const char * msg)
     if (resultName == "")
     {
         textColor(color);
-        std::printf("%s", msg);
+        std::fprintf(stderr, "%s", msg);
         textColor(LightGray);
     }
 }
@@ -1314,7 +1319,9 @@ void InStream::reset()
 #ifdef _MSC_VER
         _setmode(_fileno(file), O_BINARY);
 #else
+#ifdef fileno
         setmode(fileno(file), O_BINARY);
+#endif
 #endif
     }
 #endif
@@ -1487,7 +1494,7 @@ static bool equals(long long integer, const char* s)
 
     while (integer > 0)
     {
-        int digit = integer % 10;
+        int digit = int(integer % 10);
 
         if (s[length - 1] != '0' + digit)
             return false;
@@ -1867,9 +1874,9 @@ void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
     if (NULL == message || 0 == strlen(message))
-        sprintf(buffer, "points=%.10lf", points);
+        std::sprintf(buffer, "points=%.10lf", points);
     else
-        sprintf(buffer, "points=%.10lf, %s", points, message);
+        std::sprintf(buffer, "points=%.10lf, %s", points, message);
     quit(_points, buffer);
 }
 
@@ -1885,7 +1892,7 @@ void quitp(double points, const std::string& message = "")
 
 void quitp(long double points, const std::string& message = "")
 {
-    __testlib_quitp(points, message.c_str());
+    __testlib_quitp(double(points), message.c_str());
 }
 
 template<typename F>
@@ -1925,40 +1932,105 @@ void quitf(TResult result, const char * format, ...)
     quit(result, output);
 }
 
+void __testlib_help()
+{
+    InStream::textColor(InStream::LightCyan);
+    std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2012\n");
+    std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
+    InStream::textColor(InStream::LightGray);
+
+    std::fprintf(stderr, "\n");
+    std::fprintf(stderr, "Latest features: \n");
+    for (size_t i = 0; i < sizeof(latestFeatures) / sizeof(char*); i++)
+    {
+        std::fprintf(stderr, "*) %s\n", latestFeatures[i]);
+    }
+    std::fprintf(stderr, "\n");
+
+    std::fprintf(stderr, "Program must be run with the following arguments: \n");
+    std::fprintf(stderr, "    <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
+
+    std::exit(0);
+}
+
 void registerGen(int argc, char* argv[])
 {
+    freopen(NULL, "rb", stdin);
     rnd.setSeed(argc, argv);
+}
+
+void registerInteraction(int argc, char* argv[])
+{
+    freopen(NULL, "rb", stdin);
+
+    if (argc > 1 && !strcmp("--help", argv[1]))
+        __testlib_help();
+    
+    // testlib assumes: sizeof(int) = 4.
+    __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
+
+    // testlib assumes: INT_MAX == 2147483647.
+    __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
+
+    // testlib assumes: sizeof(long long) = 8.
+    __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
+
+    if (argc < 4 || argc > 6)
+    {
+        quit(_fail, std::string("Program must be run with the following arguments: ") +
+            std::string("<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") + 
+            "\nUse \"--help\" to get help information");
+    }
+
+    if (argc == 4)
+    {
+        resultName = "";
+        appesMode = false;
+    }
+
+    if (argc == 5)
+    {
+        resultName = argv[4];
+        appesMode = false;
+    }
+
+    if (argc == 6)
+    {
+        if (strcmp("-APPES", argv[5]) && strcmp("-appes", argv[5]))
+        {
+            quit(_fail, std::string("Program must be run with the following arguments: ") +
+                        "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
+        }
+        else
+        {
+            resultName = argv[4];
+            appesMode = true;
+        }
+    }
+
+    if (setvbuf(stdin,  NULL, _IONBF, 0) != 0)
+        quit(_fail, std::string("Can not disable buffer for stdin"));
+
+    if (setvbuf(stdout,  NULL, _IONBF, 0) != 0)
+        quit(_fail, std::string("Can not disable buffer for stdout"));
+    
+    if (setvbuf(stderr,  NULL, _IONBF, 0) != 0)
+        quit(_fail, std::string("Can not disable buffer for stderr"));
+
+    inf.init(argv[1], _input);
+
+    tout.open(argv[2], std::ios_base::out);
+    if (tout.fail() || !tout.is_open())
+        quit(_fail, std::string("Can not write to the test-output-file '") + argv[2] + std::string("'"));
+
+    ouf.init(stdin, _input);
+    ans.init(argv[3], _answer);
 }
 
 void registerValidation()
 {
-    inf.init(stdin, _input);
-    inf.strict = true;
-}
-
-void registerTestlibCmd(int argc, char * argv[])
-{
-    if (argc > 1 && !strcmp("--help", argv[1]))
-    {
-        InStream::textColor(InStream::LightCyan);
-        std::printf("TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-        std::printf("by Mike Mirzayanov, copyright(c) 2005-2012\n");
-        std::printf("Checker name: \"%s\"\n", checkerName.c_str());
-        InStream::textColor(InStream::LightGray);
-
-        std::printf("\n");
-        std::printf("Latest features: \n");
-        for (size_t i = 0; i < sizeof(latestFeatures) / sizeof(char*); i++)
-        {
-            std::printf("*) %s\n", latestFeatures[i]);
-        }
-        std::printf("\n");
-
-        std::printf("Program must be run with the following arguments: \n");
-        std::printf("    <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
-
-        std::exit(0);
-    }
+    freopen(NULL, "rb", stdin);
 
     // testlib assumes: sizeof(int) = 4.
     __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
@@ -1969,7 +2041,27 @@ void registerTestlibCmd(int argc, char * argv[])
     // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
-    if (argc  < 4 || argc > 6)
+    inf.init(stdin, _input);
+    inf.strict = true;
+}
+
+void registerTestlibCmd(int argc, char * argv[])
+{
+    freopen(NULL, "rb", stdin);
+
+    if (argc > 1 && !strcmp("--help", argv[1]))
+        __testlib_help();
+
+    // testlib assumes: sizeof(int) = 4.
+    __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
+
+    // testlib assumes: INT_MAX == 2147483647.
+    __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
+
+    // testlib assumes: sizeof(long long) = 8.
+    __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
+
+    if (argc < 4 || argc > 6)
     {
         quit(_fail, std::string("Program must be run with the following arguments: ") +
             std::string("<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") + 
