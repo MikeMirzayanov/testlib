@@ -925,6 +925,11 @@ enum TResult
     _ok, _wa, _pe, _fail, _dirt, _partially, _points
 };
 
+enum TTestlibMode
+{
+	_unknown, _checker, _validator, _generator, _interactor
+};
+
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
 
 const std::string outcomes[] =
@@ -1082,6 +1087,7 @@ bool appesMode;
 std::string resultName;
 std::string checkerName = "untitled checker";
 random_t rnd;
+TTestlibMode testlibMode = _unknown;
 
 /* Interactor streams.
  */
@@ -1154,10 +1160,10 @@ void InStream::quit(TResult result, const char * msg)
 
     std::FILE * resultFile;
     std::string errorName;
-
+	
     if (result == _ok)
     {
-        if (!ouf.seekEof())
+        if (testlibMode != _interactor && !ouf.seekEof())
             quit(_dirt, "Extra information in the output file");
     }
 
@@ -1957,12 +1963,14 @@ void __testlib_help()
 
 void registerGen(int argc, char* argv[])
 {
+	testlibMode = _generator;
     freopen(NULL, "rb", stdin);
     rnd.setSeed(argc, argv);
 }
 
 void registerInteraction(int argc, char* argv[])
 {
+	testlibMode = _interactor;
     freopen(NULL, "rb", stdin);
 
     if (argc > 1 && !strcmp("--help", argv[1]))
@@ -2025,12 +2033,13 @@ void registerInteraction(int argc, char* argv[])
     if (tout.fail() || !tout.is_open())
         quit(_fail, std::string("Can not write to the test-output-file '") + argv[2] + std::string("'"));
 
-    ouf.init(stdin, _input);
+    ouf.init(stdin, _output);
     ans.init(argv[3], _answer);
 }
 
 void registerValidation()
 {
+	testlibMode = _validator;
     freopen(NULL, "rb", stdin);
 
     // testlib assumes: sizeof(int) = 4.
@@ -2048,6 +2057,7 @@ void registerValidation()
 
 void registerTestlibCmd(int argc, char * argv[])
 {
+	testlibMode = _checker;
     freopen(NULL, "rb", stdin);
 
     if (argc > 1 && !strcmp("--help", argv[1]))
