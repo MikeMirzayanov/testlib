@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.8.0-SNAPSHOT"
+#define VERSION "0.8.1-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -180,6 +180,22 @@ static inline T __testlib_max(const T& a, const T& b)
 }
 
 static void __testlib_fail(const std::string& message);
+
+static void __testlib_set_binary(FILE* file)
+{
+#if !defined(unix) && !defined(__APPLE__)
+    if (NULL != file)
+    {
+#ifdef _MSC_VER
+        _setmode(_fileno(file), O_BINARY);
+#else
+#ifdef fileno
+        setmode(fileno(file), O_BINARY);
+#endif
+#endif
+    }
+#endif
+}
 
 /*
  * Very simple regex-like pattern.
@@ -1320,18 +1336,7 @@ void InStream::reset()
 
     opened = true;
 
-#if !defined(unix) && !defined(__APPLE__)
-    if (NULL != file)
-    {
-#ifdef _MSC_VER
-        _setmode(_fileno(file), O_BINARY);
-#else
-#ifdef fileno
-        setmode(fileno(file), O_BINARY);
-#endif
-#endif
-    }
-#endif
+    __testlib_set_binary(file);
 }
 
 void InStream::init(std::string fileName, TMode mode)
@@ -1964,14 +1969,14 @@ void __testlib_help()
 void registerGen(int argc, char* argv[])
 {
 	testlibMode = _generator;
-    freopen(NULL, "rb", stdin);
+    __testlib_set_binary(stdin);
     rnd.setSeed(argc, argv);
 }
 
 void registerInteraction(int argc, char* argv[])
 {
 	testlibMode = _interactor;
-    freopen(NULL, "rb", stdin);
+    __testlib_set_binary(stdin);
 
     if (argc > 1 && !strcmp("--help", argv[1]))
         __testlib_help();
@@ -2040,7 +2045,7 @@ void registerInteraction(int argc, char* argv[])
 void registerValidation()
 {
 	testlibMode = _validator;
-    freopen(NULL, "rb", stdin);
+    __testlib_set_binary(stdin);
 
     // testlib assumes: sizeof(int) = 4.
     __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
@@ -2058,7 +2063,7 @@ void registerValidation()
 void registerTestlibCmd(int argc, char * argv[])
 {
 	testlibMode = _checker;
-    freopen(NULL, "rb", stdin);
+    __testlib_set_binary(stdin);    
 
     if (argc > 1 && !strcmp("--help", argv[1]))
         __testlib_help();
