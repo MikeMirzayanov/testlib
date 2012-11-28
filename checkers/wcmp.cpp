@@ -31,8 +31,8 @@ int main(int argc, char * argv[])
       std::string j = ans.readWord();
       std::string p = ouf.readWord();
       strAnswer = p;
-      if (j != p)
-        quitf(_wa, "%d%s words differ - expected: '%s', found: '%s'", n, ending(n).c_str(), __testlib_part(j).c_str(), __testlib_part(p).c_str());
+      quitif(j != p, _wa, "%d%s words differ - expected: '%s', found: '%s'",
+        n, ending(n).c_str(), __testlib_part(j).c_str(), __testlib_part(p).c_str());
     }
 
     if (ans.seekEof() && ouf.seekEof())

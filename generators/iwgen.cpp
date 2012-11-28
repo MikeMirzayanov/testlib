@@ -1,6 +1,6 @@
 /*
  * Outputs weighted random number between 1 and 10^6, inclusive.
- * To generate different values, call "nxgen.exe weight". 
+ * To generate different values, call "nwgen.exe weight". 
  *
  * If parameter "weight" 
  * is equals to 0 than used uniformly distributed random.

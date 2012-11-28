@@ -1,7 +1,7 @@
 /*
  * Outputs random number between 1 and 10^6, inclusive.
- * To generate different values, call "ngen.exe" with different parameters.
- * For example, "ngen.exe 1" returns 504077, but "ngen.exe 3" returns 808747.
+ * To generate different values, call "igen.exe" with different parameters.
+ * For example, "igen.exe 1" returns 504077, but "igen.exe 3" returns 808747.
  * 
  * It is typical behaviour of testlib generator to setup randseed by command line.
  */
