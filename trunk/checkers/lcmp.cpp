@@ -57,12 +57,10 @@ int main(int argc, char * argv[])
 
       n++;
 
-      if (!compareWords(j, p))
-        quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, ending(n).c_str(), __testlib_part(j).c_str(), __testlib_part(p).c_str());
+      quitif(!compareWords(j, p), _wa, "%d%s lines differ - expected: '%s', found: '%s'",
+        n, ending(n).c_str(), __testlib_part(j).c_str(), __testlib_part(p).c_str());
     }
     
-    if (n == 1 && strAnswer.length() <= 128)
-        quitf(_ok, "%s", strAnswer.c_str());
-    
+    quitif(n == 1 && strAnswer.length() <= 128, _ok, "%s", strAnswer.c_str());
     quitf(_ok, "%d lines", n);
 }

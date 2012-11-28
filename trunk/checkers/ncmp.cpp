@@ -17,15 +17,6 @@ string ending(long long x)
     return "th";
 }
 
-string ltoa(long long n)
-{
-    stringstream ss;
-    ss << n;
-    string result;
-    ss >> result;
-    return result;
-}
-
 int main(int argc, char * argv[])
 {
     setName("compare ordered sequences of signed int%d numbers", 8 * sizeof(long long));
@@ -48,7 +39,7 @@ int main(int argc, char * argv[])
         {
             if (firstElems.length() > 0)
                 firstElems += " ";
-            firstElems += ltoa(j);
+            firstElems += vtos(j);
         }
     }
 
@@ -68,16 +59,14 @@ int main(int argc, char * argv[])
         extraInOufCount++;
     }
 
-    if (extraInAnsCount > 0)
-        quitf(_wa, "Answer contains longer sequence [length = %d], but output contains %d elements", n + extraInAnsCount, n);
+    quitif(extraInAnsCount > 0, _wa, "Answer contains longer sequence [length = %d], but output contains %d elements",
+        n + extraInAnsCount, n);
     
-    if (extraInOufCount > 0)
-        quitf(_wa, "Output contains longer sequence [length = %d], but answer contains %d elements", n + extraInOufCount, n);
+    quitif(extraInOufCount > 0, _wa, "Output contains longer sequence [length = %d], but answer contains %d elements",
+        n + extraInOufCount, n);
     
     if (n <= 5)
-    {
         quitf(_ok, "%d number(s): \"%s\"", n, firstElems.c_str());
-    }
     else
         quitf(_ok, "%d numbers", n);
 }

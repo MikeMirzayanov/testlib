@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.8.1-SNAPSHOT"
+#define VERSION "0.8.2-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -54,10 +54,19 @@
  *   Generator, using testlib running format:                                          
  *     gen.exe [parameter-1] [parameter-2] [... paramerter-n]
  *   You can write generated test(s) into standard output or into the file(s).
+ *
+ *   Interactor, using testlib running format:                                          
+ *     interactor.exe <Input_File> <Output_File> [<Answer_File> [<Result_File> [-appes]]],
+ *   Reads test from inf (mapped to args[1]), writes result to tout (mapped to argv[2],
+ *   can be judged by checker later), reads program output from ouf (mapped to stdin),
+ *   writes output to program via stdout (use cout, printf, etc).
  */
 
 const char* latestFeatures[] = {
-                          "Support registerInteraction(argc, argv)",  
+                          "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",  
+                          "Introduced guard against missed quitf() in checker or readEof() in validators",  
+                          "Supported readStrictReal/readStrictDouble - to use in validators to check strictly float numbers",  
+                          "Supported registerInteraction(argc, argv)",  
                           "Print checker message to the stderr instead of stdout",  
                           "Supported TResult _points to output calculated score, use quitp(...) functions",  
                           "Fixed to be compilable on Mac",  
@@ -158,6 +167,12 @@ const char* latestFeatures[] = {
 #endif
 
 #define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
+
+#ifdef ON_WINDOWS
+#define I64 "%I64d"
+#else
+#define I64 "%lld"
+#endif
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 
@@ -411,6 +426,26 @@ public:
         return p.next(*this);
     }
 
+    /* Returns random element from container. */
+    template <typename Container>
+    typename Container::value_type any(const Container& c)
+    {
+        size_t size = c.size();
+        if (size <= 0)
+            __testlib_fail("random_t::any(const Container& c): c.size() must be positive");
+        return *(c.begin() + next(size));
+    }
+
+    /* Returns random element from iterator range. */
+    template <typename Iter>
+    typename Iter::value_type any(const Iter& begin, const Iter& end)
+    {
+        int size = int(end - begin);
+        if (size <= 0)
+            __testlib_fail("random_t::any(const Iter& begin, const Iter& end): range must have positive length");
+        return *(begin + next(size));
+    }
+
     /* Random string value by given pattern (see pattern documentation). */
 #ifdef __GNUC__
     __attribute__ ((format (printf, 2, 3)))
@@ -588,6 +623,26 @@ public:
     double wnext(double from, double to, int type)
     {
         return wnext(to - from, type) + from;
+    }
+
+    /* Returns weighted random element from container. */
+    template <typename Container>
+    typename Container::value_type wany(const Container& c, int type)
+    {
+        size_t size = c.size();
+        if (size <= 0)
+            __testlib_fail("random_t::wany(const Container& c, int type): c.size() must be positive");
+        return *(c.begin() + wnext(size, type));
+    }
+
+    /* Returns weighted random element from iterator range. */
+    template <typename Iter>
+    typename Iter::value_type wany(const Iter& begin, const Iter& end, int type)
+    {
+        int size = int(end - begin);
+        if (size <= 0)
+            __testlib_fail("random_t::any(const Iter& begin, const Iter& end, int type): range must have positive length");
+        return *(begin + wnext(size, type));
     }
 };
 
@@ -1060,6 +1115,23 @@ struct InStream
     /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
     double readDouble(double minv, double maxv, const std::string& variableName = "");
     
+    /* 
+     * As "readReal()" but ensures that value in the range [minv,maxv] and
+     * number of digit after the decimal point is in range [minAfterPointDigitCount,maxAfterPointDigitCount]
+     * and number is in the form "[-]digit(s)[.digit(s)]".
+     */
+    double readStrictReal(double minv, double maxv,
+            int minAfterPointDigitCount, int maxAfterPointDigitCount,
+            const std::string& variableName = "");
+    /* 
+     * As "readDouble()" but ensures that value in the range [minv,maxv] and
+     * number of digit after the decimal point is in range [minAfterPointDigitCount,maxAfterPointDigitCount]
+     * and number is in the form "[-]digit(s)[.digit(s)]".
+     */
+    double readStrictDouble(double minv, double maxv,
+            int minAfterPointDigitCount, int maxAfterPointDigitCount,
+            const std::string& variableName = "");
+    
     /* As readLine(). */
     std::string readString();
     /* 
@@ -1079,7 +1151,7 @@ struct InStream
     /* Reads EOF or fails. Use it in validators. Calls "eof()" method internally. */
     void readEof();
 
-    void quit(TResult result, const char * msg);
+    void quit(TResult result, const char* msg);
     void quits(TResult result, std::string msg);
 
     void close();
@@ -1091,9 +1163,9 @@ struct InStream
     const static WORD LightYellow = 0x0e;    
 
     static void textColor(WORD color);
-    static void quitscr(WORD color, const char * msg);
+    static void quitscr(WORD color, const char* msg);
     static void quitscrS(WORD color, std::string msg);
-    void xmlSafeWrite(std::FILE * file, const char * msg);
+    void xmlSafeWrite(std::FILE * file, const char* msg);
 };
 
 InStream inf;
@@ -1104,6 +1176,39 @@ std::string resultName;
 std::string checkerName = "untitled checker";
 random_t rnd;
 TTestlibMode testlibMode = _unknown;
+
+struct TestlibFinalizeGuard
+{
+    static bool alive;
+    int quitCount, readEofCount;
+
+    TestlibFinalizeGuard() : quitCount(0), readEofCount(0)
+    {
+        // No operations.
+    }
+
+    ~TestlibFinalizeGuard()
+    {
+        bool _alive = alive;
+        alive = false;
+
+        if (_alive)
+        {
+            if (testlibMode == _checker && quitCount == 0)
+            {
+                __testlib_fail("Checker must end with quit or quitf call.");
+            }
+
+            if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
+            {
+                __testlib_fail("Validator must end with readEof call.");
+            }
+        }
+    }
+};
+
+bool TestlibFinalizeGuard::alive = true;
+TestlibFinalizeGuard testlibFinalizeGuard;
 
 /* Interactor streams.
  */
@@ -1169,8 +1274,11 @@ void halt(int exitCode)
     std::exit(exitCode);
 }
 
-void InStream::quit(TResult result, const char * msg)
+void InStream::quit(TResult result, const char* msg)
 {
+    if (TestlibFinalizeGuard::alive && (result != _ok || testlibMode != _validator))
+        testlibFinalizeGuard.quitCount++;
+
     if (mode != _output && result != _fail)
         quits(_fail, std::string(msg) + " (" + name + ")");
 
@@ -1270,7 +1378,7 @@ void InStream::quits(TResult result, std::string msg)
     InStream::quit(result, msg.c_str());
 }
 
-void InStream::xmlSafeWrite(std::FILE * file, const char * msg)
+void InStream::xmlSafeWrite(std::FILE * file, const char* msg)
 {
     size_t lmsg = strlen(msg);
     for (size_t i = 0; i < lmsg; i++)
@@ -1309,7 +1417,7 @@ void InStream::quitscrS(WORD color, std::string msg)
     quitscr(color, msg.c_str());
 }
 
-void InStream::quitscr(WORD color, const char * msg)
+void InStream::quitscr(WORD color, const char* msg)
 {
     if (resultName == "")
     {
@@ -1542,6 +1650,72 @@ static double stringToDouble(InStream& in, const char* buffer)
     return retval;
 }
 
+static double stringToStrictDouble(InStream& in, const char* buffer, int minAfterPointDigitCount, int maxAfterPointDigitCount)
+{
+    double retval;
+
+    size_t length = strlen(buffer);
+
+    if (length == 0 || length > 20)
+        in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    if (buffer[0] != '-' && (buffer[0] < '0' || buffer[0] > '9'))
+        in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    int pointPos = -1; 
+    for (size_t i = 1; i + 1 < length; i++)
+    {
+        if (buffer[i] == '.')
+        {
+            if (pointPos > -1)
+                in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+            pointPos = i;
+        }
+        if (buffer[i] != '.' && (buffer[i] < '0' || buffer[i] > '9'))
+            in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+    }
+
+    if (buffer[length - 1] < '0' || buffer[length - 1] > '9')
+        in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    int afterDigitsCount = (pointPos == -1 ? 0 : length - pointPos - 1);
+    if (afterDigitsCount < minAfterPointDigitCount || afterDigitsCount > maxAfterPointDigitCount)
+        in.quit(_pe, ("Expected strict double with number of digits after point in range ["
+            + vtos(minAfterPointDigitCount)
+            + ","
+            + vtos(maxAfterPointDigitCount)
+            + "], but \"" + __testlib_part(buffer) + "\" found").c_str()
+        );
+
+    int firstDigitPos = -1;
+    for (size_t i = 0; i < length; i++)
+        if (buffer[i] >= '0' && buffer[i] <= '9')
+        {
+            firstDigitPos = i;
+            break;
+        }
+
+    if (firstDigitPos > 1 || firstDigitPos == -1) 
+        in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    if (buffer[firstDigitPos] == '0' && firstDigitPos + 1 < int(length)
+            && buffer[firstDigitPos + 1] >= '0' && buffer[firstDigitPos + 1] <= '9')
+        in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    char* suffix = new char[length + 1];
+    int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
+    bool empty = strlen(suffix) == 0;
+    delete[] suffix;
+
+    if (scanned == 1 || (scanned == 2 && empty))
+        return retval;
+    else
+        in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    __testlib_fail("Unexpected case in stringToStrictDouble");
+    return retval;
+}
+
 static long long stringToLongLong(InStream& in, const char* buffer)
 {
     if (strcmp(buffer, "-9223372036854775808") == 0)
@@ -1682,9 +1856,34 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
     return result;
 }
 
-double InStream::readDouble(double minv, double maxv, const std::string& variableName)
+double InStream::readStrictReal(double minv, double maxv,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount,
+        const std::string& variableName)
 {
-    return readReal(minv, maxv, variableName);
+    if (!strict && seekEof())
+        quit(_pe, "Unexpected end of file - strict double expected");
+
+    double result = stringToStrictDouble(*this, readWord().c_str(),
+            minAfterPointDigitCount, maxAfterPointDigitCount);
+
+    if (result < minv || result > maxv)
+    {
+        if (variableName.empty())
+            quit(_wa, ("Strict double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        else
+            quit(_wa, ("Strict double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    }
+
+    return result;
+}
+
+double InStream::readStrictDouble(double minv, double maxv,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount,
+        const std::string& variableName)
+{
+    return readStrictReal(minv, maxv,
+            minAfterPointDigitCount, maxAfterPointDigitCount,
+            variableName);
 }
 
 bool InStream::eof()
@@ -1787,6 +1986,9 @@ void InStream::readEof()
 {
     if (!eof())
         quit(_pe, "Expected EOF");
+
+    if (TestlibFinalizeGuard::alive)
+        testlibFinalizeGuard.readEofCount++;
 }
 
 bool InStream::seekEoln()
@@ -1877,7 +2079,7 @@ void quit(TResult result, const std::string& msg)
     ouf.quit(result, msg.c_str());
 }
 
-void quit(TResult result, const char * msg)
+void quit(TResult result, const char* msg)
 {
     ouf.quit(result, msg);
 }
@@ -1886,9 +2088,9 @@ void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
     if (NULL == message || 0 == strlen(message))
-        std::sprintf(buffer, "points=%.10lf", points);
+        std::sprintf(buffer, "%.10lf", points);
     else
-        std::sprintf(buffer, "points=%.10lf, %s", points, message);
+        std::sprintf(buffer, "%.10lf %s", points, message);
     quit(_points, buffer);
 }
 
@@ -1911,9 +2113,9 @@ template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
-void quitp(F points, const char * format, ...)
+void quitp(F points, const char* format, ...)
 {
-    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
@@ -1929,9 +2131,9 @@ void quitp(F points, const char * format, ...)
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
-void quitf(TResult result, const char * format, ...)
+void quitf(TResult result, const char* format, ...)
 {
-    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
@@ -1944,11 +2146,32 @@ void quitf(TResult result, const char * format, ...)
     quit(result, output);
 }
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 3, 4)))
+#endif
+void quitif(bool condition, TResult result, const char* format, ...)
+{
+    if (condition)
+    {
+        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+        
+        va_list ap;
+        va_start(ap, format);
+        std::vsprintf(buffer, format, ap);
+        va_end(ap);
+
+        std::string output(buffer);
+        delete[] buffer;
+
+        quit(result, output);
+    }
+}
+
 void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2012\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2013\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
@@ -1990,14 +2213,14 @@ void registerInteraction(int argc, char* argv[])
     // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
-    if (argc < 4 || argc > 6)
+    if (argc < 3 || argc > 6)
     {
         quit(_fail, std::string("Program must be run with the following arguments: ") +
-            std::string("<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") + 
+            std::string("<input-file> <output-file> [<answer-file> [<report-file> [<-appes>]]]") + 
             "\nUse \"--help\" to get help information");
     }
 
-    if (argc == 4)
+    if (argc <= 4)
     {
         resultName = "";
         appesMode = false;
@@ -2039,7 +2262,9 @@ void registerInteraction(int argc, char* argv[])
         quit(_fail, std::string("Can not write to the test-output-file '") + argv[2] + std::string("'"));
 
     ouf.init(stdin, _output);
-    ans.init(argv[3], _answer);
+    
+    if (argc >= 4)
+        ans.init(argv[3], _answer);
 }
 
 void registerValidation()
@@ -2060,7 +2285,7 @@ void registerValidation()
     inf.strict = true;
 }
 
-void registerTestlibCmd(int argc, char * argv[])
+void registerTestlibCmd(int argc, char* argv[])
 {
 	testlibMode = _checker;
     __testlib_set_binary(stdin);    
@@ -2121,14 +2346,14 @@ void registerTestlib(int argc, ...)
         quit(_fail, std::string("Program must be run with the following arguments: ") +
             "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
 
-    char ** argv = new char*[argc + 1];
+    char** argv = new char*[argc + 1];
     
     va_list ap;
     va_start(ap, argc);
     argv[0] = NULL;
     for (int i = 0; i < argc; i++)
     {
-        argv[i + 1] = va_arg(ap, char *);
+        argv[i + 1] = va_arg(ap, char*);
     }
     va_end(ap);
 
@@ -2212,7 +2437,7 @@ void ensuref(bool cond, const char* format, ...)
 {
     if (!cond)
     {
-        char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
         
         va_list ap;
         va_start(ap, format);
@@ -2231,7 +2456,7 @@ __attribute__ ((format (printf, 1, 2)))
 #endif
 void setName(const char* format, ...)
 {
-    char * buffer = new char [MAX_FORMAT_BUFFER_SIZE];
+    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
     
     va_list ap;
     va_start(ap, format);
@@ -2263,19 +2488,20 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 template<typename _RandomAccessIter>
 void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 {
-    quitf(_fail, "Don't use random_shuffle(), use shuffle()");
+    quitf(_fail, "Don't use random_shuffle(), use shuffle() instead");
 }
 
 int rand()
 {
-    quitf(_fail, "Don't use rand(), use rnd.next()");
+    quitf(_fail, "Don't use rand(), use rnd.next() instead");
     return 0;
 }
 
 void srand(unsigned int seed)
 {
     quitf(_fail, "Don't use srand(), you should use " 
-        "'registerGen(argc, argv);' to initialize generator seed [seed=%d ignored]", seed);
+        "'registerGen(argc, argv);' to initialize generator seed "
+        "by hash code of the command line params [seed=%d ignored]", seed);
 }
 
 void startTest(int test)
@@ -2284,6 +2510,45 @@ void startTest(int test)
     std::sprintf(c, "%d", test);
     fclose(stdout);
     freopen(c, "wt", stdout);
+}
+
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string format(const char* fmt, ...)
+{
+    if (strlen(fmt) > MAX_FORMAT_BUFFER_SIZE / 2)
+        __testlib_fail("format(const std::string& format, ...): format exceeds maximal length");
+
+    char* buffer = new char[MAX_FORMAT_BUFFER_SIZE];
+    
+    va_list ap;
+    va_start(ap, fmt);
+    std::vsprintf(buffer, fmt, ap);
+    va_end(ap);
+
+    std::string output(buffer);
+    delete[] buffer;
+
+    return output;
+}
+
+std::string format(const std::string& fmt, ...)
+{
+    if (fmt.length() > MAX_FORMAT_BUFFER_SIZE / 2)
+        __testlib_fail("format(const std::string& format, ...): format exceeds maximal length");
+
+    char* buffer = new char[MAX_FORMAT_BUFFER_SIZE];
+    
+    va_list ap;
+    va_start(ap, fmt);
+    std::vsprintf(buffer, fmt.c_str(), ap);
+    va_end(ap);
+
+    std::string output(buffer);
+    delete[] buffer;
+
+    return output;
 }
 
 static void __testlib_fail(const std::string& message)
