@@ -4,7 +4,7 @@
 
 using namespace std;
 
-pattern_t pnum("0|-?[1-9][0-9]*");
+pattern pnum("0|-?[1-9][0-9]*");
 
 bool isNumeric(const string& p)
 {

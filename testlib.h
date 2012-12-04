@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2012
  */
 
-#define VERSION "0.8.2-SNAPSHOT"
+#define VERSION "0.8.3-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Manual buffer in InStreams, some IO speed improvements",  
                           "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",  
                           "Introduced guard against missed quitf() in checker or readEof() in validators",  
                           "Supported readStrictReal/readStrictDouble - to use in validators to check strictly float numbers",  
@@ -135,8 +136,6 @@ const char* latestFeatures[] = {
 #define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
 
-#define MAX_FORMAT_BUFFER_SIZE (8388608)
-
 #define LF ((char)10)
 #define CR ((char)13)
 #define TAB ((char)9)
@@ -173,6 +172,30 @@ const char* latestFeatures[] = {
 #else
 #define I64 "%lld"
 #endif
+
+#define FMT_TO_RESULT(fmt, cstr, result)     int size = 16;                        \
+    std::string result;                                                            \
+    va_list ap;                                                                    \
+                                                                                   \
+    while (true)                                                                   \
+    {                                                                              \
+        result.resize(size);                                                       \
+                                                                                   \
+        va_start(ap, (fmt));                                                       \
+        int n = vsnprintf((char*)result.c_str(), size, (cstr), ap);                \
+        va_end(ap);                                                                \
+                                                                                   \
+        if (n > -1 && n < size)                                                    \
+        {                                                                          \
+            result.resize(n);                                                      \
+            break;                                                                 \
+        }                                                                          \
+                                                                                   \
+        if (n > -1)                                                                \
+            size = n+1;                                                            \
+        else                                                                       \
+            size *= 2;                                                             \
+    }                                                                              \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 
@@ -452,16 +475,7 @@ public:
 #endif
     std::string next(const char* format, ...)
     {
-        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-        
-        va_list ap;
-        va_start(ap, format);
-        std::vsprintf(buffer, format, ap);
-        va_end(ap);
-
-        std::string ptrn(buffer);
-        delete[] buffer;
-
+        FMT_TO_RESULT(format, format, ptrn);
         return next(ptrn);
     }
 
@@ -730,6 +744,7 @@ bool pattern::matches(const std::string& s, size_t pos) const
 std::string pattern::next(random_t& rnd) const
 {
     std::string result;
+    result.reserve(20);
 
     if (to == INT_MAX)
         __testlib_fail("pattern::next(random_t& rnd): can't process character '*' for generation");
@@ -1006,6 +1021,9 @@ enum TTestlibMode
 const std::string outcomes[] =
     {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct", "points"};
 
+const size_t INPUT_STREAM_BUFFER_SIZE = 2000000;
+const size_t INPUT_STREAM_MAX_UNREAD_CHAR_COUNT = 100;
+
 /*
  * Streams to be used for reading data in checkers or validators.
  * Each read*() method moves pointer to the next character after the
@@ -1013,8 +1031,9 @@ const std::string outcomes[] =
  */
 struct InStream
 {
-    /* Do not use it. */
+    /* Do not use them. */
     InStream();
+    ~InStream();
 
     std::FILE * file;
     std::string name;
@@ -1022,6 +1041,10 @@ struct InStream
     bool opened;
     bool stdfile;
     bool strict;
+
+    char* buffer;
+    size_t bufferSize;
+    int bufferPos;
 
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
@@ -1151,7 +1174,20 @@ struct InStream
     /* Reads EOF or fails. Use it in validators. Calls "eof()" method internally. */
     void readEof();
 
+    /* 
+     * Quit-functions aborts program with <result> and <message>:
+     * input/answer streams replaces any result to FAIL.
+     */
     void quit(TResult result, const char* msg);
+    /* 
+     * Quit-functions aborts program with <result> and <message>:
+     * input/answer streams replaces any result to FAIL.
+     */
+    void quitf(TResult result, const char* msg, ...);
+    /* 
+     * Quit-functions aborts program with <result> and <message>:
+     * input/answer streams replaces any result to FAIL.
+     */
     void quits(TResult result, std::string msg);
 
     void close();
@@ -1195,14 +1231,10 @@ struct TestlibFinalizeGuard
         if (_alive)
         {
             if (testlibMode == _checker && quitCount == 0)
-            {
                 __testlib_fail("Checker must end with quit or quitf call.");
-            }
 
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
-            {
                 __testlib_fail("Validator must end with readEof call.");
-            }
         }
     }
 };
@@ -1234,6 +1266,16 @@ InStream::InStream()
     mode = _input;
     strict = false;
     stdfile = false;
+
+    buffer = new char[INPUT_STREAM_BUFFER_SIZE];
+    bufferSize = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
+    bufferPos = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
+}
+
+InStream::~InStream()
+{
+    if (NULL != buffer)
+        delete[] buffer;
 }
 
 int resultExitCode(TResult r)
@@ -1276,7 +1318,7 @@ void halt(int exitCode)
 
 void InStream::quit(TResult result, const char* msg)
 {
-    if (TestlibFinalizeGuard::alive && (result != _ok || testlibMode != _validator))
+    if (TestlibFinalizeGuard::alive)
         testlibFinalizeGuard.quitCount++;
 
     if (mode != _output && result != _fail)
@@ -1371,6 +1413,15 @@ void InStream::quit(TResult result, const char* msg)
         std::fprintf(stderr, "See file to check exit message\n");
 
     halt(resultExitCode(result));
+}
+
+#ifdef __GNUC__
+    __attribute__ ((format (printf, 3, 4)))
+#endif
+void InStream::quitf(TResult result, const char* msg, ...)
+{
+    FMT_TO_RESULT(msg, msg, message);
+    InStream::quit(result, message.c_str());
 }
 
 void InStream::quits(TResult result, std::string msg)
@@ -1477,16 +1528,47 @@ void InStream::init(std::FILE* f, TMode mode)
     reset();
 }
 
+static bool __testlib_refill(InStream* stream)
+{
+    if (stream == NULL)
+        __testlib_fail("__testlib_refill: stream == NULL");
+
+    if (stream->bufferPos >= int(stream->bufferSize))
+    {
+        size_t readSize = fread(
+            stream->buffer + INPUT_STREAM_MAX_UNREAD_CHAR_COUNT,
+            1,
+            INPUT_STREAM_BUFFER_SIZE - INPUT_STREAM_MAX_UNREAD_CHAR_COUNT,
+            stream->file
+        );
+
+        if (readSize < INPUT_STREAM_BUFFER_SIZE - INPUT_STREAM_MAX_UNREAD_CHAR_COUNT
+                && ferror(stream->file))
+            __testlib_fail(("__testlib_refill: Unable to read from " + stream->name).c_str());
+
+        stream->bufferSize = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT + readSize;
+        stream->bufferPos = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
+
+        return readSize > 0;
+    }
+    else
+        return true;
+}
+
 char InStream::curChar()
 {
-    char c = (char)getc(file);
-    ungetc(c, file);
-    return c;
+    if (!__testlib_refill(this))
+        return EOFC;
+
+    return buffer[bufferPos];
 }
 
 char InStream::nextChar()
 {
-    return (char)getc(file);
+    if (!__testlib_refill(this))
+        return EOFC;
+
+    return buffer[bufferPos++];
 }
 
 char InStream::readChar()
@@ -1514,12 +1596,15 @@ char InStream::readSpace()
 
 void InStream::unreadChar(char c)
 {
-    ungetc(c, file);
+    bufferPos--;
+    if (bufferPos < 0)
+        __testlib_fail("InStream::unreadChar: bufferPos < 0");
+    buffer[bufferPos] = c;
 }
 
 void InStream::skipChar()
 {
-    getc(file);
+    bufferPos++;
 }
 
 void InStream::skipBlanks()
@@ -1542,9 +1627,10 @@ std::string InStream::readWord()
     if (isBlanks(cur))
         quit(_pe, "Unexpected white-space - token expected");
 
-    std::string result = "";
+    std::string result;
+    result.reserve(20);
 
-    while (!(isBlanks(cur) || cur == EOF))
+    while (!(isBlanks(cur) || isEof(cur)))
     {
         result += cur;
         cur = nextChar();
@@ -1891,20 +1977,8 @@ bool InStream::eof()
     if (!strict && NULL == file)
         return true;
 
-    if (feof(file) != 0)
-        return true;
-    else
-    {
-        int cur = getc(file);
-
-        if (isEof(char(cur)))
-            return true;
-        else
-        {
-            ungetc(cur, file);
-            return false;
-        }
-    }
+    return !__testlib_refill(this)
+    	|| isEof(curChar());
 }
 
 bool InStream::seekEof()
@@ -1987,7 +2061,7 @@ void InStream::readEof()
     if (!eof())
         quit(_pe, "Expected EOF");
 
-    if (TestlibFinalizeGuard::alive)
+    if (TestlibFinalizeGuard::alive && this == &inf)
         testlibFinalizeGuard.readEofCount++;
 }
 
@@ -2002,8 +2076,8 @@ bool InStream::seekEoln()
         cur = nextChar();
     } 
     while (cur == SPACE || cur == TAB);
-    ungetc(cur, file);
 
+    unreadChar(cur);
     return eoln();
 }
 
@@ -2017,9 +2091,10 @@ std::string InStream::readString()
     if (NULL == file)
         quit(_pe, "Expected line");
 
-    std::string retval = "";
-    char cur;
+    std::string retval;
+    retval.reserve(20);
 
+    char cur;
     for (;;)
     {
         cur = readChar();
@@ -2088,9 +2163,9 @@ void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
     if (NULL == message || 0 == strlen(message))
-        std::sprintf(buffer, "%.10lf", points);
+        std::sprintf(buffer, "%.10f", points);
     else
-        std::sprintf(buffer, "%.10lf %s", points, message);
+        std::sprintf(buffer, "%.10f %s", points, message);
     quit(_points, buffer);
 }
 
@@ -2115,17 +2190,8 @@ __attribute__ ((format (printf, 2, 3)))
 #endif
 void quitp(F points, const char* format, ...)
 {
-    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, format);
-    std::vsprintf(buffer, format, ap);
-    va_end(ap);
-
-    std::string output(buffer);
-    delete[] buffer;
-
-    quitp(points, output);
+    FMT_TO_RESULT(format, format, message);
+    quitp(points, message);
 }
 
 #ifdef __GNUC__
@@ -2133,17 +2199,8 @@ __attribute__ ((format (printf, 2, 3)))
 #endif
 void quitf(TResult result, const char* format, ...)
 {
-    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, format);
-    std::vsprintf(buffer, format, ap);
-    va_end(ap);
-
-    std::string output(buffer);
-    delete[] buffer;
-
-    quit(result, output);
+    FMT_TO_RESULT(format, format, message);
+    quit(result, message);
 }
 
 #ifdef __GNUC__
@@ -2153,17 +2210,8 @@ void quitif(bool condition, TResult result, const char* format, ...)
 {
     if (condition)
     {
-        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-        
-        va_list ap;
-        va_start(ap, format);
-        std::vsprintf(buffer, format, ap);
-        va_end(ap);
-
-        std::string output(buffer);
-        delete[] buffer;
-
-        quit(result, output);
+        FMT_TO_RESULT(format, format, message);
+        quit(result, message);
     }
 }
 
@@ -2437,16 +2485,7 @@ void ensuref(bool cond, const char* format, ...)
 {
     if (!cond)
     {
-        char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-        
-        va_list ap;
-        va_start(ap, format);
-        std::vsprintf(buffer, format, ap);
-        va_end(ap);
-
-        std::string message(buffer);
-        delete[] buffer;
-
+        FMT_TO_RESULT(format, format, message);
         __testlib_ensure(cond, message);
     }
 }
@@ -2456,16 +2495,7 @@ __attribute__ ((format (printf, 1, 2)))
 #endif
 void setName(const char* format, ...)
 {
-    char* buffer = new char [MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, format);
-    std::vsprintf(buffer, format, ap);
-    va_end(ap);
-
-    std::string name(buffer);
-    delete[] buffer;
-
+    FMT_TO_RESULT(format, format, name);
     checkerName = name;
 }
 
@@ -2481,7 +2511,7 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 {
     if (__first == __last) return;
     for (_RandomAccessIter __i = __first + 1; __i != __last; ++__i)
-        iter_swap(__i, __first + rnd.next(int(__i - __first) + 1));
+        std::iter_swap(__i, __first + rnd.next(int(__i - __first) + 1));
 }
 
 
@@ -2491,13 +2521,13 @@ void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
     quitf(_fail, "Don't use random_shuffle(), use shuffle() instead");
 }
 
-int rand()
+int rand() /* throw() */
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
     return 0;
 }
 
-void srand(unsigned int seed)
+void srand(unsigned int seed) /* throw() */
 {
     quitf(_fail, "Don't use srand(), you should use " 
         "'registerGen(argc, argv);' to initialize generator seed "
@@ -2506,10 +2536,9 @@ void srand(unsigned int seed)
 
 void startTest(int test)
 {
-    char c[16];
-    std::sprintf(c, "%d", test);
-    fclose(stdout);
-    freopen(c, "wt", stdout);
+    const std::string testFileName = vtos(test);
+    if (NULL == freopen(testFileName.c_str(), "wt", stdout))
+        __testlib_fail("Unable to write file '" + testFileName + "'");
 }
 
 #ifdef __GNUC__
@@ -2517,43 +2546,19 @@ __attribute__ ((format (printf, 1, 2)))
 #endif
 std::string format(const char* fmt, ...)
 {
-    if (strlen(fmt) > MAX_FORMAT_BUFFER_SIZE / 2)
-        __testlib_fail("format(const std::string& format, ...): format exceeds maximal length");
-
-    char* buffer = new char[MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, fmt);
-    std::vsprintf(buffer, fmt, ap);
-    va_end(ap);
-
-    std::string output(buffer);
-    delete[] buffer;
-
-    return output;
+    FMT_TO_RESULT(fmt, fmt, result);
+    return result;
 }
 
 std::string format(const std::string& fmt, ...)
 {
-    if (fmt.length() > MAX_FORMAT_BUFFER_SIZE / 2)
-        __testlib_fail("format(const std::string& format, ...): format exceeds maximal length");
-
-    char* buffer = new char[MAX_FORMAT_BUFFER_SIZE];
-    
-    va_list ap;
-    va_start(ap, fmt);
-    std::vsprintf(buffer, fmt.c_str(), ap);
-    va_end(ap);
-
-    std::string output(buffer);
-    delete[] buffer;
-
-    return output;
+    FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    return result;
 }
 
 static void __testlib_fail(const std::string& message)
 {
-    quitf(_fail, message.c_str());
+    quitf(_fail, "%s", message.c_str());
 }
 
 #endif

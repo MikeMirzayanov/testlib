@@ -36,7 +36,7 @@ int main(int argc, char * argv[])
         quitf(_wa, "%d%s numbers differ - expected: '%.10lf', found: '%.10lf', error = '%.10lf'", n, ending(n).c_str(), j, p, doubleDelta(j, p));
     }
 
-    quitf(n == 1, _ok, "found '%.10lf', expected '%.10lf', error '%.10lf'",
+    quitif(n == 1, _ok, "found '%.10lf', expected '%.10lf', error '%.10lf'",
         p, j, doubleDelta(j, p));
     quitf(_ok, "%d numbers", n);
 }

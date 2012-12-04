@@ -33,7 +33,7 @@ int main(int argc, char * argv[])
       long long j = ans.readLong();
       long long p = ouf.readLong();
       if (j != p)
-        quitf(_wa, "%d%s numbers differ - expected: '%s', found: '%s'", n, ending(n).c_str(), ltoa(j).c_str(), ltoa(p).c_str());
+        quitf(_wa, "%d%s numbers differ - expected: '%s', found: '%s'", n, ending(n).c_str(), vtos(j).c_str(), vtos(p).c_str());
       else
         if (n <= 5)
         {
