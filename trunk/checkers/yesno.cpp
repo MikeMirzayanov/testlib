@@ -1,4 +1,7 @@
 #include "testlib.h"
+#include <string>
+
+using namespace std;
 
 const string YES = "YES";
 const string NO = "NO";
@@ -13,7 +16,7 @@ std::string upper(std::string s)
 
 int main(int argc, char * argv[])
 {
-    setName(YES + " or " + NO + " (case insensetive)");
+    setName((YES + " or " + NO + " (case insensetive)").c_str());
     registerTestlibCmd(argc, argv);
 
     std::string ja = upper(ans.readWord());
