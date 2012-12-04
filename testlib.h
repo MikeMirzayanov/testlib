@@ -2521,13 +2521,19 @@ void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
     quitf(_fail, "Don't use random_shuffle(), use shuffle() instead");
 }
 
-int rand() /* throw() */
+#ifdef __GLIBC__
+#  define RAND_THROW_STATEMENT throw()
+#else
+#  define RAND_THROW_STATEMENT
+#endif
+
+int rand() RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
     return 0;
 }
 
-void srand(unsigned int seed) /* throw() */
+void srand(unsigned int seed) RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use srand(), you should use " 
         "'registerGen(argc, argv);' to initialize generator seed "
