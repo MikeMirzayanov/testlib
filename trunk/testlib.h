@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",  
                           "Manual buffer in InStreams, some IO speed improvements",  
                           "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",  
                           "Introduced guard against missed quitf() in checker or readEof() in validators",  
@@ -1013,7 +1014,7 @@ enum TResult
 
 enum TTestlibMode
 {
-	_unknown, _checker, _validator, _generator, _interactor
+    _unknown, _checker, _validator, _generator, _interactor
 };
 
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
@@ -1326,7 +1327,7 @@ void InStream::quit(TResult result, const char* msg)
 
     std::FILE * resultFile;
     std::string errorName;
-	
+    
     if (result == _ok)
     {
         if (testlibMode != _interactor && !ouf.seekEof())
@@ -1978,7 +1979,7 @@ bool InStream::eof()
         return true;
 
     return !__testlib_refill(this)
-    	|| isEof(curChar());
+        || isEof(curChar());
 }
 
 bool InStream::seekEof()
@@ -2239,14 +2240,14 @@ void __testlib_help()
 
 void registerGen(int argc, char* argv[])
 {
-	testlibMode = _generator;
+    testlibMode = _generator;
     __testlib_set_binary(stdin);
     rnd.setSeed(argc, argv);
 }
 
 void registerInteraction(int argc, char* argv[])
 {
-	testlibMode = _interactor;
+    testlibMode = _interactor;
     __testlib_set_binary(stdin);
 
     if (argc > 1 && !strcmp("--help", argv[1]))
@@ -2317,7 +2318,7 @@ void registerInteraction(int argc, char* argv[])
 
 void registerValidation()
 {
-	testlibMode = _validator;
+    testlibMode = _validator;
     __testlib_set_binary(stdin);
 
     // testlib assumes: sizeof(int) = 4.
@@ -2335,7 +2336,7 @@ void registerValidation()
 
 void registerTestlibCmd(int argc, char* argv[])
 {
-	testlibMode = _checker;
+    testlibMode = _checker;
     __testlib_set_binary(stdin);    
 
     if (argc > 1 && !strcmp("--help", argv[1]))
@@ -2421,14 +2422,14 @@ inline bool isInfinite(double r)
 
 bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 {
-        if(isNaN(expected))
+        if (isNaN(expected))
         {
             return isNaN(result);
         }
         else 
-            if(isInfinite(expected))
+            if (isInfinite(expected))
             {
-                if(expected > 0)
+                if (expected > 0)
                 {
                     return result > 0 && isInfinite(result);
                 }
@@ -2438,12 +2439,12 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                 }
             }
             else 
-                if(isNaN(result) || isInfinite(result))
+                if (isNaN(result) || isInfinite(result))
                 {
                     return false;
                 }
                 else 
-                if(__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15)
+                if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15)
                 {
                     return true;
                 }
@@ -2488,6 +2489,11 @@ void ensuref(bool cond, const char* format, ...)
         FMT_TO_RESULT(format, format, message);
         __testlib_ensure(cond, message);
     }
+}
+
+static void __testlib_fail(const std::string& message)
+{
+    quitf(_fail, "%s", message.c_str());
 }
 
 #ifdef __GNUC__
@@ -2562,9 +2568,39 @@ std::string format(const std::string& fmt, ...)
     return result;
 }
 
-static void __testlib_fail(const std::string& message)
+std::string upperCase(std::string s)
 {
-    quitf(_fail, "%s", message.c_str());
+    for (size_t i = 0; i < s.length(); i++)
+        if ('a' <= s[i] && s[i] <= 'z')
+            s[i] = s[i] - 'a' + 'A';
+    return s;
+}
+
+std::string lowerCase(std::string s)
+{
+    for (size_t i = 0; i < s.length(); i++)
+        if ('A' <= s[i] && s[i] <= 'Z')
+            s[i] = s[i] - 'A' + 'a';
+    return s;
+}
+
+std::string compress(const std::string& s)
+{
+    return __testlib_part(s);
+}
+
+std::string englishEnding(int x)
+{
+    x %= 100;
+    if (x / 10 == 1)
+        return "th";
+    if (x % 10 == 1)
+        return "st";
+    if (x % 10 == 2)
+        return "nd";
+    if (x % 10 == 3)
+        return "rd";
+    return "th";
 }
 
 #endif

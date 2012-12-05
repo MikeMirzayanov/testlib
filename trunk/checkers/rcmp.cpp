@@ -12,6 +12,8 @@ int main(int argc, char * argv[])
     double ja = ans.readDouble();
     double pa = ouf.readDouble();
     
-    quitif(fabs(ja - pa) > EPS + 1E-15, _wa, "expected %.10lf, found %.10lf", ja, pa);
+    quitif(fabs(ja - pa) > EPS + 1E-15,
+        _wa, "expected %.10lf, found %.10lf", ja, pa);
+    
     quitf(_ok, "answer is %.10lf", ja);
 }
