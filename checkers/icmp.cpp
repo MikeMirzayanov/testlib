@@ -9,6 +9,8 @@ int main(int argc, char * argv[])
     int ja = ans.readInt();
     int pa = ouf.readInt();
     
-    quitif(ja != pa, _wa, "expected %d, found %d", ja, pa);
+    quitif(ja != pa,
+        _wa, "expected %d, found %d", ja, pa);
+    
     quitf(_ok, "answer is %d", ja);
 }
