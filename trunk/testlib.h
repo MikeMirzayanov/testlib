@@ -170,8 +170,10 @@ const char* latestFeatures[] = {
 
 #ifdef ON_WINDOWS
 #define I64 "%I64d"
+#define U64 "%I64u"
 #else
 #define I64 "%lld"
+#define U64 "%llu"
 #endif
 
 char __testlib_format_buffer[16777216];
