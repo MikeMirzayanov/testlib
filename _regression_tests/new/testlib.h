@@ -2752,4 +2752,24 @@ std::string englishEnding(int x)
     return "th";
 }
 
+std::string trim(const std::string& s)
+{
+    if (s.empty())
+        return s;
+
+    int left = 0;
+    while (left < int(s.length()) && isBlanks(s[left]))
+        left++;
+    if (left >= int(s.length()))
+        return "";
+
+    int right = s.length() - 1;
+    while (right >= 0 && isBlanks(s[right]))
+        right--;
+    if (right < 0)
+        return "";
+
+    return s.substr(left, right - left + 1);
+}
+
 #endif

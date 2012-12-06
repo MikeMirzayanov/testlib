@@ -174,8 +174,8 @@ const char* latestFeatures[] = {
 #define I64 "%lld"
 #endif
 
-static char __testlib_format_buffer[16777216];
-static int __testlib_format_buffer_usage_count = 0;
+char __testlib_format_buffer[16777216];
+int __testlib_format_buffer_usage_count = 0;
 
 #define FMT_TO_RESULT(fmt, cstr, result)  std::string result;                              \
         do {                                                                               \
@@ -2750,6 +2750,26 @@ std::string englishEnding(int x)
     if (x % 10 == 3)
         return "rd";
     return "th";
+}
+
+std::string trim(const std::string& s)
+{
+    if (s.empty())
+        return s;
+
+    int left = 0;
+    while (left < int(s.length()) && isBlanks(s[left]))
+        left++;
+    if (left >= int(s.length()))
+        return "";
+
+    int right = s.length() - 1;
+    while (right >= 0 && isBlanks(s[right]))
+        right--;
+    if (right < 0)
+        return "";
+
+    return s.substr(left, right - left + 1);
 }
 
 #endif
