@@ -174,29 +174,21 @@ const char* latestFeatures[] = {
 #define I64 "%lld"
 #endif
 
-#define FMT_TO_RESULT(fmt, cstr, result)     int size = 16;                        \
-    std::string result;                                                            \
-    va_list ap;                                                                    \
-                                                                                   \
-    while (true)                                                                   \
-    {                                                                              \
-        result.resize(size);                                                       \
-                                                                                   \
-        va_start(ap, (fmt));                                                       \
-        int n = vsnprintf((char*)result.c_str(), size, (cstr), ap);                \
-        va_end(ap);                                                                \
-                                                                                   \
-        if (n > -1 && n < size)                                                    \
-        {                                                                          \
-            result.resize(n);                                                      \
-            break;                                                                 \
-        }                                                                          \
-                                                                                   \
-        if (n > -1)                                                                \
-            size = n+1;                                                            \
-        else                                                                       \
-            size *= 2;                                                             \
-    }                                                                              \
+static char __testlib_format_buffer[16777216];
+static int __testlib_format_buffer_usage_count = 0;
+
+#define FMT_TO_RESULT(fmt, cstr, result)  std::string result;                              \
+        do {                                                                               \
+            if (__testlib_format_buffer_usage_count != 0)                                  \
+                __testlib_fail("FMT_TO_RESULT::__testlib_format_buffer_usage_count != 0"); \
+            __testlib_format_buffer_usage_count++;                                         \
+            va_list ap;                                                                    \
+            va_start(ap, fmt);                                                             \
+            std::vsprintf(__testlib_format_buffer, cstr, ap);                              \
+            va_end(ap);                                                                    \
+            result = std::string(__testlib_format_buffer);                                 \
+            __testlib_format_buffer_usage_count--;                                         \
+        } while (0)                                                                        \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 
@@ -1022,8 +1014,186 @@ enum TTestlibMode
 const std::string outcomes[] =
     {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct", "points"};
 
-const size_t INPUT_STREAM_BUFFER_SIZE = 2000000;
-const size_t INPUT_STREAM_MAX_UNREAD_CHAR_COUNT = 100;
+class InputStreamReader
+{
+public:
+    virtual int curChar() = 0;    
+    virtual int nextChar() = 0;    
+    virtual void skipChar() = 0;
+    virtual void unreadChar(int c) = 0;
+    virtual std::string getName() = 0;
+    virtual bool eof() = 0;
+};
+
+class FileInputStreamReader: public InputStreamReader
+{
+private:
+    FILE* file;
+    std::string name;
+
+public:
+    FileInputStreamReader(FILE* file, const std::string& name): file(file), name(name)
+    {
+        // No operations.
+    }
+
+    int curChar()
+    {
+        if (feof(file))
+            return EOF;
+        else
+        {
+            int c = getc(file);
+            ungetc(c, file);
+            return c;
+        }
+    }
+
+    int nextChar()
+    {
+        if (feof(file))
+            return EOF;
+        else
+            return getc(file);
+    }
+
+    void skipChar()
+    {
+        getc(file);
+    }
+
+    void unreadChar(int c)
+    {   
+        ungetc(c, file);
+    }
+
+    std::string getName()
+    {
+        return name;
+    }
+
+    bool eof()
+    {
+        if (feof(file))
+            return true;
+        else
+        {
+            int c = getc(file);
+            bool result = (c == EOF);
+            ungetc(c, file);
+            return result;
+        }
+    }
+};
+
+class BufferedFileInputStreamReader: public InputStreamReader
+{
+private:
+    static const size_t BUFFER_SIZE;
+    static const size_t MAX_UNREAD_COUNT; 
+    
+    FILE* file;
+    char* buffer;
+    bool* isEof;
+    int bufferPos;
+    int bufferSize;
+
+    std::string name;
+
+    bool refill()
+    {
+        if (NULL == file)
+            __testlib_fail("BufferedFileInputStreamReader: file == NULL (" + getName() + ")");
+
+        if (bufferPos >= int(bufferSize))
+        {
+            size_t readSize = fread(
+                buffer + MAX_UNREAD_COUNT,
+                1,
+                BUFFER_SIZE - MAX_UNREAD_COUNT,
+                file
+            );
+
+            if (readSize < BUFFER_SIZE - MAX_UNREAD_COUNT
+                    && ferror(file))
+                __testlib_fail("BufferedFileInputStreamReader: unable to read (" + getName() + ")");
+
+            bufferSize = MAX_UNREAD_COUNT + readSize;
+            bufferPos = MAX_UNREAD_COUNT;
+            std::memset(isEof + MAX_UNREAD_COUNT, 0, sizeof(isEof[0]) * readSize);
+
+            return readSize > 0;
+        }
+        else
+            return true;
+    }
+
+public:
+    BufferedFileInputStreamReader(FILE* file, const std::string& name): file(file), name(name)
+    {
+        buffer = new char[BUFFER_SIZE];
+        isEof = new bool[BUFFER_SIZE];
+        bufferSize = MAX_UNREAD_COUNT;
+        bufferPos = MAX_UNREAD_COUNT;
+    }
+
+    ~BufferedFileInputStreamReader()
+    {
+        if (NULL != buffer)
+        {
+            delete[] buffer;
+            buffer = NULL;
+        }
+        if (NULL != isEof)
+        {
+            delete[] isEof;
+            isEof = NULL;
+        }
+    }
+
+    int curChar()
+    {
+        if (!refill())
+            return EOF;
+
+        return isEof[bufferPos] ? EOF : buffer[bufferPos];
+    }
+
+    int nextChar()
+    {
+        if (!refill())
+            return EOF;
+
+        return isEof[bufferPos] ? EOF : buffer[bufferPos++];
+    }
+
+    void skipChar()
+    {
+        bufferPos++;
+    }
+
+    void unreadChar(int c)
+    {   
+        bufferPos--;
+        if (bufferPos < 0)
+            __testlib_fail("BufferedFileInputStreamReader::unreadChar(int): bufferPos < 0");
+        isEof[bufferPos] = (c == EOF);
+        buffer[bufferPos] = (c == EOF ? EOFC : c);
+    }
+
+    std::string getName()
+    {
+        return name;
+    }
+    
+    bool eof()
+    {
+        return !refill() || EOF == curChar();
+    }
+};
+
+const size_t BufferedFileInputStreamReader::BUFFER_SIZE = 1000000;
+const size_t BufferedFileInputStreamReader::MAX_UNREAD_COUNT = 100; 
 
 /*
  * Streams to be used for reading data in checkers or validators.
@@ -1036,16 +1206,14 @@ struct InStream
     InStream();
     ~InStream();
 
-    std::FILE * file;
+    InputStreamReader* reader;
+
+    std::FILE* file;
     std::string name;
     TMode mode;
     bool opened;
     bool stdfile;
     bool strict;
-
-    char* buffer;
-    size_t bufferSize;
-    int bufferPos;
 
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
@@ -1267,16 +1435,15 @@ InStream::InStream()
     mode = _input;
     strict = false;
     stdfile = false;
-
-    buffer = new char[INPUT_STREAM_BUFFER_SIZE];
-    bufferSize = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
-    bufferPos = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
 }
 
 InStream::~InStream()
 {
-    if (NULL != buffer)
-        delete[] buffer;
+    if (NULL != reader)
+    {
+        delete reader;
+        reader = NULL;
+    }
 }
 
 int resultExitCode(TResult r)
@@ -1497,6 +1664,11 @@ void InStream::reset()
     opened = true;
 
     __testlib_set_binary(file);
+
+    if (stdfile)
+        reader = new FileInputStreamReader(file, name);
+    else
+        reader = new BufferedFileInputStreamReader(file, name);
 }
 
 void InStream::init(std::string fileName, TMode mode)
@@ -1529,47 +1701,16 @@ void InStream::init(std::FILE* f, TMode mode)
     reset();
 }
 
-static bool __testlib_refill(InStream* stream)
-{
-    if (stream == NULL)
-        __testlib_fail("__testlib_refill: stream == NULL");
-
-    if (stream->bufferPos >= int(stream->bufferSize))
-    {
-        size_t readSize = fread(
-            stream->buffer + INPUT_STREAM_MAX_UNREAD_CHAR_COUNT,
-            1,
-            INPUT_STREAM_BUFFER_SIZE - INPUT_STREAM_MAX_UNREAD_CHAR_COUNT,
-            stream->file
-        );
-
-        if (readSize < INPUT_STREAM_BUFFER_SIZE - INPUT_STREAM_MAX_UNREAD_CHAR_COUNT
-                && ferror(stream->file))
-            __testlib_fail(("__testlib_refill: Unable to read from " + stream->name).c_str());
-
-        stream->bufferSize = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT + readSize;
-        stream->bufferPos = INPUT_STREAM_MAX_UNREAD_CHAR_COUNT;
-
-        return readSize > 0;
-    }
-    else
-        return true;
-}
-
 char InStream::curChar()
 {
-    if (!__testlib_refill(this))
-        return EOFC;
-
-    return buffer[bufferPos];
+    int c = reader->curChar();
+    return c != EOF ? c : EOFC;
 }
 
 char InStream::nextChar()
 {
-    if (!__testlib_refill(this))
-        return EOFC;
-
-    return buffer[bufferPos++];
+    int c = reader->nextChar();
+    return c != EOF ? c : EOFC;
 }
 
 char InStream::readChar()
@@ -1597,22 +1738,24 @@ char InStream::readSpace()
 
 void InStream::unreadChar(char c)
 {
-    bufferPos--;
-    if (bufferPos < 0)
-        __testlib_fail("InStream::unreadChar: bufferPos < 0");
-    buffer[bufferPos] = c;
+    reader->unreadChar(c);
 }
 
 void InStream::skipChar()
 {
-    bufferPos++;
+    reader->skipChar();
 }
 
 void InStream::skipBlanks()
 {
-    char cur;
-    while (isBlanks(cur = readChar()));
-    unreadChar(cur);
+    int cur;
+    while (true)
+    {
+        cur = reader->nextChar();
+        if (!isBlanks(char(cur)))
+            break;
+    }
+    reader->unreadChar(cur);
 }
 
 std::string InStream::readWord()
@@ -1620,9 +1763,9 @@ std::string InStream::readWord()
     if (!strict)
         skipBlanks();
 
-    char cur = readChar();
+    int cur = reader->nextChar();
 
-    if (isEof(cur))
+    if (cur == EOF)
         quit(_pe, "Unexpected end of file - token expected");
 
     if (isBlanks(cur))
@@ -1631,13 +1774,13 @@ std::string InStream::readWord()
     std::string result;
     result.reserve(20);
 
-    while (!(isBlanks(cur) || isEof(cur)))
+    while (!(isBlanks(cur) || cur == EOF))
     {
-        result += cur;
-        cur = nextChar();
+        result += char(cur);
+        cur = reader->nextChar();
     }
 
-    unreadChar(cur);
+    reader->unreadChar(cur);
 
     if (result.length() == 0)
         quit(_pe, "Unexpected end of file or white-space - token expected");
@@ -1978,8 +2121,7 @@ bool InStream::eof()
     if (!strict && NULL == file)
         return true;
 
-    return !__testlib_refill(this)
-        || isEof(curChar());
+    return reader->eof();
 }
 
 bool InStream::seekEof()
@@ -1995,21 +2137,21 @@ bool InStream::eoln()
     if (!strict && NULL == file)
         return true;
 
-    char c = nextChar();
+    int c = reader->nextChar();
 
     if (!strict)
     {
-        if (isEof(c))
+        if (c == EOF)
             return true;
 
         if (c == CR)
         {
-            c = nextChar();
+            c = reader->nextChar();
 
             if (c != LF)
             {
-                unreadChar(CR);
-                unreadChar(c);
+                reader->unreadChar(CR);
+                reader->unreadChar(c);
                 return false;
             }
             else
@@ -2019,7 +2161,7 @@ bool InStream::eoln()
         if (c == LF)
             return true;
 
-        unreadChar(c);
+        reader->unreadChar(c);
         return false;
     }
     else
@@ -2029,21 +2171,21 @@ bool InStream::eoln()
 #ifdef ON_WINDOWS
         if (c != CR)
         {
-            unreadChar(c);
+            reader->unreadChar(c);
             return false;
         }
         else
         {
             if (!returnCr)
                 returnCr = true;
-            c = nextChar();
+            c = reader->nextChar();
         }
 #endif        
         if (c != LF)
         {
             if (returnCr)
-                unreadChar(CR);
-            unreadChar(LF);
+                reader->unreadChar(CR);
+            reader->unreadChar(LF);
             return false;
         }
 
@@ -2071,14 +2213,14 @@ bool InStream::seekEoln()
     if (NULL == file)
         return true;
     
-    char cur;
+    int cur;
     do
     {
-        cur = nextChar();
+        cur = reader->nextChar();
     } 
     while (cur == SPACE || cur == TAB);
 
-    unreadChar(cur);
+    reader->unreadChar(cur);
     return eoln();
 }
 
@@ -2095,21 +2237,21 @@ std::string InStream::readString()
     std::string retval;
     retval.reserve(20);
 
-    char cur;
+    int cur;
     for (;;)
     {
-        cur = readChar();
+        cur = reader->nextChar();
 
         if (isEoln(cur))
             break;
 
-        if (isEof(cur))
+        if (cur == EOF)
             break;
 
-        retval += cur;
+        retval += char(cur);
     }
 
-    unreadChar(cur);
+    reader->unreadChar(cur);
 
     if (strict)
         readEoln();
@@ -2147,6 +2289,13 @@ void InStream::close()
 {
     if (opened)
         fclose(file);
+    
+    if (NULL != reader)
+    {
+        delete reader;
+        reader = NULL;
+    }
+    
     opened = false;
 }
 
