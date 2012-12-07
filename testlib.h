@@ -1025,7 +1025,13 @@ public:
     virtual void unreadChar(int c) = 0;
     virtual std::string getName() = 0;
     virtual bool eof() = 0;
+    virtual ~InputStreamReader() = 0;
 };
+
+InputStreamReader::~InputStreamReader()
+{
+    // No operations.
+}
 
 class FileInputStreamReader: public InputStreamReader
 {
