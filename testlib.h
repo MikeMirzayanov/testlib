@@ -272,10 +272,12 @@ public:
     std::string next(random_t& rnd) const;
     /* Checks if given string match the pattern. */
     bool matches(const std::string& s) const;
-
+    /* Returns source string of the pattern. */
+    std::string src() const;
 private:
     bool matches(const std::string& s, size_t pos) const;
 
+    std::string s;
     std::vector<pattern> children;
     std::vector<char> chars;
     int from;
@@ -711,6 +713,11 @@ static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::ve
     return result;
 }
 
+std::string pattern::src() const
+{
+    return s;
+}
+
 bool pattern::matches(const std::string& s, size_t pos) const
 {
     std::string result;
@@ -913,7 +920,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos
     return result;
 }
 
-pattern::pattern(std::string s): from(0), to(0)
+pattern::pattern(std::string s): s(s), from(0), to(0)
 {
     std::string t;
     for (size_t i = 0; i < s.length(); i++)
@@ -1223,6 +1230,8 @@ struct InStream
     bool stdfile;
     bool strict;
 
+    int wordReserveSize;
+
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
 
@@ -1273,8 +1282,18 @@ struct InStream
     std::string readToken();
     /* The same as "readWord()", but ensures that token matches to given pattern. */
     std::string readWord(const std::string& ptrn, const std::string& variableName = "");
+    std::string readWord(const pattern& p, const std::string& variableName = "");
     /* The same as "readToken()", but ensures that token matches to given pattern. */
     std::string readToken(const std::string& ptrn, const std::string& variableName = "");
+    std::string readToken(const pattern& p, const std::string& variableName = "");
+
+    void readWordTo(std::string& result);
+    void readWordTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    void readWordTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
+
+    void readTokenTo(std::string& result);
+    void readTokenTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    void readTokenTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
 
     /* 
      * Reads new long long value. Ignores white-spaces into the non-strict mode 
@@ -1443,6 +1462,7 @@ InStream::InStream()
     mode = _input;
     strict = false;
     stdfile = false;
+    wordReserveSize = 4;
 }
 
 InStream::~InStream()
@@ -1768,6 +1788,17 @@ void InStream::skipBlanks()
 
 std::string InStream::readWord()
 {
+    std::string result;
+    result.reserve(wordReserveSize);
+
+    readWordTo(result);
+    wordReserveSize = __testlib_min(__testlib_max(wordReserveSize, int(result.length())), 32);
+
+    return result;
+}
+
+void InStream::readWordTo(std::string& result)
+{
     if (!strict)
         skipBlanks();
 
@@ -1779,8 +1810,7 @@ std::string InStream::readWord()
     if (isBlanks(cur))
         quit(_pe, "Unexpected white-space - token expected");
 
-    std::string result;
-    result.reserve(20);
+    result.clear();
 
     while (!(isBlanks(cur) || cur == EOF))
     {
@@ -1792,13 +1822,16 @@ std::string InStream::readWord()
 
     if (result.length() == 0)
         quit(_pe, "Unexpected end of file or white-space - token expected");
-
-    return result;
 }
 
 std::string InStream::readToken()
 {
     return readWord();
+}
+
+void InStream::readTokenTo(std::string& result)
+{
+    readWordTo(result);
 }
 
 static std::string __testlib_part(const std::string& s)
@@ -1809,23 +1842,59 @@ static std::string __testlib_part(const std::string& s)
         return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
 }
 
-std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
+std::string InStream::readWord(const pattern& p, const std::string& variableName)
 {
-    pattern p(ptrn);
     std::string result = readWord();
     if (!p.matches(result))
     {
         if (variableName.empty())
-            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
         else
-            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
     }
     return result;
+}
+
+std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
+{
+    return readWord(pattern(ptrn), variableName);
+}
+
+std::string InStream::readToken(const pattern& p, const std::string& variableName)
+{
+    return readWord(p, variableName);
 }
 
 std::string InStream::readToken(const std::string& ptrn, const std::string& variableName)
 {
     return readWord(ptrn, variableName);
+}
+
+void InStream::readWordTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readWordTo(result);
+    if (!p.matches(result))
+    {
+        if (variableName.empty())
+            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        else
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+    }
+}
+
+void InStream::readWordTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    return readWordTo(result, pattern(ptrn), variableName);
+}
+
+void InStream::readTokenTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    return readWordTo(result, p, variableName);
+}
+
+void InStream::readTokenTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    return readWordTo(result, ptrn, variableName);
 }
 
 static bool equals(long long integer, const char* s)
@@ -2010,10 +2079,13 @@ int InStream::readInteger()
     if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - int32 expected");
 
-    std::string token = readWord();
+    std::string token;
+    readWordTo(token);
+    
     long long value = stringToLongLong(*this, token.c_str());
     if (value < INT_MIN || value > INT_MAX)
         quit(_pe, ("Expected int32, but \"" + token + "\" found").c_str());
+    
     return int(value);
 }
 
