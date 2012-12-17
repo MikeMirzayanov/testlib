@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",  
                           "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",  
                           "Manual buffer in InStreams, some IO speed improvements",  
                           "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",  
@@ -1353,17 +1354,32 @@ struct InStream
     
     /* As readLine(). */
     std::string readString();
+    /* See readLine(). */
+    void readStringTo(std::string& result);
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    std::string readString(const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    std::string readString(const std::string& ptrn, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    void readStringTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    void readStringTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
+
     /* 
      * Reads line from the current position to EOLN or EOF. Moves stream pointer to 
      * the first character of the new line (if possible). 
      */
     std::string readLine();
-
+    /* See readLine(). */
+    void readLineTo(std::string& result);
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    std::string readLine(const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
     std::string readLine(const std::string& ptrn, const std::string& variableName = "");
-
-    /* See readLine(const std::string& ptrn). */
-    std::string readString(const std::string& ptrn, const std::string& variableName = "");
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    void readLineTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    void readLineTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
 
     /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
@@ -1776,14 +1792,8 @@ void InStream::skipChar()
 
 void InStream::skipBlanks()
 {
-    int cur;
-    while (true)
-    {
-        cur = reader->nextChar();
-        if (!isBlanks(char(cur)))
-            break;
-    }
-    reader->unreadChar(cur);
+    while (isBlanks(reader->curChar()))
+        reader->skipChar();
 }
 
 std::string InStream::readWord()
@@ -2309,18 +2319,17 @@ void InStream::nextLine()
     readLine();
 }
 
-std::string InStream::readString()
+void InStream::readStringTo(std::string& result)
 {
     if (NULL == file)
         quit(_pe, "Expected line");
 
-    std::string retval;
-    retval.reserve(20);
-
+    result.clear();
     int cur;
+
     for (;;)
     {
-        cur = reader->nextChar();
+        cur = reader->curChar();
 
         if (isEoln(cur))
             break;
@@ -2328,36 +2337,79 @@ std::string InStream::readString()
         if (cur == EOF)
             break;
 
-        retval += char(cur);
+        result += char(reader->nextChar());
     }
-
-    reader->unreadChar(cur);
 
     if (strict)
         readEoln();
     else
         eoln();
+}
 
-    return retval;
+std::string InStream::readString()
+{
+    std::string result;
+    result.reserve(20);
+    readStringTo(result);
+    return result;
+}
+
+void InStream::readStringTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readStringTo(result);
+    if (!p.matches(result))
+    {
+        if (variableName.empty())
+            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        else
+            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+    }
+}
+
+void InStream::readStringTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    readStringTo(result, pattern(ptrn), variableName);
+}
+
+std::string InStream::readString(const pattern& p, const std::string& variableName)
+{
+    std::string result;
+    result.reserve(20);
+    readStringTo(result, p, variableName);
+    return result;
 }
 
 std::string InStream::readString(const std::string& ptrn, const std::string& variableName)
 {
-    pattern p(ptrn);
-    std::string result = readString();
-    if (!p.matches(result))
-    {
-        if (variableName.empty())
-            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
-        else
-            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
-    }
+    std::string result;
+    result.reserve(20);
+    readStringTo(result, ptrn, variableName);
     return result;
+}
+
+void InStream::readLineTo(std::string& result)
+{
+    readStringTo(result);
 }
 
 std::string InStream::readLine()
 {
     return readString();
+}
+
+void InStream::readLineTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readStringTo(result, p, variableName);
+}
+
+void InStream::readLineTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    readStringTo(result, ptrn, variableName);
+}
+
+std::string InStream::readLine(const pattern& p, const std::string& variableName)
+{
+    return readString(p, variableName);
 }
 
 std::string InStream::readLine(const std::string& ptrn, const std::string& variableName)
