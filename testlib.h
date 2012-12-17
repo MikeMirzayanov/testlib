@@ -373,7 +373,8 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    int next(unsigned int n)
+    template<typename T>
+    int next(T n)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
@@ -516,7 +517,8 @@ public:
     }
     
     /* See wnext(int, int). It uses the same algorithms. */
-    int wnext(unsigned int n, int type)
+    template<typename T>
+    int wnext(T n, int type)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
@@ -1232,6 +1234,7 @@ struct InStream
     bool strict;
 
     int wordReserveSize;
+    std::string _tmpReadToken;
 
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
@@ -1798,13 +1801,8 @@ void InStream::skipBlanks()
 
 std::string InStream::readWord()
 {
-    std::string result;
-    result.reserve(wordReserveSize);
-
-    readWordTo(result);
-    wordReserveSize = __testlib_min(__testlib_max(wordReserveSize, int(result.length())), 32);
-
-    return result;
+    readWordTo(_tmpReadToken);
+    return _tmpReadToken;
 }
 
 void InStream::readWordTo(std::string& result)
@@ -1854,15 +1852,15 @@ static std::string __testlib_part(const std::string& s)
 
 std::string InStream::readWord(const pattern& p, const std::string& variableName)
 {
-    std::string result = readWord();
-    if (!p.matches(result))
+    readWordTo(_tmpReadToken);
+    if (!p.matches(_tmpReadToken))
     {
         if (variableName.empty())
-            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            quit(_wa, ("Token \"" + __testlib_part(_tmpReadToken) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
         else
-            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(_tmpReadToken) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
     }
-    return result;
+    return _tmpReadToken;
 }
 
 std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
@@ -2089,12 +2087,11 @@ int InStream::readInteger()
     if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - int32 expected");
 
-    std::string token;
-    readWordTo(token);
+    readWordTo(_tmpReadToken);
     
-    long long value = stringToLongLong(*this, token.c_str());
+    long long value = stringToLongLong(*this, _tmpReadToken.c_str());
     if (value < INT_MIN || value > INT_MAX)
-        quit(_pe, ("Expected int32, but \"" + token + "\" found").c_str());
+        quit(_pe, ("Expected int32, but \"" + _tmpReadToken + "\" found").c_str());
     
     return int(value);
 }
@@ -2104,8 +2101,8 @@ long long InStream::readLong()
     if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - int64 expected");
 
-    std::string token = readWord();
-    return stringToLongLong(*this, token.c_str());
+    readWordTo(_tmpReadToken);
+    return stringToLongLong(*this, _tmpReadToken.c_str());
 }
 
 long long InStream::readLong(long long minv, long long maxv, const std::string& variableName)
@@ -2348,10 +2345,8 @@ void InStream::readStringTo(std::string& result)
 
 std::string InStream::readString()
 {
-    std::string result;
-    result.reserve(20);
-    readStringTo(result);
-    return result;
+    readStringTo(_tmpReadToken);
+    return _tmpReadToken;
 }
 
 void InStream::readStringTo(std::string& result, const pattern& p, const std::string& variableName)
@@ -2373,18 +2368,14 @@ void InStream::readStringTo(std::string& result, const std::string& ptrn, const 
 
 std::string InStream::readString(const pattern& p, const std::string& variableName)
 {
-    std::string result;
-    result.reserve(20);
-    readStringTo(result, p, variableName);
-    return result;
+    readStringTo(_tmpReadToken, p, variableName);
+    return _tmpReadToken;
 }
 
 std::string InStream::readString(const std::string& ptrn, const std::string& variableName)
 {
-    std::string result;
-    result.reserve(20);
-    readStringTo(result, ptrn, variableName);
-    return result;
+    readStringTo(_tmpReadToken, ptrn, variableName);
+    return _tmpReadToken;
 }
 
 void InStream::readLineTo(std::string& result)
