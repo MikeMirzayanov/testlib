@@ -676,6 +676,9 @@ static bool __pattern_isSlash(const std::string& s, size_t pos)
     return s[pos] == '\\';
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static bool __pattern_isCommandChar(const std::string& s, size_t pos, char value)
 {
     if (pos >= s.length())
@@ -700,6 +703,9 @@ static char __pattern_getChar(const std::string& s, size_t& pos)
     return s[pos - 1];
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::vector<char> chars)
 {
     int result = 0;
@@ -1493,6 +1499,9 @@ InStream::~InStream()
     }
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 int resultExitCode(TResult r)
 {
     if (r == _ok)
@@ -1520,6 +1529,10 @@ void InStream::textColor(WORD color)
 #endif
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void halt(int exitCode)
 {
 #ifdef FOOTER
@@ -1531,6 +1544,9 @@ void halt(int exitCode)
     std::exit(exitCode);
 }
 
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
@@ -1632,6 +1648,7 @@ void InStream::quit(TResult result, const char* msg)
 
 #ifdef __GNUC__
     __attribute__ ((format (printf, 3, 4)))
+    __attribute__ ((noreturn))
 #endif
 void InStream::quitf(TResult result, const char* msg, ...)
 {
@@ -1639,6 +1656,10 @@ void InStream::quitf(TResult result, const char* msg, ...)
     InStream::quit(result, message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void InStream::quits(TResult result, std::string msg)
 {
     InStream::quit(result, msg.c_str());
@@ -1905,6 +1926,9 @@ void InStream::readTokenTo(std::string& result, const std::string& ptrn, const s
     return readWordTo(result, ptrn, variableName);
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static bool equals(long long integer, const char* s)
 {
     if (integer == LLONG_MIN)
@@ -2173,6 +2197,11 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
     return result;
 }
 
+double InStream::readDouble(double minv, double maxv, const std::string& variableName)
+{
+    return readReal(minv, maxv, variableName);
+}                                           
+
 double InStream::readStrictReal(double minv, double maxv,
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
         const std::string& variableName)
@@ -2422,16 +2451,28 @@ void InStream::close()
     opened = false;
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quit(TResult result, const std::string& msg)
 {
     ouf.quit(result, msg.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quit(TResult result, const char* msg)
 {
     ouf.quit(result, msg);
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
@@ -2442,16 +2483,27 @@ void __testlib_quitp(double points, const char* message)
     quit(_points, buffer);
 }
 
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(float points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(double points, const std::string& message = "")
 {
     __testlib_quitp(points, message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(long double points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
@@ -2460,6 +2512,7 @@ void quitp(long double points, const std::string& message = "")
 template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
+__attribute__ ((noreturn))
 #endif
 void quitp(F points, const char* format, ...)
 {
@@ -2469,6 +2522,7 @@ void quitp(F points, const char* format, ...)
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
+__attribute__ ((noreturn))
 #endif
 void quitf(TResult result, const char* format, ...)
 {
@@ -2488,6 +2542,10 @@ void quitif(bool condition, TResult result, const char* format, ...)
     }
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
@@ -2692,6 +2750,9 @@ inline bool isInfinite(double r)
     return (r > 1E100 || r < -1E100);
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 {
         if (isNaN(expected))
@@ -2730,6 +2791,9 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                 }
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 double doubleDelta(double expected, double result)
 {
     double absolute = __testlib_abs(result - expected);
@@ -2763,6 +2827,9 @@ void ensuref(bool cond, const char* format, ...)
     }
 }
 
+#ifdef __GNUC__
+__attribute__((noreturn))
+#endif
 static void __testlib_fail(const std::string& message)
 {
     quitf(_fail, "%s", message.c_str());
@@ -2794,7 +2861,10 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 
 
 template<typename _RandomAccessIter>
-void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
+#ifdef __GNUC__
+__attribute__ ((error("Don't use random_shuffle(), use shuffle() instead")))
+#endif
+void random_shuffle(_RandomAccessIter , _RandomAccessIter )
 {
     quitf(_fail, "Don't use random_shuffle(), use shuffle() instead");
 }
@@ -2805,12 +2875,20 @@ void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 #  define RAND_THROW_STATEMENT
 #endif
 
+#ifdef __GNUC__
+__attribute__ ((error("Don't use rand(), use rnd.next() instead")))
+#endif
 int rand() RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
-    return 0;
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((error("Don't use srand(), you should use " 
+        "'registerGen(argc, argv);' to initialize generator seed "
+        "by hash code of the command line params")))
+#endif
 void srand(unsigned int seed) RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use srand(), you should use " 
