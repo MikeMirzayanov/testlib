@@ -22,7 +22,7 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2012
+ * Copyright (c) 2005-2013
  */
 
 #define VERSION "0.8.3-SNAPSHOT"
