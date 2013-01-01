@@ -16,7 +16,7 @@ int main(int argc, char * argv[])
         n++;
         double j = ans.readDouble();
         double p = ouf.readDouble();
-        if (fabs(j - p) > EPS)
+        if (fabs(j - p) > EPS + 1E-15)
             quitf(_wa, "%d%s numbers differ - expected: '%.10lf', found: '%.10lf'", n, englishEnding(n).c_str(), j, p);
     }
 

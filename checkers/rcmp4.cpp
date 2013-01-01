@@ -25,9 +25,8 @@ int main(int argc, char * argv[])
         }
     }
 
-    quitif(n == 1,
-        _ok, "found '%.5lf', expected '%.5lf', error '%.5lf'",
-        p, j, doubleDelta(j, p));
+    if (n == 1)
+        quitf(_ok, "found '%.5lf', expected '%.5lf', error '%.5lf'", p, j, doubleDelta(j, p));
     
     quitf(_ok, "%d numbers", n);
 }

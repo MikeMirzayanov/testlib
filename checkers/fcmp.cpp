@@ -24,13 +24,13 @@ int main(int argc, char * argv[])
         std::string p = ouf.readString();
 
         n++;
-        quitif(j != p,
-            _wa, "%d%s lines differ - expected: '%s', found: '%s'",
-            n, englishEnding(n).c_str(), compress(j).c_str(), compress(p).c_str());
+
+        if (j != p)
+            quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, englishEnding(n).c_str(), compress(j).c_str(), compress(p).c_str());
     }
     
-    quitif(n == 1 && strAnswer.length() <= 128,
-        _ok, "%s", strAnswer.c_str());
+    if (n == 1)
+        quitf(_ok, "single line: '%s'", compress(strAnswer).c_str());
     
     quitf(_ok, "%d lines", n);
 }

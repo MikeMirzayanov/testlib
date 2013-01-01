@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
         if (ja.empty())
             message = "empty sequence";
         else
-            message = vtos(ja.size()) + " numbers (ordered):";
+            message = vtos(ja.size()) + " numbers (in increasing order):";
     else
         message = vtos(ja.size()) + " number:";
     
