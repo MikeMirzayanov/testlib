@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2012
+ * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.3-SNAPSHOT"
+#define VERSION "0.8.5"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",  
                           "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",  
                           "Manual buffer in InStreams, some IO speed improvements",  
                           "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",  
@@ -170,8 +171,10 @@ const char* latestFeatures[] = {
 
 #ifdef ON_WINDOWS
 #define I64 "%I64d"
+#define U64 "%I64u"
 #else
 #define I64 "%lld"
+#define U64 "%llu"
 #endif
 
 char __testlib_format_buffer[16777216];
@@ -270,10 +273,12 @@ public:
     std::string next(random_t& rnd) const;
     /* Checks if given string match the pattern. */
     bool matches(const std::string& s) const;
-
+    /* Returns source string of the pattern. */
+    std::string src() const;
 private:
     bool matches(const std::string& s, size_t pos) const;
 
+    std::string s;
     std::vector<pattern> children;
     std::vector<char> chars;
     int from;
@@ -368,7 +373,8 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    int next(unsigned int n)
+    template<typename T>
+    int next(T n)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
@@ -511,7 +517,8 @@ public:
     }
     
     /* See wnext(int, int). It uses the same algorithms. */
-    int wnext(unsigned int n, int type)
+    template<typename T>
+    int wnext(T n, int type)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
@@ -669,6 +676,9 @@ static bool __pattern_isSlash(const std::string& s, size_t pos)
     return s[pos] == '\\';
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static bool __pattern_isCommandChar(const std::string& s, size_t pos, char value)
 {
     if (pos >= s.length())
@@ -693,6 +703,9 @@ static char __pattern_getChar(const std::string& s, size_t& pos)
     return s[pos - 1];
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::vector<char> chars)
 {
     int result = 0;
@@ -707,6 +720,11 @@ static int __pattern_greedyMatch(const std::string& s, size_t pos, const std::ve
     }
 
     return result;
+}
+
+std::string pattern::src() const
+{
+    return s;
 }
 
 bool pattern::matches(const std::string& s, size_t pos) const
@@ -911,7 +929,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string& s, size_t& pos
     return result;
 }
 
-pattern::pattern(std::string s): from(0), to(0)
+pattern::pattern(std::string s): s(s), from(0), to(0)
 {
     std::string t;
     for (size_t i = 0; i < s.length(); i++)
@@ -1023,7 +1041,13 @@ public:
     virtual void unreadChar(int c) = 0;
     virtual std::string getName() = 0;
     virtual bool eof() = 0;
+    virtual ~InputStreamReader() = 0;
 };
+
+InputStreamReader::~InputStreamReader()
+{
+    // No operations.
+}
 
 class FileInputStreamReader: public InputStreamReader
 {
@@ -1215,6 +1239,9 @@ struct InStream
     bool stdfile;
     bool strict;
 
+    int wordReserveSize;
+    std::string _tmpReadToken;
+
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
 
@@ -1265,8 +1292,18 @@ struct InStream
     std::string readToken();
     /* The same as "readWord()", but ensures that token matches to given pattern. */
     std::string readWord(const std::string& ptrn, const std::string& variableName = "");
+    std::string readWord(const pattern& p, const std::string& variableName = "");
     /* The same as "readToken()", but ensures that token matches to given pattern. */
     std::string readToken(const std::string& ptrn, const std::string& variableName = "");
+    std::string readToken(const pattern& p, const std::string& variableName = "");
+
+    void readWordTo(std::string& result);
+    void readWordTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    void readWordTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
+
+    void readTokenTo(std::string& result);
+    void readTokenTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    void readTokenTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
 
     /* 
      * Reads new long long value. Ignores white-spaces into the non-strict mode 
@@ -1326,17 +1363,32 @@ struct InStream
     
     /* As readLine(). */
     std::string readString();
+    /* See readLine(). */
+    void readStringTo(std::string& result);
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    std::string readString(const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    std::string readString(const std::string& ptrn, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    void readStringTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    void readStringTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
+
     /* 
      * Reads line from the current position to EOLN or EOF. Moves stream pointer to 
      * the first character of the new line (if possible). 
      */
     std::string readLine();
-
+    /* See readLine(). */
+    void readLineTo(std::string& result);
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    std::string readLine(const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
     std::string readLine(const std::string& ptrn, const std::string& variableName = "");
-
-    /* See readLine(const std::string& ptrn). */
-    std::string readString(const std::string& ptrn, const std::string& variableName = "");
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    void readLineTo(std::string& result, const pattern& p, const std::string& variableName = "");
+    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    void readLineTo(std::string& result, const std::string& ptrn, const std::string& variableName = "");
 
     /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
@@ -1435,6 +1487,7 @@ InStream::InStream()
     mode = _input;
     strict = false;
     stdfile = false;
+    wordReserveSize = 4;
 }
 
 InStream::~InStream()
@@ -1446,6 +1499,9 @@ InStream::~InStream()
     }
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 int resultExitCode(TResult r)
 {
     if (r == _ok)
@@ -1473,6 +1529,10 @@ void InStream::textColor(WORD color)
 #endif
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void halt(int exitCode)
 {
 #ifdef FOOTER
@@ -1484,6 +1544,9 @@ void halt(int exitCode)
     std::exit(exitCode);
 }
 
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
@@ -1585,6 +1648,7 @@ void InStream::quit(TResult result, const char* msg)
 
 #ifdef __GNUC__
     __attribute__ ((format (printf, 3, 4)))
+    __attribute__ ((noreturn))
 #endif
 void InStream::quitf(TResult result, const char* msg, ...)
 {
@@ -1592,6 +1656,10 @@ void InStream::quitf(TResult result, const char* msg, ...)
     InStream::quit(result, message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void InStream::quits(TResult result, std::string msg)
 {
     InStream::quit(result, msg.c_str());
@@ -1748,17 +1816,17 @@ void InStream::skipChar()
 
 void InStream::skipBlanks()
 {
-    int cur;
-    while (true)
-    {
-        cur = reader->nextChar();
-        if (!isBlanks(char(cur)))
-            break;
-    }
-    reader->unreadChar(cur);
+    while (isBlanks(reader->curChar()))
+        reader->skipChar();
 }
 
 std::string InStream::readWord()
+{
+    readWordTo(_tmpReadToken);
+    return _tmpReadToken;
+}
+
+void InStream::readWordTo(std::string& result)
 {
     if (!strict)
         skipBlanks();
@@ -1771,8 +1839,7 @@ std::string InStream::readWord()
     if (isBlanks(cur))
         quit(_pe, "Unexpected white-space - token expected");
 
-    std::string result;
-    result.reserve(20);
+    result.clear();
 
     while (!(isBlanks(cur) || cur == EOF))
     {
@@ -1784,13 +1851,16 @@ std::string InStream::readWord()
 
     if (result.length() == 0)
         quit(_pe, "Unexpected end of file or white-space - token expected");
-
-    return result;
 }
 
 std::string InStream::readToken()
 {
     return readWord();
+}
+
+void InStream::readTokenTo(std::string& result)
+{
+    readWordTo(result);
 }
 
 static std::string __testlib_part(const std::string& s)
@@ -1801,18 +1871,27 @@ static std::string __testlib_part(const std::string& s)
         return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
 }
 
-std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
+std::string InStream::readWord(const pattern& p, const std::string& variableName)
 {
-    pattern p(ptrn);
-    std::string result = readWord();
-    if (!p.matches(result))
+    readWordTo(_tmpReadToken);
+    if (!p.matches(_tmpReadToken))
     {
         if (variableName.empty())
-            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token \"" + __testlib_part(_tmpReadToken) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
         else
-            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(_tmpReadToken) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
     }
-    return result;
+    return _tmpReadToken;
+}
+
+std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
+{
+    return readWord(pattern(ptrn), variableName);
+}
+
+std::string InStream::readToken(const pattern& p, const std::string& variableName)
+{
+    return readWord(p, variableName);
 }
 
 std::string InStream::readToken(const std::string& ptrn, const std::string& variableName)
@@ -1820,6 +1899,36 @@ std::string InStream::readToken(const std::string& ptrn, const std::string& vari
     return readWord(ptrn, variableName);
 }
 
+void InStream::readWordTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readWordTo(result);
+    if (!p.matches(result))
+    {
+        if (variableName.empty())
+            quit(_wa, ("Token \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        else
+            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+    }
+}
+
+void InStream::readWordTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    return readWordTo(result, pattern(ptrn), variableName);
+}
+
+void InStream::readTokenTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    return readWordTo(result, p, variableName);
+}
+
+void InStream::readTokenTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    return readWordTo(result, ptrn, variableName);
+}
+
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
 static bool equals(long long integer, const char* s)
 {
     if (integer == LLONG_MIN)
@@ -2002,10 +2111,12 @@ int InStream::readInteger()
     if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - int32 expected");
 
-    std::string token = readWord();
-    long long value = stringToLongLong(*this, token.c_str());
+    readWordTo(_tmpReadToken);
+    
+    long long value = stringToLongLong(*this, _tmpReadToken.c_str());
     if (value < INT_MIN || value > INT_MAX)
-        quit(_pe, ("Expected int32, but \"" + token + "\" found").c_str());
+        quit(_pe, ("Expected int32, but \"" + _tmpReadToken + "\" found").c_str());
+    
     return int(value);
 }
 
@@ -2014,8 +2125,8 @@ long long InStream::readLong()
     if (!strict && seekEof())
         quit(_pe, "Unexpected end of file - int64 expected");
 
-    std::string token = readWord();
-    return stringToLongLong(*this, token.c_str());
+    readWordTo(_tmpReadToken);
+    return stringToLongLong(*this, _tmpReadToken.c_str());
 }
 
 long long InStream::readLong(long long minv, long long maxv, const std::string& variableName)
@@ -2085,6 +2196,11 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
 
     return result;
 }
+
+double InStream::readDouble(double minv, double maxv, const std::string& variableName)
+{
+    return readReal(minv, maxv, variableName);
+}                                           
 
 double InStream::readStrictReal(double minv, double maxv,
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
@@ -2229,18 +2345,17 @@ void InStream::nextLine()
     readLine();
 }
 
-std::string InStream::readString()
+void InStream::readStringTo(std::string& result)
 {
     if (NULL == file)
         quit(_pe, "Expected line");
 
-    std::string retval;
-    retval.reserve(20);
-
+    result.clear();
     int cur;
+
     for (;;)
     {
-        cur = reader->nextChar();
+        cur = reader->curChar();
 
         if (isEoln(cur))
             break;
@@ -2248,36 +2363,73 @@ std::string InStream::readString()
         if (cur == EOF)
             break;
 
-        retval += char(cur);
+        result += char(reader->nextChar());
     }
-
-    reader->unreadChar(cur);
 
     if (strict)
         readEoln();
     else
         eoln();
+}
 
-    return retval;
+std::string InStream::readString()
+{
+    readStringTo(_tmpReadToken);
+    return _tmpReadToken;
+}
+
+void InStream::readStringTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readStringTo(result);
+    if (!p.matches(result))
+    {
+        if (variableName.empty())
+            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        else
+            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+    }
+}
+
+void InStream::readStringTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    readStringTo(result, pattern(ptrn), variableName);
+}
+
+std::string InStream::readString(const pattern& p, const std::string& variableName)
+{
+    readStringTo(_tmpReadToken, p, variableName);
+    return _tmpReadToken;
 }
 
 std::string InStream::readString(const std::string& ptrn, const std::string& variableName)
 {
-    pattern p(ptrn);
-    std::string result = readString();
-    if (!p.matches(result))
-    {
-        if (variableName.empty())
-            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + ptrn + "\"").c_str());
-        else
-            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + ptrn + "\"").c_str());
-    }
-    return result;
+    readStringTo(_tmpReadToken, ptrn, variableName);
+    return _tmpReadToken;
+}
+
+void InStream::readLineTo(std::string& result)
+{
+    readStringTo(result);
 }
 
 std::string InStream::readLine()
 {
     return readString();
+}
+
+void InStream::readLineTo(std::string& result, const pattern& p, const std::string& variableName)
+{
+    readStringTo(result, p, variableName);
+}
+
+void InStream::readLineTo(std::string& result, const std::string& ptrn, const std::string& variableName)
+{
+    readStringTo(result, ptrn, variableName);
+}
+
+std::string InStream::readLine(const pattern& p, const std::string& variableName)
+{
+    return readString(p, variableName);
 }
 
 std::string InStream::readLine(const std::string& ptrn, const std::string& variableName)
@@ -2299,16 +2451,28 @@ void InStream::close()
     opened = false;
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quit(TResult result, const std::string& msg)
 {
     ouf.quit(result, msg.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quit(TResult result, const char* msg)
 {
     ouf.quit(result, msg);
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
@@ -2319,16 +2483,27 @@ void __testlib_quitp(double points, const char* message)
     quit(_points, buffer);
 }
 
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(float points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(double points, const std::string& message = "")
 {
     __testlib_quitp(points, message.c_str());
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void quitp(long double points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
@@ -2337,6 +2512,7 @@ void quitp(long double points, const std::string& message = "")
 template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
+__attribute__ ((noreturn))
 #endif
 void quitp(F points, const char* format, ...)
 {
@@ -2346,6 +2522,7 @@ void quitp(F points, const char* format, ...)
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
+__attribute__ ((noreturn))
 #endif
 void quitf(TResult result, const char* format, ...)
 {
@@ -2365,6 +2542,10 @@ void quitif(bool condition, TResult result, const char* format, ...)
     }
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((noreturn))
+#endif
 void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
@@ -2569,6 +2750,9 @@ inline bool isInfinite(double r)
     return (r > 1E100 || r < -1E100);
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 {
         if (isNaN(expected))
@@ -2607,6 +2791,9 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
                 }
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 double doubleDelta(double expected, double result)
 {
     double absolute = __testlib_abs(result - expected);
@@ -2640,6 +2827,9 @@ void ensuref(bool cond, const char* format, ...)
     }
 }
 
+#ifdef __GNUC__
+__attribute__((noreturn))
+#endif
 static void __testlib_fail(const std::string& message)
 {
     quitf(_fail, "%s", message.c_str());
@@ -2671,7 +2861,10 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 
 
 template<typename _RandomAccessIter>
-void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
+#ifdef __GNUC__
+__attribute__ ((error("Don't use random_shuffle(), use shuffle() instead")))
+#endif
+void random_shuffle(_RandomAccessIter , _RandomAccessIter )
 {
     quitf(_fail, "Don't use random_shuffle(), use shuffle() instead");
 }
@@ -2682,12 +2875,20 @@ void random_shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 #  define RAND_THROW_STATEMENT
 #endif
 
+#ifdef __GNUC__
+__attribute__ ((error("Don't use rand(), use rnd.next() instead")))
+#endif
 int rand() RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
-    return 0;
 }
 
+
+#ifdef __GNUC__
+__attribute__ ((error("Don't use srand(), you should use " 
+        "'registerGen(argc, argv);' to initialize generator seed "
+        "by hash code of the command line params")))
+#endif
 void srand(unsigned int seed) RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use srand(), you should use " 
