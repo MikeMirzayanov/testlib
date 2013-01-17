@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.5"
+#define VERSION "0.8.6"
 
 /* 
  * Mike Mirzayanov
@@ -127,11 +127,15 @@ const char* latestFeatures[] = {
 #include <fcntl.h>
 
 #if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
-#include <windows.h>
-#include <io.h>
-#define ON_WINDOWS
+#   if !defined(_MSC_VER) || _MSC_VER>1400
+#       include <windows.h>
+#   else
+#       define WORD unsigned short
+#   endif
+#   include <io.h>
+#   define ON_WINDOWS
 #else
-#define WORD unsigned short
+#   define WORD unsigned short
 #endif
 
 #ifndef LLONG_MIN
@@ -177,8 +181,8 @@ const char* latestFeatures[] = {
 #define U64 "%llu"
 #endif
 
-char __testlib_format_buffer[16777216];
-int __testlib_format_buffer_usage_count = 0;
+static char __testlib_format_buffer[16777216];
+static int __testlib_format_buffer_usage_count = 0;
 
 #define FMT_TO_RESULT(fmt, cstr, result)  std::string result;                              \
         do {                                                                               \
@@ -426,7 +430,7 @@ public:
     /* Random double value in range [0, 1). */
     double next() 
     {
-        return (((long long)(nextBits(26)) << 27) + nextBits(27)) / (double)(1LL << 53);
+        return (double)(((long long)(nextBits(26)) << 27) + nextBits(27)) / (double)(1LL << 53);
     }
 
     /* Random double value in range [0, n). */
@@ -552,7 +556,7 @@ public:
             else
                 p = std::pow(next() + 0.0, - type + 1);
 
-            return (long long)(n * p);
+            return __testlib_min(__testlib_max((long long)(double(n) * p), 0LL), n - 1LL);
         }
     }
     
@@ -997,17 +1001,20 @@ pattern::pattern(std::string s): s(s), from(0), to(0)
 }
 /* End of pattern implementation */
 
-inline bool isEof(char c)
+template <typename C>
+inline bool isEof(C c)
 {
     return (c == EOF || c == EOFC);
 }
 
-inline bool isEoln(char c)
+template <typename C>
+inline bool isEoln(C c)
 {
     return (c == LF || c == CR);
 }
 
-inline bool isBlanks(char c)
+template<typename C>
+inline bool isBlanks(C c)
 {
     return (c == LF || c == CR || c == SPACE || c == TAB);
 }
@@ -1202,7 +1209,7 @@ public:
         if (bufferPos < 0)
             __testlib_fail("BufferedFileInputStreamReader::unreadChar(int): bufferPos < 0");
         isEof[bufferPos] = (c == EOF);
-        buffer[bufferPos] = (c == EOF ? EOFC : c);
+        buffer[bufferPos] = char(c == EOF ? EOFC : c);
     }
 
     std::string getName()
@@ -1423,6 +1430,10 @@ struct InStream
     static void quitscr(WORD color, const char* msg);
     static void quitscrS(WORD color, std::string msg);
     void xmlSafeWrite(std::FILE * file, const char* msg);
+
+private:
+    InStream(const InStream&);
+    InStream& operator =(const InStream&);
 };
 
 InStream inf;
@@ -1523,7 +1534,7 @@ int resultExitCode(TResult r)
 
 void InStream::textColor(WORD color)
 {
-#ifdef ON_WINDOWS
+#if defined(ON_WINDOWS) && (!defined(_MSC_VER) || _MSC_VER>1400)
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(handle, color);
 #endif
@@ -1772,13 +1783,13 @@ void InStream::init(std::FILE* f, TMode mode)
 char InStream::curChar()
 {
     int c = reader->curChar();
-    return c != EOF ? c : EOFC;
+    return char(c != EOF ? c : EOFC);
 }
 
 char InStream::nextChar()
 {
     int c = reader->nextChar();
-    return c != EOF ? c : EOFC;
+    return char(c != EOF ? c : EOFC);
 }
 
 char InStream::readChar()
@@ -2922,7 +2933,7 @@ std::string upperCase(std::string s)
 {
     for (size_t i = 0; i < s.length(); i++)
         if ('a' <= s[i] && s[i] <= 'z')
-            s[i] = s[i] - 'a' + 'A';
+            s[i] = char(s[i] - 'a' + 'A');
     return s;
 }
 
@@ -2930,7 +2941,7 @@ std::string lowerCase(std::string s)
 {
     for (size_t i = 0; i < s.length(); i++)
         if ('A' <= s[i] && s[i] <= 'Z')
-            s[i] = s[i] - 'A' + 'a';
+            s[i] = char(s[i] - 'A' + 'a');
     return s;
 }
 

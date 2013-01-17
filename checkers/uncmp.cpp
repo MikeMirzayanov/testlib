@@ -9,7 +9,7 @@ int main(int argc, char * argv[])
 
     registerTestlibCmd(argc, argv);
 
-    vector<int> ja, pa;
+    vector<long long> ja, pa;
 
     while (!ans.seekEof())
         ja.push_back(ans.readLong());
