@@ -2892,6 +2892,9 @@ __attribute__ ((error("Don't use rand(), use rnd.next() instead")))
 int rand() RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
+    
+    /* This line never runs. */
+    throw "Don't use rand(), use rnd.next() instead";
 }
 
 
