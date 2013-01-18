@@ -219,7 +219,7 @@ static inline T __testlib_max(const T& a, const T& b)
 
 static void __testlib_fail(const std::string& message);
 
-static void __testlib_set_binary(FILE* file)
+static void __testlib_set_binary(std::FILE* file)
 {
 #if !defined(unix) && !defined(__APPLE__)
     if (NULL != file)
@@ -357,6 +357,22 @@ public:
         seed = _seed;
     }
 
+#ifndef __BORLANDC__
+    /* Random string value by given pattern (see pattern documentation). */
+    std::string next(const std::string& ptrn)
+    {
+        pattern p(ptrn);
+        return p.next(*this);
+    }
+#else
+    /* Random string value by given pattern (see pattern documentation). */
+    std::string next(std::string ptrn)
+    {
+        pattern p(ptrn);
+        return p.next(*this);
+    }
+#endif
+
     /* Random value in range [0, n-1]. */
     int next(int n)
     {
@@ -443,13 +459,6 @@ public:
     double next(double from, double to)
     {
         return next(to - from) + from;
-    }
-
-    /* Random string value by given pattern (see pattern documentation). */
-    std::string next(const std::string& ptrn)
-    {
-        pattern p(ptrn);
-        return p.next(*this);
     }
 
     /* Returns random element from container. */
@@ -1059,11 +1068,11 @@ InputStreamReader::~InputStreamReader()
 class FileInputStreamReader: public InputStreamReader
 {
 private:
-    FILE* file;
+    std::FILE* file;
     std::string name;
 
 public:
-    FileInputStreamReader(FILE* file, const std::string& name): file(file), name(name)
+    FileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
     {
         // No operations.
     }
@@ -1123,7 +1132,7 @@ private:
     static const size_t BUFFER_SIZE;
     static const size_t MAX_UNREAD_COUNT; 
     
-    FILE* file;
+    std::FILE* file;
     char* buffer;
     bool* isEof;
     int bufferPos;
@@ -1160,7 +1169,7 @@ private:
     }
 
 public:
-    BufferedFileInputStreamReader(FILE* file, const std::string& name): file(file), name(name)
+    BufferedFileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
     {
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
