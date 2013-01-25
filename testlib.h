@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.6"
+#define VERSION "0.8.7"
 
 /* 
  * Mike Mirzayanov
@@ -1949,7 +1949,7 @@ void InStream::readTokenTo(std::string& result, const std::string& ptrn, const s
 #ifdef __GNUC__
 __attribute__((pure))
 #endif
-static bool equals(long long integer, const char* s)
+static inline bool equals(long long integer, const char* s)
 {
     if (integer == LLONG_MIN)
         return strcmp(s, "-9223372036854775808") == 0;
@@ -1985,7 +1985,7 @@ static bool equals(long long integer, const char* s)
     return length == 0;
 }
 
-static double stringToDouble(InStream& in, const char* buffer)
+static inline double stringToDouble(InStream& in, const char* buffer)
 {
     double retval;
 
@@ -2009,13 +2009,19 @@ static double stringToDouble(InStream& in, const char* buffer)
     return retval;
 }
 
-static double stringToStrictDouble(InStream& in, const char* buffer, int minAfterPointDigitCount, int maxAfterPointDigitCount)
+static inline double stringToStrictDouble(InStream& in, const char* buffer, int minAfterPointDigitCount, int maxAfterPointDigitCount)
 {
+    if (minAfterPointDigitCount < 0)
+        in.quit(_fail, "stringToStrictDouble: minAfterPointDigitCount should be non-negative.");
+    
+    if (minAfterPointDigitCount > maxAfterPointDigitCount)
+        in.quit(_fail, "stringToStrictDouble: minAfterPointDigitCount should be less or equal to maxAfterPointDigitCount.");
+
     double retval;
 
     size_t length = strlen(buffer);
 
-    if (length == 0 || length > 20)
+    if (length == 0 || length > 1000)
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     if (buffer[0] != '-' && (buffer[0] < '0' || buffer[0] > '9'))
@@ -2075,7 +2081,7 @@ static double stringToStrictDouble(InStream& in, const char* buffer, int minAfte
     return retval;
 }
 
-static long long stringToLongLong(InStream& in, const char* buffer)
+static inline long long stringToLongLong(InStream& in, const char* buffer)
 {
     if (strcmp(buffer, "-9223372036854775808") == 0)
         return LLONG_MIN;
@@ -2773,7 +2779,7 @@ inline bool isInfinite(double r)
 #ifdef __GNUC__
 __attribute__((const))
 #endif
-bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
+inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 {
         if (isNaN(expected))
         {
@@ -2814,7 +2820,7 @@ bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 #ifdef __GNUC__
 __attribute__((const))
 #endif
-double doubleDelta(double expected, double result)
+inline double doubleDelta(double expected, double result)
 {
     double absolute = __testlib_abs(result - expected);
     
@@ -2827,18 +2833,24 @@ double doubleDelta(double expected, double result)
         return absolute;
 }
 
-static void __testlib_ensure(bool cond, const std::string msg)
+static inline void __testlib_ensure(bool cond, const std::string& msg)
 {
     if (!cond)
         quit(_fail, msg.c_str());
 }
 
-#define ensure(cond) __testlib_ensure(cond, std::string("Condition failed: \"") + #cond + "\"")
+static inline void __testlib_ensure(bool cond, const char* msg)
+{
+    if (!cond)
+        quit(_fail, msg);
+}
+
+#define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
-void ensuref(bool cond, const char* format, ...)
+inline void ensuref(bool cond, const char* format, ...)
 {
     if (!cond)
     {
@@ -2941,7 +2953,7 @@ std::string format(const std::string& fmt, ...)
     return result;
 }
 
-std::string upperCase(std::string s)
+inline std::string upperCase(std::string s)
 {
     for (size_t i = 0; i < s.length(); i++)
         if ('a' <= s[i] && s[i] <= 'z')
@@ -2949,7 +2961,7 @@ std::string upperCase(std::string s)
     return s;
 }
 
-std::string lowerCase(std::string s)
+inline std::string lowerCase(std::string s)
 {
     for (size_t i = 0; i < s.length(); i++)
         if ('A' <= s[i] && s[i] <= 'Z')
@@ -2957,12 +2969,12 @@ std::string lowerCase(std::string s)
     return s;
 }
 
-std::string compress(const std::string& s)
+inline std::string compress(const std::string& s)
 {
     return __testlib_part(s);
 }
 
-std::string englishEnding(int x)
+inline std::string englishEnding(int x)
 {
     x %= 100;
     if (x / 10 == 1)
@@ -2976,7 +2988,7 @@ std::string englishEnding(int x)
     return "th";
 }
 
-std::string trim(const std::string& s)
+inline std::string trim(const std::string& s)
 {
     if (s.empty())
         return s;
