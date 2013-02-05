@@ -393,8 +393,7 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    template<typename T>
-    int next(T n)
+    int next(unsigned int n)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
@@ -530,15 +529,6 @@ public:
     }
     
     /* See wnext(int, int). It uses the same algorithms. */
-    template<typename T>
-    int wnext(T n, int type)
-    {
-        if (n >= INT_MAX)
-            __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
-        return wnext(int(n), type);
-    }
-    
-    /* See wnext(int, int). It uses the same algorithms. */
     long long wnext(long long n, int type)
     {
         if (n <= 0)
@@ -628,6 +618,14 @@ public:
         }
     }
 
+    /* See wnext(int, int). It uses the same algorithms. */
+    int wnext(unsigned int n, int type)
+    {
+        if (n >= INT_MAX)
+            __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
+        return wnext(int(n), type);
+    }
+    
     /* Returns weighted random value in range [from, to]. */
     int wnext(int from, int to, int type)
     {
@@ -637,7 +635,7 @@ public:
     /* Returns weighted random value in range [from, to]. */
     int wnext(unsigned int from, unsigned int to, int type)
     {
-        return wnext(to - from + 1, type) + from;
+        return int(wnext(to - from + 1, type) + from);
     }
     
     /* Returns weighted random value in range [from, to]. */
@@ -699,7 +697,7 @@ static bool __pattern_isCommandChar(const std::string& s, size_t pos, char value
 
     int slashes = 0;
 
-    int before = pos - 1;
+    int before = int(pos) - 1;
     while (before >= 0 && s[before] == '\\')
         before--, slashes++;
 
@@ -966,7 +964,7 @@ pattern::pattern(std::string s): s(s), from(0), to(0)
         {
             opened--;
             if (opened == 0 && firstClose == -1)
-                firstClose = i;
+                firstClose = int(i);
             continue;
         }
         
@@ -974,7 +972,7 @@ pattern::pattern(std::string s): s(s), from(0), to(0)
             __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
 
         if (__pattern_isCommandChar(s, i, '|') && opened == 0)
-            seps.push_back(i);
+            seps.push_back(int(i));
     }
 
     if (opened != 0)
@@ -1136,7 +1134,7 @@ private:
     char* buffer;
     bool* isEof;
     int bufferPos;
-    int bufferSize;
+    size_t bufferSize;
 
     std::string name;
 
@@ -1159,7 +1157,7 @@ private:
                 __testlib_fail("BufferedFileInputStreamReader: unable to read (" + getName() + ")");
 
             bufferSize = MAX_UNREAD_COUNT + readSize;
-            bufferPos = MAX_UNREAD_COUNT;
+            bufferPos = int(MAX_UNREAD_COUNT);
             std::memset(isEof + MAX_UNREAD_COUNT, 0, sizeof(isEof[0]) * readSize);
 
             return readSize > 0;
@@ -1174,7 +1172,7 @@ public:
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
         bufferSize = MAX_UNREAD_COUNT;
-        bufferPos = MAX_UNREAD_COUNT;
+        bufferPos = int(MAX_UNREAD_COUNT);
     }
 
     ~BufferedFileInputStreamReader()
@@ -2034,7 +2032,7 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
         {
             if (pointPos > -1)
                 in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
-            pointPos = i;
+            pointPos = int(i);
         }
         if (buffer[i] != '.' && (buffer[i] < '0' || buffer[i] > '9'))
             in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
@@ -2043,7 +2041,7 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
     if (buffer[length - 1] < '0' || buffer[length - 1] > '9')
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
-    int afterDigitsCount = (pointPos == -1 ? 0 : length - pointPos - 1);
+    int afterDigitsCount = (pointPos == -1 ? 0 : int(length) - pointPos - 1);
     if (afterDigitsCount < minAfterPointDigitCount || afterDigitsCount > maxAfterPointDigitCount)
         in.quit(_pe, ("Expected strict double with number of digits after point in range ["
             + vtos(minAfterPointDigitCount)
@@ -2056,7 +2054,7 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
     for (size_t i = 0; i < length; i++)
         if (buffer[i] >= '0' && buffer[i] <= '9')
         {
-            firstDigitPos = i;
+            firstDigitPos = int(i);
             break;
         }
 
@@ -2100,7 +2098,7 @@ static inline long long stringToLongLong(InStream& in, const char* buffer)
     int zeroes = 0;
     int processingZeroes = true;
     
-    for (size_t i = (minus ? 1 : 0); i < length; i++)
+    for (int i = (minus ? 1 : 0); i < int(length); i++)
     {
         if (buffer[i] == '0' && processingZeroes)
             zeroes++;
@@ -2999,7 +2997,7 @@ inline std::string trim(const std::string& s)
     if (left >= int(s.length()))
         return "";
 
-    int right = s.length() - 1;
+    int right = int(s.length()) - 1;
     while (right >= 0 && isBlanks(s[right]))
         right--;
     if (right < 0)
