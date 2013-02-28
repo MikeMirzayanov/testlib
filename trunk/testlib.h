@@ -181,11 +181,16 @@ const char* latestFeatures[] = {
 #define U64 "%llu"
 #endif
 
+#ifdef _MSC_VER
+#   define NORETURN __declspec(noreturn)
+#else
+#   define NORETURN
+#endif
+
 static char __testlib_format_buffer[16777216];
 static int __testlib_format_buffer_usage_count = 0;
 
 #define FMT_TO_RESULT(fmt, cstr, result)  std::string result;                              \
-        do {                                                                               \
             if (__testlib_format_buffer_usage_count != 0)                                  \
                 __testlib_fail("FMT_TO_RESULT::__testlib_format_buffer_usage_count != 0"); \
             __testlib_format_buffer_usage_count++;                                         \
@@ -195,7 +200,6 @@ static int __testlib_format_buffer_usage_count = 0;
             va_end(ap);                                                                    \
             result = std::string(__testlib_format_buffer);                                 \
             __testlib_format_buffer_usage_count--;                                         \
-        } while (0)                                                                        \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 
@@ -217,7 +221,7 @@ static inline T __testlib_max(const T& a, const T& b)
     return a > b ? a : b;
 }
 
-static void __testlib_fail(const std::string& message);
+NORETURN static void __testlib_fail(const std::string& message);
 
 static void __testlib_set_binary(std::FILE* file)
 {
@@ -322,7 +326,7 @@ private:
             if (bits > 63)
                 __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
 
-            return ((nextBits(31) << 32) ^ nextBits(31));
+            return ((nextBits(31) << 32) ^ nextBits(32));
         }
     }
 
@@ -1413,17 +1417,17 @@ struct InStream
      * Quit-functions aborts program with <result> and <message>:
      * input/answer streams replaces any result to FAIL.
      */
-    void quit(TResult result, const char* msg);
+    NORETURN void quit(TResult result, const char* msg);
     /* 
      * Quit-functions aborts program with <result> and <message>:
      * input/answer streams replaces any result to FAIL.
      */
-    void quitf(TResult result, const char* msg, ...);
+    NORETURN void quitf(TResult result, const char* msg, ...);
     /* 
      * Quit-functions aborts program with <result> and <message>:
      * input/answer streams replaces any result to FAIL.
      */
-    void quits(TResult result, std::string msg);
+    NORETURN void quits(TResult result, std::string msg);
 
     void close();
 
@@ -1551,7 +1555,7 @@ void InStream::textColor(WORD color)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void halt(int exitCode)
+NORETURN void halt(int exitCode)
 {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
@@ -1565,7 +1569,7 @@ void halt(int exitCode)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void InStream::quit(TResult result, const char* msg)
+NORETURN void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
         testlibFinalizeGuard.quitCount++;
@@ -1668,7 +1672,7 @@ void InStream::quit(TResult result, const char* msg)
     __attribute__ ((format (printf, 3, 4)))
     __attribute__ ((noreturn))
 #endif
-void InStream::quitf(TResult result, const char* msg, ...)
+NORETURN void InStream::quitf(TResult result, const char* msg, ...)
 {
     FMT_TO_RESULT(msg, msg, message);
     InStream::quit(result, message.c_str());
@@ -1678,7 +1682,7 @@ void InStream::quitf(TResult result, const char* msg, ...)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void InStream::quits(TResult result, std::string msg)
+NORETURN void InStream::quits(TResult result, std::string msg)
 {
     InStream::quit(result, msg.c_str());
 }
@@ -2002,9 +2006,6 @@ static inline double stringToDouble(InStream& in, const char* buffer)
         return retval;
     else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
-
-    __testlib_fail("Unexpected case in stringToDouble");
-    return retval;
 }
 
 static inline double stringToStrictDouble(InStream& in, const char* buffer, int minAfterPointDigitCount, int maxAfterPointDigitCount)
@@ -2074,9 +2075,6 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
         return retval;
     else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
-
-    __testlib_fail("Unexpected case in stringToStrictDouble");
-    return retval;
 }
 
 static inline long long stringToLongLong(InStream& in, const char* buffer)
@@ -2125,9 +2123,6 @@ static inline long long stringToLongLong(InStream& in, const char* buffer)
         return retval;
     else
         in.quit(_pe, ("Expected int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
-
-    __testlib_fail("Unexpected case in stringToLongLong");
-    return retval;
 }
 
 int InStream::readInteger()
@@ -2479,7 +2474,7 @@ void InStream::close()
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void quit(TResult result, const std::string& msg)
+NORETURN void quit(TResult result, const std::string& msg)
 {
     ouf.quit(result, msg.c_str());
 }
@@ -2488,7 +2483,7 @@ void quit(TResult result, const std::string& msg)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void quit(TResult result, const char* msg)
+NORETURN void quit(TResult result, const char* msg)
 {
     ouf.quit(result, msg);
 }
@@ -2497,7 +2492,7 @@ void quit(TResult result, const char* msg)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void __testlib_quitp(double points, const char* message)
+NORETURN void __testlib_quitp(double points, const char* message)
 {
     char buffer[512];
     if (NULL == message || 0 == strlen(message))
@@ -2510,7 +2505,7 @@ void __testlib_quitp(double points, const char* message)
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void quitp(float points, const std::string& message = "")
+NORETURN void quitp(float points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
 }
@@ -2519,7 +2514,7 @@ void quitp(float points, const std::string& message = "")
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void quitp(double points, const std::string& message = "")
+NORETURN void quitp(double points, const std::string& message = "")
 {
     __testlib_quitp(points, message.c_str());
 }
@@ -2528,7 +2523,7 @@ void quitp(double points, const std::string& message = "")
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void quitp(long double points, const std::string& message = "")
+NORETURN void quitp(long double points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
 }
@@ -2538,7 +2533,7 @@ template<typename F>
 __attribute__ ((format (printf, 2, 3)))
 __attribute__ ((noreturn))
 #endif
-void quitp(F points, const char* format, ...)
+NORETURN void quitp(F points, const char* format, ...)
 {
     FMT_TO_RESULT(format, format, message);
     quitp(points, message);
@@ -2548,7 +2543,7 @@ void quitp(F points, const char* format, ...)
 __attribute__ ((format (printf, 2, 3)))
 __attribute__ ((noreturn))
 #endif
-void quitf(TResult result, const char* format, ...)
+NORETURN void quitf(TResult result, const char* format, ...)
 {
     FMT_TO_RESULT(format, format, message);
     quit(result, message);
@@ -2566,11 +2561,10 @@ void quitif(bool condition, TResult result, const char* format, ...)
     }
 }
 
-
 #ifdef __GNUC__
 __attribute__ ((noreturn))
 #endif
-void __testlib_help()
+NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
@@ -2860,7 +2854,7 @@ inline void ensuref(bool cond, const char* format, ...)
 #ifdef __GNUC__
 __attribute__((noreturn))
 #endif
-static void __testlib_fail(const std::string& message)
+NORETURN static void __testlib_fail(const std::string& message)
 {
     quitf(_fail, "%s", message.c_str());
 }
@@ -2913,7 +2907,7 @@ int rand() RAND_THROW_STATEMENT
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
     
     /* This line never runs. */
-    throw "Don't use rand(), use rnd.next() instead";
+    //throw "Don't use rand(), use rnd.next() instead";
 }
 
 
