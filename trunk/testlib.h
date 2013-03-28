@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.7"
+#define VERSION "0.8.8"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Added attribute 'points' to the XML output in case of result=_points",  
                           "Exit codes can be customized via macros, e.g. -DPE_EXIT_CODE=14",  
                           "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",  
                           "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",  
@@ -123,6 +124,7 @@ const char* latestFeatures[] = {
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <limits>
 #include <stdarg.h>
 
 #include <fcntl.h>
@@ -1061,9 +1063,16 @@ enum TMode
     _input, _output, _answer
 };
 
+/* Outcomes 6-15 are reserved for future use. */
 enum TResult
 {
-    _ok, _wa, _pe, _fail, _dirt, _partially, _points
+    _ok = 0,
+    _wa = 1,
+    _pe = 2,
+    _fail = 3,
+    _dirt = 4,
+    _points = 5,
+    _partially = 16
 };
 
 enum TTestlibMode
@@ -1073,8 +1082,30 @@ enum TTestlibMode
 
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
 
-const std::string outcomes[] =
-    {"accepted", "wrong-answer", "presentation-error", "fail", "fail", "partially-correct", "points"};
+/* Outcomes 6-15 are reserved for future use. */
+const std::string outcomes[] = {
+    "accepted",
+    "wrong-answer",
+    "presentation-error",
+    "fail",
+    "fail",
+#ifndef PCMS2
+    "points",
+#else
+    "relative-scoring",
+#endif
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "reserved",
+    "partially-correct"
+};
 
 class InputStreamReader
 {
@@ -1481,6 +1512,7 @@ std::string resultName;
 std::string checkerName = "untitled checker";
 random_t rnd;
 TTestlibMode testlibMode = _unknown;
+double __testlib_points = std::numeric_limits<float>::infinity();
 
 struct TestlibFinalizeGuard
 {
@@ -1613,9 +1645,22 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     }
 
     int pctype = result - _partially;
+    bool isPartial = false;
 
     switch (result)
     {
+    case _ok:
+        errorName = "ok ";
+        quitscrS(LightGreen, errorName);
+        break;
+    case _wa:
+        errorName = "wrong answer ";
+        quitscrS(LightRed, errorName);
+        break;
+    case _pe:
+        errorName = "wrong output format ";
+        quitscrS(LightRed, errorName);
+        break;
     case _fail:
         errorName = "FAIL ";
         quitscrS(LightRed, errorName);
@@ -1624,18 +1669,6 @@ NORETURN void InStream::quit(TResult result, const char* msg)
         errorName = "wrong output format ";
         quitscrS(LightCyan, errorName);
         result = _pe;
-        break;
-    case _pe:
-        errorName = "wrong output format ";
-        quitscrS(LightRed, errorName);
-        break;
-    case _ok:
-        errorName = "ok ";
-        quitscrS(LightGreen, errorName);
-        break;
-    case _wa:
-        errorName = "wrong answer ";
-        quitscrS(LightRed, errorName);
         break;
     case _points:
         errorName = "points ";
@@ -1647,6 +1680,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
             char message[1023];
             std::sprintf(message, "partially correct (%d) ", pctype);
             errorName = std::string(message);
+            isPartial = true;
             quitscrS(LightYellow, errorName);
         }
         else
@@ -1661,10 +1695,19 @@ NORETURN void InStream::quit(TResult result, const char* msg)
         if (appesMode)
         {
             fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
-            if (result >= _partially)
+            if (isPartial)
                 fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">", outcomes[(int)_partially].c_str(), pctype);
             else
-                fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
+            {
+                if (result != _points)
+                    fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
+                else
+                {
+                    if (__testlib_points == std::numeric_limits<float>::infinity())
+                        quit(_fail, "Expected points, but infinity found");
+                    fprintf(resultFile, "<result outcome = \"%s\" points = \"%.10f\">", outcomes[(int)result].c_str(), __testlib_points);
+                }
+            }
             xmlSafeWrite(resultFile, msg);
             fprintf(resultFile, "</result>\n");
         }
@@ -1703,7 +1746,6 @@ NORETURN void InStream::quitf(TResult result, const char* msg, ...)
     FMT_TO_RESULT(msg, msg, message);
     InStream::quit(result, message.c_str());
 }
-
 
 #ifdef __GNUC__
 __attribute__ ((noreturn))
@@ -2520,6 +2562,7 @@ __attribute__ ((noreturn))
 #endif
 NORETURN void __testlib_quitp(double points, const char* message)
 {
+    __testlib_points = points;
     char buffer[512];
     if (NULL == message || 0 == strlen(message))
         std::sprintf(buffer, "%.10f", points);
