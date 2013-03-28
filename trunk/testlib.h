@@ -148,27 +148,52 @@ const char* latestFeatures[] = {
 #define SPACE ((char)' ')
 #define EOFC ((char)26)
 
-#ifndef EJUDGE
-#define OK_EXIT_CODE 0
-#define WA_EXIT_CODE 1
-#define PE_EXIT_CODE 2
-#define FAIL_EXIT_CODE 3
-#define DIRT_EXIT_CODE 4
-#define POINTS_EXIT_CODE 7
-#define PC_BASE_EXIT_CODE 0
-#else
-#define OK_EXIT_CODE 0
-#define WA_EXIT_CODE 5
-#define PE_EXIT_CODE 4
-#define FAIL_EXIT_CODE 6
-#define DIRT_EXIT_CODE 6
-#define POINTS_EXIT_CODE 7
-#define PC_BASE_EXIT_CODE 0
+#ifndef OK_EXIT_CODE
+#   define OK_EXIT_CODE 0
 #endif
 
-#ifdef TESTSYS
-#undef PC_BASE_EXIT_CODE
-#define PC_BASE_EXIT_CODE 50
+#ifndef WA_EXIT_CODE
+#   ifdef EJUDGE
+#       define WA_EXIT_CODE 5
+#   else
+#       define WA_EXIT_CODE 1
+#   endif
+#endif
+
+#ifndef PE_EXIT_CODE
+#   ifdef EJUDGE
+#       define PE_EXIT_CODE 4
+#   else
+#       define PE_EXIT_CODE 2
+#   endif
+#endif
+
+#ifndef FAIL_EXIT_CODE
+#   ifdef EJUDGE
+#       define FAIL_EXIT_CODE 6
+#   else
+#       define FAIL_EXIT_CODE 3
+#   endif
+#endif
+
+#ifndef DIRT_EXIT_CODE
+#   ifdef EJUDGE
+#       define DIRT_EXIT_CODE 6
+#   else
+#       define DIRT_EXIT_CODE 4
+#   endif
+#endif
+
+#ifndef POINTS_EXIT_CODE
+#   define POINTS_EXIT_CODE 0
+#endif
+
+#ifndef PC_BASE_EXIT_CODE
+#   ifdef TESTSYS
+#       define PC_BASE_EXIT_CODE 50
+#   else
+#       define PC_BASE_EXIT_CODE 0
+#   endif
 #endif
 
 #define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
