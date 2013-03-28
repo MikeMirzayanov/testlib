@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Exit codes can be customized via macros, e.g. -DPE_EXIT_CODE=14",  
                           "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",  
                           "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",  
                           "Manual buffer in InStreams, some IO speed improvements",  
