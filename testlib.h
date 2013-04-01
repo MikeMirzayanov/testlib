@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed issue around overloads for size_t on x64",  
                           "Added attribute 'points' to the XML output in case of result=_points",  
                           "Exit codes can be customized via macros, e.g. -DPE_EXIT_CODE=14",  
                           "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",  
@@ -425,11 +426,11 @@ public:
     }
 
     /* Random value in range [0, n-1]. */
-    int next(unsigned int n)
+    unsigned int next(unsigned int n)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
-        return next(int(n));
+        return (unsigned int)next(int(n));
     }
 
     /* Random value in range [0, n-1]. */
@@ -456,6 +457,20 @@ public:
         return (unsigned long long)next((long long)(n));
     }
 
+    /* Random value in range [0, n-1]. */
+    long next(long n)
+    {
+        return (long)next((long long)(n));
+    }
+
+    /* Random value in range [0, n-1]. */
+    unsigned long next(unsigned long n)
+    {
+        if (n >= (unsigned long)(LONG_MAX))
+            __testlib_fail("random_t::next(unsigned long n): n must be less LONG_MAX");
+        return (unsigned long)next((unsigned long long)(n));
+    }
+
     /* Returns random value in range [from,to]. */
     int next(int from, int to)
     {
@@ -471,6 +486,28 @@ public:
     /* Returns random value in range [from,to]. */
     long long next(long long from, long long to)
     {
+        return next(to - from + 1) + from;
+    }
+
+    /* Returns random value in range [from,to]. */
+    unsigned long long next(unsigned long long from, unsigned long long to)
+    {
+        if (from > to)
+            __testlib_fail("random_t::next(unsigned long long from, unsigned long long to): from can't not exceed to");
+        return next(to - from + 1) + from;
+    }
+
+    /* Returns random value in range [from,to]. */
+    long next(long from, long to)
+    {
+        return next(to - from + 1) + from;
+    }
+
+    /* Returns random value in range [from,to]. */
+    unsigned long next(unsigned long from, unsigned long to)
+    {
+        if (from > to)
+            __testlib_fail("random_t::next(unsigned long from, unsigned long to): from can't not exceed to");
         return next(to - from + 1) + from;
     }
 
@@ -651,13 +688,37 @@ public:
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    int wnext(unsigned int n, int type)
+    unsigned int wnext(unsigned int n, int type)
     {
         if (n >= INT_MAX)
             __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
-        return wnext(int(n), type);
+        return (unsigned int)wnext(int(n), type);
     }
     
+    /* See wnext(int, int). It uses the same algorithms. */
+    unsigned long long wnext(unsigned long long n, int type)
+    {
+        if (n >= (unsigned long long)(__TESTLIB_LONGLONG_MAX))
+            __testlib_fail("random_t::wnext(unsigned long long n, int type): n must be less LONGLONG_MAX");
+
+        return (unsigned long long)wnext((long long)(n), type);
+    }
+
+    /* See wnext(int, int). It uses the same algorithms. */
+    long wnext(long n, int type)
+    {
+        return (long)wnext((long long)(n), type);
+    }
+    
+    /* See wnext(int, int). It uses the same algorithms. */
+    unsigned long wnext(unsigned long n, int type)
+    {
+        if (n >= (unsigned long)(LONG_MAX))
+            __testlib_fail("random_t::wnext(unsigned long n, int type): n must be less LONG_MAX");
+
+        return (unsigned long)wnext((unsigned long long)(n), type);
+    }
+
     /* Returns weighted random value in range [from, to]. */
     int wnext(int from, int to, int type)
     {
@@ -673,6 +734,28 @@ public:
     /* Returns weighted random value in range [from, to]. */
     long long wnext(long long from, long long to, int type)
     {
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random value in range [from, to]. */
+    unsigned long long wnext(unsigned long long from, unsigned long long to, int type)
+    {
+        if (from > to)
+            __testlib_fail("random_t::wnext(unsigned long long from, unsigned long long to, int type): from can't not exceed to");
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random value in range [from, to]. */
+    long wnext(long from, long to, int type)
+    {
+        return wnext(to - from + 1, type) + from;
+    }
+    
+    /* Returns weighted random value in range [from, to]. */
+    unsigned long wnext(unsigned long from, unsigned long to, int type)
+    {
+        if (from > to)
+            __testlib_fail("random_t::wnext(unsigned long from, unsigned long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
     
