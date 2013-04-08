@@ -2238,7 +2238,11 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
     delete[] suffix;
 
     if (scanned == 1 || (scanned == 2 && empty))
+    {
+        if (isNaN(retval) || isInfinite(retval))
+            in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
+    }
     else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
