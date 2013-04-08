@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed bug with nan in stringToDouble", 
                           "Fixed issue around overloads for size_t on x64",  
                           "Added attribute 'points' to the XML output in case of result=_points",  
                           "Exit codes can be customized via macros, e.g. -DPE_EXIT_CODE=14",  
@@ -248,6 +249,16 @@ template<typename T>
 static inline T __testlib_max(const T& a, const T& b)
 {
     return a > b ? a : b;
+}
+
+inline bool isNaN(double r)
+{
+    return ((r != r) == true) && ((r == r) == false) && ((1.0 > r) == false) && ((1.0 < r) == false);
+}
+
+inline bool isInfinite(double r)
+{
+    return (r > 1E100 || r < -1E100);
 }
 
 NORETURN static void __testlib_fail(const std::string& message);
@@ -2154,7 +2165,11 @@ static inline double stringToDouble(InStream& in, const char* buffer)
     delete[] suffix;
 
     if (scanned == 1 || (scanned == 2 && empty))
+    {
+        if (isNaN(retval) || isInfinite(retval))
+            in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
+    }
     else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
@@ -2908,16 +2923,6 @@ void registerTestlib(int argc, ...)
 
     registerTestlibCmd(argc + 1, argv);
     delete[] argv;
-}
-
-inline bool isNaN(double r)
-{
-    return ((r != r) == true) && ((r == r) == false) && ((1.0 > r) == false) && ((1.0 < r) == false);
-}
-
-inline bool isInfinite(double r)
-{
-    return (r > 1E100 || r < -1E100);
 }
 
 #ifdef __GNUC__
