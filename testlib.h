@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.9"
+#define VERSION "0.8.9-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Use -DENABLE_UNEXPECTED_EOF to enable special exit code (by default, 8) in case of unexpected eof. It is good idea to use it in interactors",
                           "Use -DUSE_RND_AS_BEFORE_087 to compile in compatibility mode with random behavior of versions before 0.8.7",
                           "Fixed bug with nan in stringToDouble", 
                           "Fixed issue around overloads for size_t on x64",  
@@ -192,6 +193,10 @@ const char* latestFeatures[] = {
 
 #ifndef POINTS_EXIT_CODE
 #   define POINTS_EXIT_CODE 0
+#endif
+
+#ifndef UNEXPECTED_EOF_EXIT_CODE
+#   define UNEXPECTED_EOF_EXIT_CODE 8
 #endif
 
 #ifndef PC_BASE_EXIT_CODE
@@ -1205,6 +1210,7 @@ enum TResult
     _fail = 3,
     _dirt = 4,
     _points = 5,
+    _unexpected_eof = 8,
     _partially = 16
 };
 
@@ -1229,7 +1235,7 @@ const std::string outcomes[] = {
 #endif
     "reserved",
     "reserved",
-    "reserved",
+    "unexpected-eof",
     "reserved",
     "reserved",
     "reserved",
@@ -1729,6 +1735,12 @@ int resultExitCode(TResult r)
         return DIRT_EXIT_CODE;
     if (r == _points)
         return POINTS_EXIT_CODE;
+    if (r == _unexpected_eof)
+#ifdef ENABLE_UNEXPECTED_EOF
+        return UNEXPECTED_EOF_EXIT_CODE;
+#else
+        return PE_EXIT_CODE;
+#endif
     if (r >= _partially)
         return PC_BASE_EXIT_CODE + (r - _partially);
     return FAIL_EXIT_CODE;
@@ -1800,6 +1812,10 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     case _points:
         errorName = "points ";
         quitscrS(LightYellow, errorName);
+        break;
+    case _unexpected_eof:
+        errorName = "unexpected eof ";
+        quitscrS(LightRed, errorName);
         break;
     default:
         if (result >= _partially)
@@ -2047,7 +2063,7 @@ void InStream::readWordTo(std::string& result)
     int cur = reader->nextChar();
 
     if (cur == EOF)
-        quit(_pe, "Unexpected end of file - token expected");
+        quit(_unexpected_eof, "Unexpected end of file - token expected");
 
     if (isBlanks(cur))
         quit(_pe, "Unexpected white-space - token expected");
@@ -2063,7 +2079,7 @@ void InStream::readWordTo(std::string& result)
     reader->unreadChar(cur);
 
     if (result.length() == 0)
-        quit(_pe, "Unexpected end of file or white-space - token expected");
+        quit(_unexpected_eof, "Unexpected end of file or white-space - token expected");
 }
 
 std::string InStream::readToken()
@@ -2327,7 +2343,7 @@ static inline long long stringToLongLong(InStream& in, const char* buffer)
 int InStream::readInteger()
 {
     if (!strict && seekEof())
-        quit(_pe, "Unexpected end of file - int32 expected");
+        quit(_unexpected_eof, "Unexpected end of file - int32 expected");
 
     readWordTo(_tmpReadToken);
     
@@ -2341,7 +2357,7 @@ int InStream::readInteger()
 long long InStream::readLong()
 {
     if (!strict && seekEof())
-        quit(_pe, "Unexpected end of file - int64 expected");
+        quit(_unexpected_eof, "Unexpected end of file - int64 expected");
 
     readWordTo(_tmpReadToken);
     return stringToLongLong(*this, _tmpReadToken.c_str());
@@ -2390,7 +2406,7 @@ int InStream::readInteger(int minv, int maxv, const std::string& variableName)
 double InStream::readReal()
 {
     if (!strict && seekEof())
-        quit(_pe, "Unexpected end of file - double expected");
+        quit(_unexpected_eof, "Unexpected end of file - double expected");
 
     return stringToDouble(*this, readWord().c_str());
 }
@@ -2425,7 +2441,7 @@ double InStream::readStrictReal(double minv, double maxv,
         const std::string& variableName)
 {
     if (!strict && seekEof())
-        quit(_pe, "Unexpected end of file - strict double expected");
+        quit(_unexpected_eof, "Unexpected end of file - strict double expected");
 
     double result = stringToStrictDouble(*this, readWord().c_str(),
             minAfterPointDigitCount, maxAfterPointDigitCount);
