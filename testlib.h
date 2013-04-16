@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.8"
+#define VERSION "0.8.9"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Use -DUSE_RND_AS_BEFORE_087 to compile in compatibility mode with random behavior of versions before 0.8.7",
                           "Fixed bug with nan in stringToDouble", 
                           "Fixed issue around overloads for size_t on x64",  
                           "Added attribute 'points' to the XML output in case of result=_points",  
@@ -251,14 +252,32 @@ static inline T __testlib_max(const T& a, const T& b)
     return a > b ? a : b;
 }
 
-inline bool isNaN(double r)
+static inline double __testlib_nan()
 {
-    return ((r != r) == true) && ((r == r) == false) && ((1.0 > r) == false) && ((1.0 < r) == false);
+#ifndef NAN
+    long long llnan = 0xFFF8000000000000;
+    double nan;
+    std::memcpy(&nan, &llnan, sizeof(double));
+    return nan;
+#else
+    return NAN;
+#endif
 }
 
-inline bool isInfinite(double r)
+bool isNaN(double r)
 {
-    return (r > 1E100 || r < -1E100);
+    volatile double ra = r;
+#ifndef __BORLANDC__
+    return ((ra != ra) == true) && ((ra == ra) == false) && ((1.0 > ra) == false) && ((1.0 < ra) == false);
+#else
+    return std::_isnan(ra);
+#endif
+}
+
+bool isInfinite(double r)
+{
+    volatile double ra = r;
+    return (ra > 1E100 || ra < -1E100);
 }
 
 NORETURN static void __testlib_fail(const std::string& message);
@@ -353,7 +372,8 @@ private:
     static const long long addend;
     static const long long mask;
     static const int lim;
-    
+
+#ifndef USE_RND_AS_BEFORE_087
     long long nextBits(int bits) 
     {
         if (bits <= 48)
@@ -369,6 +389,23 @@ private:
             return ((nextBits(31) << 32) ^ nextBits(32));
         }
     }
+#else
+    long long nextBits(int bits) 
+    {
+        if (bits <= 48)
+        {
+            seed = (seed * multiplier + addend) & mask;
+            return (long long)(seed >> (48 - bits));
+        }
+        else
+        {
+            if (bits > 63)
+                __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
+
+            return ((nextBits(31) << 32) ^ nextBits(31));
+        }
+    }
+#endif
 
 public:
     /* New random_t with fixed seed. */
@@ -2757,21 +2794,8 @@ NORETURN void __testlib_help()
     std::exit(0);
 }
 
-void registerGen(int argc, char* argv[])
+static void __testlib_ensuresPreconditions()
 {
-    testlibMode = _generator;
-    __testlib_set_binary(stdin);
-    rnd.setSeed(argc, argv);
-}
-
-void registerInteraction(int argc, char* argv[])
-{
-    testlibMode = _interactor;
-    __testlib_set_binary(stdin);
-
-    if (argc > 1 && !strcmp("--help", argv[1]))
-        __testlib_help();
-    
     // testlib assumes: sizeof(int) = 4.
     __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
 
@@ -2781,6 +2805,32 @@ void registerInteraction(int argc, char* argv[])
     // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
+    // testlib assumes: no -ffast-math.
+    if (!isNaN(+__testlib_nan()))
+        quit(_fail, "Function isNaN is not working correctly: possible reason is '-ffast-math'");
+    if (!isNaN(-__testlib_nan()))
+        quit(_fail, "Function isNaN is not working correctly: possible reason is '-ffast-math'");
+}
+
+void registerGen(int argc, char* argv[])
+{
+    __testlib_ensuresPreconditions();
+
+    testlibMode = _generator;
+    __testlib_set_binary(stdin);
+    rnd.setSeed(argc, argv);
+}
+
+void registerInteraction(int argc, char* argv[])
+{
+    __testlib_ensuresPreconditions();
+
+    testlibMode = _interactor;
+    __testlib_set_binary(stdin);
+
+    if (argc > 1 && !strcmp("--help", argv[1]))
+        __testlib_help();
+    
     if (argc < 3 || argc > 6)
     {
         quit(_fail, std::string("Program must be run with the following arguments: ") +
@@ -2837,17 +2887,10 @@ void registerInteraction(int argc, char* argv[])
 
 void registerValidation()
 {
+    __testlib_ensuresPreconditions();
+
     testlibMode = _validator;
     __testlib_set_binary(stdin);
-
-    // testlib assumes: sizeof(int) = 4.
-    __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
-
-    // testlib assumes: INT_MAX == 2147483647.
-    __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
-
-    // testlib assumes: sizeof(long long) = 8.
-    __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
     inf.init(stdin, _input);
     inf.strict = true;
@@ -2855,20 +2898,13 @@ void registerValidation()
 
 void registerTestlibCmd(int argc, char* argv[])
 {
+    __testlib_ensuresPreconditions();
+
     testlibMode = _checker;
     __testlib_set_binary(stdin);    
 
     if (argc > 1 && !strcmp("--help", argv[1]))
         __testlib_help();
-
-    // testlib assumes: sizeof(int) = 4.
-    __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
-
-    // testlib assumes: INT_MAX == 2147483647.
-    __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
-
-    // testlib assumes: sizeof(long long) = 8.
-    __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
     if (argc < 4 || argc > 6)
     {
