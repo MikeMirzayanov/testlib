@@ -214,6 +214,8 @@ const char* latestFeatures[] = {
 
 #ifdef _MSC_VER
 #   define NORETURN __declspec(noreturn)
+#elif defined __GNUC__
+#   define NORETURN __attribute__ ((noreturn))
 #else
 #   define NORETURN
 #endif
@@ -1741,9 +1743,6 @@ void InStream::textColor(WORD color)
 }
 
 
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void halt(int exitCode)
 {
 #ifdef FOOTER
@@ -1755,9 +1754,6 @@ NORETURN void halt(int exitCode)
     std::exit(exitCode);
 }
 
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
@@ -1870,7 +1866,6 @@ NORETURN void InStream::quit(TResult result, const char* msg)
 
 #ifdef __GNUC__
     __attribute__ ((format (printf, 3, 4)))
-    __attribute__ ((noreturn))
 #endif
 NORETURN void InStream::quitf(TResult result, const char* msg, ...)
 {
@@ -1878,9 +1873,6 @@ NORETURN void InStream::quitf(TResult result, const char* msg, ...)
     InStream::quit(result, message.c_str());
 }
 
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void InStream::quits(TResult result, std::string msg)
 {
     InStream::quit(result, msg.c_str());
@@ -2677,28 +2669,16 @@ void InStream::close()
     opened = false;
 }
 
-
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void quit(TResult result, const std::string& msg)
 {
     ouf.quit(result, msg.c_str());
 }
 
-
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void quit(TResult result, const char* msg)
 {
     ouf.quit(result, msg);
 }
 
-
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void __testlib_quitp(double points, const char* message)
 {
     __testlib_points = points;
@@ -2710,27 +2690,16 @@ NORETURN void __testlib_quitp(double points, const char* message)
     quit(_points, buffer);
 }
 
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void quitp(float points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
 }
 
-
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void quitp(double points, const std::string& message = "")
 {
     __testlib_quitp(points, message.c_str());
 }
 
-
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void quitp(long double points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
@@ -2739,7 +2708,6 @@ NORETURN void quitp(long double points, const std::string& message = "")
 template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
-__attribute__ ((noreturn))
 #endif
 NORETURN void quitp(F points, const char* format, ...)
 {
@@ -2749,7 +2717,6 @@ NORETURN void quitp(F points, const char* format, ...)
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
-__attribute__ ((noreturn))
 #endif
 NORETURN void quitf(TResult result, const char* format, ...)
 {
@@ -2769,9 +2736,6 @@ void quitif(bool condition, TResult result, const char* format, ...)
     }
 }
 
-#ifdef __GNUC__
-__attribute__ ((noreturn))
-#endif
 NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
@@ -3048,9 +3012,6 @@ inline void ensuref(bool cond, const char* format, ...)
     }
 }
 
-#ifdef __GNUC__
-__attribute__((noreturn))
-#endif
 NORETURN static void __testlib_fail(const std::string& message)
 {
     quitf(_fail, "%s", message.c_str());
