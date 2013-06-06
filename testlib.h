@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.8.9-SNAPSHOT"
+#define VERSION "0.9.0-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,9 @@
  */
 
 const char* latestFeatures[] = {
+                          "Use registerGen(argc, argv, 1) to develop new generator, use registerGen(argc, argv, 0) to compile old generators (originally created for testlib under 0.8.7)",
+                          "Introduced disableFinalizeGuard() to switch off finalization checkings",
+                          "Use join() functions to format a range of items as a single string (separated by spaces or other separators)",
                           "Use -DENABLE_UNEXPECTED_EOF to enable special exit code (by default, 8) in case of unexpected eof. It is good idea to use it in interactors",
                           "Use -DUSE_RND_AS_BEFORE_087 to compile in compatibility mode with random behavior of versions before 0.8.7",
                           "Fixed bug with nan in stringToDouble", 
@@ -264,6 +267,7 @@ static inline T __testlib_max(const T& a, const T& b)
 static inline double __testlib_nan()
 {
 #ifndef NAN
+	__TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
     long long llnan = 0xFFF8000000000000;
     double nan;
     std::memcpy(&nan, &llnan, sizeof(double));
@@ -293,18 +297,14 @@ NORETURN static void __testlib_fail(const std::string& message);
 
 static void __testlib_set_binary(std::FILE* file)
 {
-#if !defined(unix) && !defined(__APPLE__)
-    if (NULL != file)
-    {
-#ifdef _MSC_VER
+	if (NULL != file)
+	{
+#ifndef __BORLANDC__
         _setmode(_fileno(file), O_BINARY);
 #else
-#ifdef fileno
         setmode(fileno(file), O_BINARY);
 #endif
-#endif
     }
-#endif
 }
 
 /*
@@ -382,7 +382,6 @@ private:
     static const long long mask;
     static const int lim;
 
-#ifndef USE_RND_AS_BEFORE_087
     long long nextBits(int bits) 
     {
         if (bits <= 48)
@@ -395,28 +394,14 @@ private:
             if (bits > 63)
                 __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
 
-            return ((nextBits(31) << 32) ^ nextBits(32));
+            int lowerBitCount = (random_t::version == 0 ? 31 : 32);
+            return ((nextBits(31) << 32) ^ nextBits(lowerBitCount));
         }
     }
-#else
-    long long nextBits(int bits) 
-    {
-        if (bits <= 48)
-        {
-            seed = (seed * multiplier + addend) & mask;
-            return (long long)(seed >> (48 - bits));
-        }
-        else
-        {
-            if (bits > 63)
-                __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
-
-            return ((nextBits(31) << 32) ^ nextBits(31));
-        }
-    }
-#endif
 
 public:
+    static int version;
+
     /* New random_t with fixed seed. */
     random_t()
         : seed(3905348978240129619LL)
@@ -847,6 +832,7 @@ const int random_t::lim = 25;
 const long long random_t::multiplier = 0x5DEECE66DLL;
 const long long random_t::addend = 0xBLL;
 const long long random_t::mask = (1LL << 48) - 1;
+int random_t::version = -1;
 
 /* Pattern implementation */
 bool pattern::matches(const std::string& s) const
@@ -1684,6 +1670,14 @@ struct TestlibFinalizeGuard
 bool TestlibFinalizeGuard::alive = true;
 TestlibFinalizeGuard testlibFinalizeGuard;
 
+/*
+ * Call it to disable checks on finalization.
+ */
+static void disableFinalizeGuard()
+{
+	TestlibFinalizeGuard::alive = false;
+}
+
 /* Interactor streams.
  */
 std::fstream tout;
@@ -1699,6 +1693,12 @@ static std::string vtos(const T& t)
     ss << t;
     ss >> s;
     return s;
+}
+
+template <typename T>
+static std::string toString(const T& t)
+{
+	return vtos(t);
 }
 
 InStream::InStream()
@@ -1816,8 +1816,12 @@ NORETURN void InStream::quit(TResult result, const char* msg)
         quitscrS(LightYellow, errorName);
         break;
     case _unexpected_eof:
+#ifdef ENABLE_UNEXPECTED_EOF
         errorName = "unexpected eof ";
-        quitscrS(LightRed, errorName);
+#else
+        errorName = "wrong output format ";
+#endif
+        quitscrS(LightCyan, errorName);
         break;
     default:
         if (result >= _partially)
@@ -1836,7 +1840,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     {
         resultFile = std::fopen(resultName.c_str(), "w");
         if (resultFile == NULL)
-            quit(_fail, "Can not write to Result file");
+            quit(_fail, "Can not write to the result file");
         if (appesMode)
         {
             fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
@@ -1859,7 +1863,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
         else
              fprintf(resultFile, "%s", msg);
         if (NULL == resultFile || fclose(resultFile) != 0)
-            quit(_fail, "Can not write to Result file");
+            quit(_fail, "Can not write to the result file");
     }
 
     quitscr(LightGray, msg);
@@ -2794,14 +2798,55 @@ static void __testlib_ensuresPreconditions()
         quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
 }
 
-void registerGen(int argc, char* argv[])
+void registerGen(int argc, char* argv[], int randomGeneratorVersion)
 {
+	if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
+		quitf(_fail, "Random generator version is expected to be 0 or 1.");
+    random_t::version = randomGeneratorVersion;
+
     __testlib_ensuresPreconditions();
 
     testlibMode = _generator;
     __testlib_set_binary(stdin);
     rnd.setSeed(argc, argv);
 }
+
+#ifdef USE_RND_AS_BEFORE_087
+void registerGen(int argc, char* argv[])
+{
+    random_t::version = 0;
+    __testlib_ensuresPreconditions();
+
+    testlibMode = _generator;
+    __testlib_set_binary(stdin);
+    rnd.setSeed(argc, argv);
+}
+#else
+    template <class T>
+    class use_registerGen_argc_argv_0_or_registerGen_argc_argv_1 {
+    private:
+    	~use_registerGen_argc_argv_0_or_registerGen_argc_argv_1() {
+    	}
+    };
+
+	template <class T>
+#	ifdef __GNUC__
+    __attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
+    		" The third parameter stands for the random generator version."
+    		" If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
+    		" Version 1 has been released on Spring, 2013. Use it to write new generators.")))
+#	endif
+#	ifdef _MSC_VER
+	__declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
+    		" The third parameter stands for the random generator version."
+    		" If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
+    		" Version 1 has been released on Spring, 2013. Use it to write new generators."))
+#	endif
+    void registerGen(T argc, char* argv[])
+    {
+    	use_registerGen_argc_argv_0_or_registerGen_argc_argv_1<void> use_registerGen_argc_argv_0_or_registerGen_argc_argv_1;
+    }
+#endif
 
 void registerInteraction(int argc, char* argv[])
 {
@@ -3174,6 +3219,40 @@ inline std::string trim(const std::string& s)
         return "";
 
     return s.substr(left, right - left + 1);
+}
+
+template <typename _ForwardIterator, typename _Separator>
+std::string join(_ForwardIterator first, _ForwardIterator last, _Separator separator)
+{
+	std::stringstream ss;
+	bool repeated = false;
+	for (_ForwardIterator i = first; i != last; i++)
+	{
+		if (repeated)
+			ss << separator;
+		else
+			repeated = true;
+		ss << *i;
+	}
+	return ss.str();
+}
+
+template <typename _ForwardIterator>
+std::string join(_ForwardIterator first, _ForwardIterator last)
+{
+	return join(first, last, ' ');
+}
+
+template <typename _Collection, typename _Separator>
+std::string join(const _Collection& collection, _Separator separator)
+{
+	return join(collection.begin(), collection.end(), separator);
+}
+
+template <typename _Collection>
+std::string join(const _Collection& collection)
+{
+	return join(collection, ' ');
 }
 
 #endif
