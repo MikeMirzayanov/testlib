@@ -210,7 +210,11 @@ const char* latestFeatures[] = {
 #   endif
 #endif
 
-#define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[((condition) != 0) * 2 - 1];
+#ifdef __GNUC__
+#	define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1] __attribute__((unused))
+#else
+#	define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1]
+#endif
 
 #ifdef ON_WINDOWS
 #define I64 "%I64d"
@@ -1673,7 +1677,7 @@ TestlibFinalizeGuard testlibFinalizeGuard;
 /*
  * Call it to disable checks on finalization.
  */
-static void disableFinalizeGuard()
+void disableFinalizeGuard()
 {
 	TestlibFinalizeGuard::alive = false;
 }
