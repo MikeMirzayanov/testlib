@@ -14,7 +14,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    registerGen(argc, argv);
+    registerGen(argc, argv, 1);
 
     cout << rnd.next("[0000000001]{100}") << endl;
 
