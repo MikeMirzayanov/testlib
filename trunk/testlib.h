@@ -301,6 +301,7 @@ NORETURN static void __testlib_fail(const std::string& message);
 
 static void __testlib_set_binary(std::FILE* file)
 {
+#ifdef O_BINARY
     if (NULL != file)
     {
 #ifndef __BORLANDC__
@@ -309,6 +310,7 @@ static void __testlib_set_binary(std::FILE* file)
         setmode(fileno(file), O_BINARY);
 #endif
     }
+#endif
 }
 
 /*
