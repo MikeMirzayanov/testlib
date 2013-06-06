@@ -211,9 +211,9 @@ const char* latestFeatures[] = {
 #endif
 
 #ifdef __GNUC__
-#	define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1] __attribute__((unused))
+#    define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1] __attribute__((unused))
 #else
-#	define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1]
+#    define __TESTLIB_STATIC_ASSERT(condition) typedef void* __testlib_static_assert_type[(condition) ? 1 : -1]
 #endif
 
 #ifdef ON_WINDOWS
@@ -271,7 +271,7 @@ static inline T __testlib_max(const T& a, const T& b)
 static inline double __testlib_nan()
 {
 #ifndef NAN
-	__TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
+    __TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
     long long llnan = 0xFFF8000000000000;
     double nan;
     std::memcpy(&nan, &llnan, sizeof(double));
@@ -301,8 +301,8 @@ NORETURN static void __testlib_fail(const std::string& message);
 
 static void __testlib_set_binary(std::FILE* file)
 {
-	if (NULL != file)
-	{
+    if (NULL != file)
+    {
 #ifndef __BORLANDC__
         _setmode(_fileno(file), O_BINARY);
 #else
@@ -1679,7 +1679,7 @@ TestlibFinalizeGuard testlibFinalizeGuard;
  */
 void disableFinalizeGuard()
 {
-	TestlibFinalizeGuard::alive = false;
+    TestlibFinalizeGuard::alive = false;
 }
 
 /* Interactor streams.
@@ -1702,7 +1702,7 @@ static std::string vtos(const T& t)
 template <typename T>
 static std::string toString(const T& t)
 {
-	return vtos(t);
+    return vtos(t);
 }
 
 InStream::InStream()
@@ -2804,8 +2804,8 @@ static void __testlib_ensuresPreconditions()
 
 void registerGen(int argc, char* argv[], int randomGeneratorVersion)
 {
-	if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
-		quitf(_fail, "Random generator version is expected to be 0 or 1.");
+    if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
+        quitf(_fail, "Random generator version is expected to be 0 or 1.");
     random_t::version = randomGeneratorVersion;
 
     __testlib_ensuresPreconditions();
@@ -2829,26 +2829,26 @@ void registerGen(int argc, char* argv[])
     template <class T>
     class use_registerGen_argc_argv_0_or_registerGen_argc_argv_1 {
     private:
-    	~use_registerGen_argc_argv_0_or_registerGen_argc_argv_1() {
-    	}
+        ~use_registerGen_argc_argv_0_or_registerGen_argc_argv_1() {
+        }
     };
 
-	template <class T>
-#	ifdef __GNUC__
+    template <class T>
+#ifdef __GNUC__
     __attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
-    		" The third parameter stands for the random generator version."
-    		" If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
-    		" Version 1 has been released on Spring, 2013. Use it to write new generators.")))
-#	endif
-#	ifdef _MSC_VER
-	__declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
-    		" The third parameter stands for the random generator version."
-    		" If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
-    		" Version 1 has been released on Spring, 2013. Use it to write new generators."))
-#	endif
+            " The third parameter stands for the random generator version."
+            " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
+            " Version 1 has been released on Spring, 2013. Use it to write new generators.")))
+#endif
+#ifdef _MSC_VER
+    __declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
+            " The third parameter stands for the random generator version."
+            " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
+            " Version 1 has been released on Spring, 2013. Use it to write new generators."))
+#endif
     void registerGen(T argc, char* argv[])
     {
-    	use_registerGen_argc_argv_0_or_registerGen_argc_argv_1<void> use_registerGen_argc_argv_0_or_registerGen_argc_argv_1;
+        use_registerGen_argc_argv_0_or_registerGen_argc_argv_1<void> use_registerGen_argc_argv_0_or_registerGen_argc_argv_1;
     }
 #endif
 
@@ -3228,35 +3228,35 @@ inline std::string trim(const std::string& s)
 template <typename _ForwardIterator, typename _Separator>
 std::string join(_ForwardIterator first, _ForwardIterator last, _Separator separator)
 {
-	std::stringstream ss;
-	bool repeated = false;
-	for (_ForwardIterator i = first; i != last; i++)
-	{
-		if (repeated)
-			ss << separator;
-		else
-			repeated = true;
-		ss << *i;
-	}
-	return ss.str();
+    std::stringstream ss;
+    bool repeated = false;
+    for (_ForwardIterator i = first; i != last; i++)
+    {
+        if (repeated)
+            ss << separator;
+        else
+            repeated = true;
+        ss << *i;
+    }
+    return ss.str();
 }
 
 template <typename _ForwardIterator>
 std::string join(_ForwardIterator first, _ForwardIterator last)
 {
-	return join(first, last, ' ');
+    return join(first, last, ' ');
 }
 
 template <typename _Collection, typename _Separator>
 std::string join(const _Collection& collection, _Separator separator)
 {
-	return join(collection.begin(), collection.end(), separator);
+    return join(collection.begin(), collection.end(), separator);
 }
 
 template <typename _Collection>
 std::string join(const _Collection& collection)
 {
-	return join(collection, ' ');
+    return join(collection, ' ');
 }
 
 #endif
