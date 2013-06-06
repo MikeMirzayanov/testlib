@@ -224,6 +224,8 @@ const char* latestFeatures[] = {
 #else
 #   define NORETURN
 #endif
+                   
+const size_t INLINE_CHAR_BUFFER_SIZE = 131072;
 
 static char __testlib_format_buffer[16777216];
 static int __testlib_format_buffer_usage_count = 0;
@@ -1820,7 +1822,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     default:
         if (result >= _partially)
         {
-            char message[1023];
+            char message[INLINE_CHAR_BUFFER_SIZE];
             std::sprintf(message, "partially correct (%d) ", pctype);
             errorName = std::string(message);
             isPartial = true;
@@ -2698,7 +2700,7 @@ NORETURN void quit(TResult result, const char* msg)
 NORETURN void __testlib_quitp(double points, const char* message)
 {
     __testlib_points = points;
-    char buffer[512];
+    char buffer[INLINE_CHAR_BUFFER_SIZE];
     if (NULL == message || 0 == strlen(message))
         std::sprintf(buffer, "%.10f", points);
     else
