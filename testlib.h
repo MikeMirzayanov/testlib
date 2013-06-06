@@ -273,7 +273,7 @@ static inline double __testlib_nan()
 #endif
 }
 
-bool isNaN(double r)
+static bool __testlib_isNaN(double r)
 {
     volatile double ra = r;
 #ifndef __BORLANDC__
@@ -283,7 +283,7 @@ bool isNaN(double r)
 #endif
 }
 
-bool isInfinite(double r)
+static bool __testlib_isInfinite(double r)
 {
     volatile double ra = r;
     return (ra > 1E100 || ra < -1E100);
@@ -2213,7 +2213,7 @@ static inline double stringToDouble(InStream& in, const char* buffer)
 
     if (scanned == 1 || (scanned == 2 && empty))
     {
-        if (isNaN(retval) || isInfinite(retval))
+        if (__testlib_isNaN(retval) || __testlib_isInfinite(retval))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
     }
@@ -2286,7 +2286,7 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
 
     if (scanned == 1 || (scanned == 2 && empty))
     {
-        if (isNaN(retval) || isInfinite(retval))
+        if (__testlib_isNaN(retval) || __testlib_isInfinite(retval))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
     }
@@ -2788,10 +2788,10 @@ static void __testlib_ensuresPreconditions()
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
 
     // testlib assumes: no -ffast-math.
-    if (!isNaN(+__testlib_nan()))
-        quit(_fail, "Function isNaN is not working correctly: possible reason is '-ffast-math'");
-    if (!isNaN(-__testlib_nan()))
-        quit(_fail, "Function isNaN is not working correctly: possible reason is '-ffast-math'");
+    if (!__testlib_isNaN(+__testlib_nan()))
+        quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
+    if (!__testlib_isNaN(-__testlib_nan()))
+        quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
 }
 
 void registerGen(int argc, char* argv[])
@@ -2952,24 +2952,24 @@ __attribute__((const))
 #endif
 inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
 {
-        if (isNaN(expected))
+        if (__testlib_isNaN(expected))
         {
-            return isNaN(result);
+            return __testlib_isNaN(result);
         }
         else 
-            if (isInfinite(expected))
+            if (__testlib_isInfinite(expected))
             {
                 if (expected > 0)
                 {
-                    return result > 0 && isInfinite(result);
+                    return result > 0 && __testlib_isInfinite(result);
                 }
                 else
                 {
-                    return result < 0 && isInfinite(result);
+                    return result < 0 && __testlib_isInfinite(result);
                 }
             }
             else 
-                if (isNaN(result) || isInfinite(result))
+                if (__testlib_isNaN(result) || __testlib_isInfinite(result))
                 {
                     return false;
                 }
