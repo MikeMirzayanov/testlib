@@ -3144,7 +3144,7 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
     quitf(_fail, "Don't use srand(), you should use " 
         "'registerGen(argc, argv, 1);' to initialize generator seed "
         "by hash code of the command line params. The third parameter "
-        "is randomGeneratorVersion (currently the latest is 1).", seed);
+        "is randomGeneratorVersion (currently the latest is 1) [ignored seed=%d].", seed);
 }
 
 void startTest(int test)
