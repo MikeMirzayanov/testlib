@@ -373,8 +373,8 @@ private:
  * randoms.
  *
  * Testlib defines global variable "rnd" of random_t class.
- * Use registerGen(argc, argv) to setup random_t seed be command
- * line.
+ * Use registerGen(argc, argv, 1) to setup random_t seed be command
+ * line (to use latest random generator version).
  *
  * Random generates uniformly distributed values if another strategy is
  * not specified explicitly.
@@ -2820,12 +2820,7 @@ void registerGen(int argc, char* argv[], int randomGeneratorVersion)
 #ifdef USE_RND_AS_BEFORE_087
 void registerGen(int argc, char* argv[])
 {
-    random_t::version = 0;
-    __testlib_ensuresPreconditions();
-
-    testlibMode = _generator;
-    __testlib_set_binary(stdin);
-    rnd.setSeed(argc, argv);
+    registerGen(argc, argv, 0);
 }
 #else
     template <class T>
@@ -3140,14 +3135,16 @@ int rand() RAND_THROW_STATEMENT
 
 #ifdef __GNUC__
 __attribute__ ((error("Don't use srand(), you should use " 
-        "'registerGen(argc, argv);' to initialize generator seed "
-        "by hash code of the command line params")))
+        "'registerGen(argc, argv, 1);' to initialize generator seed "
+        "by hash code of the command line params. The third parameter "
+        "is randomGeneratorVersion (currently the latest is 1).")))
 #endif
 void srand(unsigned int seed) RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use srand(), you should use " 
-        "'registerGen(argc, argv);' to initialize generator seed "
-        "by hash code of the command line params [seed=%d ignored]", seed);
+        "'registerGen(argc, argv, 1);' to initialize generator seed "
+        "by hash code of the command line params. The third parameter "
+        "is randomGeneratorVersion (currently the latest is 1).", seed);
 }
 
 void startTest(int test)
