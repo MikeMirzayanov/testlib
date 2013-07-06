@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.9.0-SNAPSHOT"
+#define VERSION "0.9.1-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -268,26 +268,38 @@ static inline T __testlib_max(const T& a, const T& b)
     return a > b ? a : b;
 }
 
-static inline double __testlib_nan()
-{
-#ifndef NAN
-    __TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
-    long long llnan = 0xFFF8000000000000;
-    double nan;
-    std::memcpy(&nan, &llnan, sizeof(double));
-    return nan;
-#else
-    return NAN;
-#endif
-}
-
-static bool __testlib_isNaN(double r)
+static bool __testlib_prelimIsNaN(double r)
 {
     volatile double ra = r;
 #ifndef __BORLANDC__
     return ((ra != ra) == true) && ((ra == ra) == false) && ((1.0 > ra) == false) && ((1.0 < ra) == false);
 #else
     return std::_isnan(ra);
+#endif
+}
+
+static bool __testlib_isNaN(double r)
+{
+    __TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
+    volatile double ra = r;
+    long long llr1, llr2;
+    std::memcpy((void*)&llr1, (void*)&ra, sizeof(double)); 
+    ra = -ra;
+    std::memcpy((void*)&llr2, (void*)&ra, sizeof(double)); 
+    long long llnan = 0xFFF8000000000000;
+    return __testlib_prelimIsNaN(r) || llnan == llr1 || llnan == llr2;
+}
+
+static double __testlib_nan()
+{
+    __TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
+#ifndef NAN
+    long long llnan = 0xFFF8000000000000;
+    double nan;
+    std::memcpy(&nan, &llnan, sizeof(double));
+    return nan;
+#else
+    return NAN;
 #endif
 }
 
@@ -2212,9 +2224,36 @@ static inline double stringToDouble(InStream& in, const char* buffer)
 
     size_t length = strlen(buffer);
 
+    int minusCount = 0;
+    int plusCount = 0;
+    int decimalPointCount = 0;
+    int digitCount = 0;
+    int eCount = 0;
+
     for (size_t i = 0; i < length; i++)
-        if (isBlanks(buffer[i]))
+    {
+        if (('0' <= buffer[i] && buffer[i] <= '9') || buffer[i] == '.'
+                || buffer[i] == 'e' || buffer[i] == 'E'
+                || buffer[i] == '-' || buffer[i] == '+')
+        {
+            if ('0' <= buffer[i] && buffer[i] <= '9')
+                digitCount++;
+            if (buffer[i] == 'e' || buffer[i] == 'E')
+                eCount++;
+            if (buffer[i] == '-')
+                minusCount++;
+            if (buffer[i] == '+')
+                plusCount++;
+            if (buffer[i] == '.')
+                decimalPointCount++;
+        }
+        else
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+    }
+
+    // If for sure is not a number in standard notation or in e-notation.
+    if (digitCount == 0 || minusCount > 2 || plusCount > 2 || decimalPointCount > 1 || eCount > 1)
+        in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char* suffix = new char[length + 1];
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
@@ -2361,7 +2400,7 @@ int InStream::readInteger()
     
     long long value = stringToLongLong(*this, _tmpReadToken.c_str());
     if (value < INT_MIN || value > INT_MAX)
-        quit(_pe, ("Expected int32, but \"" + _tmpReadToken + "\" found").c_str());
+        quit(_pe, ("Expected int32, but \"" + __testlib_part(_tmpReadToken) + "\" found").c_str());
     
     return int(value);
 }
