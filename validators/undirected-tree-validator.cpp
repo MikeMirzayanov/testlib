@@ -39,7 +39,7 @@ bool merge(vector<int>& dsu, int a, int b)
         return false;
     else
     {
-        if (rand() % 2 == 0)
+        if (rnd.next(2) == 0)
             dsu[a] = b;
         else
             dsu[b] = a;
