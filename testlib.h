@@ -3297,4 +3297,65 @@ std::string join(const _Collection& collection)
     return join(collection, ' ');
 }
 
+static std::string removeDoubleTrailingZeroes(std::string value)
+{
+    while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
+        value = value.substr(0, value.length() - 1);
+    value += '0';
+    return value;
+}
+
+template <typename T>
+void expectedButFound(TResult result, T expected, T found, const char* prependFormat = "", ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    std::string expectedString = vtos(expected);
+    std::string foundString = vtos(found);
+    expectedButFound(result, expectedString, foundString, prepend.c_str());
+}
+
+template <>
+void expectedButFound<std::string>(TResult result, std::string expected, std::string found, const char* prependFormat, ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    std::string message;
+    if (strlen(prependFormat) != 0)
+        message = format("%s: expected '%s', but found '%s'",
+            compress(prepend).c_str(), compress(expected).c_str(), compress(found).c_str());
+    else
+        message = format("expected '%s', but found '%s'",
+            compress(expected).c_str(), compress(found).c_str());
+    quitf(result, "%s", message.c_str());
+}
+
+template <>
+void expectedButFound<double>(TResult result, double expected, double found, const char* prependFormat, ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    std::string expectedString = removeDoubleTrailingZeroes(format("%.12lf", expected));
+    std::string foundString = removeDoubleTrailingZeroes(format("%.12lf", found));
+    expectedButFound(result, expectedString, foundString, prepend.c_str());
+}
+
+template <>
+void expectedButFound<const char*>(TResult result, const char* expected, const char* found, const char* prependFormat, ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    expectedButFound<std::string>(result, std::string(expected), std::string(found), prepend.c_str());
+}
+
+template <>
+void expectedButFound<float>(TResult result, float expected, float found, const char* prependFormat, ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    expectedButFound<double>(result, double(expected), double(found), prepend.c_str());
+}
+
+template <>
+void expectedButFound<long double>(TResult result, long double expected, long double found, const char* prependFormat, ...)
+{
+    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+    expectedButFound<double>(result, double(expected), double(found), prepend.c_str());
+}
+
 #endif
