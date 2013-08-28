@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.9.2"
+#define VERSION "0.9.2-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
