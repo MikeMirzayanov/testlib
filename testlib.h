@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "InStream over string: constructor of InStream from base InStream to inherit policies and std::string",
                           "Added expectedButFound quit function, examples: expectedButFound(_wa, 10, 20), expectedButFound(_fail, ja, pa, \"[n=%d,m=%d]\", n, m)",
                           "Fixed incorrect interval parsing in patterns",
                           "Use registerGen(argc, argv, 1) to develop new generator, use registerGen(argc, argv, 0) to compile old generators (originally created for testlib under 0.8.7)",
@@ -279,6 +280,8 @@ static bool __testlib_prelimIsNaN(double r)
     return std::_isnan(ra);
 #endif
 }
+
+static std::string __testlib_part(const std::string& s);
 
 static bool __testlib_isNaN(double r)
 {
@@ -1270,6 +1273,61 @@ InputStreamReader::~InputStreamReader()
     // No operations.
 }
 
+class StringInputStreamReader: public InputStreamReader
+{
+private:
+    std::string s;
+    size_t pos;
+
+public:
+    StringInputStreamReader(const std::string& content): s(content), pos(0)
+    {
+        // No operations.
+    }
+
+    int curChar()
+    {
+        if (pos >= s.length())
+            return EOF;
+        else
+        {
+            return s[pos];
+        }
+    }
+
+    int nextChar()
+    {
+        if (pos >= s.length())
+            return EOF;
+        else
+            return s[pos++];
+    }
+
+    void skipChar()
+    {
+        pos++;
+    }
+
+    void unreadChar(int c)
+    {   
+        if (pos == 0)
+            __testlib_fail("FileFileInputStreamReader::unreadChar(int): pos == 0.");
+        pos--;
+        if (pos < s.length())
+            s[pos] = char(c);
+    }
+
+    std::string getName()
+    {
+        return __testlib_part(s);
+    }
+
+    bool eof()
+    {
+        return pos >= s.length();
+    }
+};
+
 class FileInputStreamReader: public InputStreamReader
 {
 private:
@@ -1450,6 +1508,9 @@ struct InStream
     /* Do not use them. */
     InStream();
     ~InStream();
+
+    /* Wrap std::string with InStream. */
+    InStream(const InStream& baseStream, std::string content);
 
     InputStreamReader* reader;
 
@@ -1728,6 +1789,15 @@ InStream::InStream()
     strict = false;
     stdfile = false;
     wordReserveSize = 4;
+}
+
+InStream::InStream(const InStream& baseStream, std::string content)
+{
+    reader = new StringInputStreamReader(content);
+    opened = true;
+    strict = baseStream.strict;
+    mode = baseStream.mode;
+    name = "based on " + baseStream.name;
 }
 
 InStream::~InStream()
