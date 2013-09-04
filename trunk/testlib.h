@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.9.2-SNAPSHOT"
+#define VERSION "0.9.3-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -235,8 +235,6 @@ const char* latestFeatures[] = {
 #   define NORETURN
 #endif
                    
-const size_t INLINE_CHAR_BUFFER_SIZE = 131072;
-
 static char __testlib_format_buffer[16777216];
 static int __testlib_format_buffer_usage_count = 0;
 
@@ -252,6 +250,8 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count--;                                         \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
+
+NORETURN static void __testlib_fail(const std::string& message);
 
 template<typename T>
 static inline T __testlib_abs(const T& x)
@@ -279,6 +279,28 @@ static bool __testlib_prelimIsNaN(double r)
 #else
     return std::_isnan(ra);
 #endif
+}
+
+static std::string removeDoubleTrailingZeroes(std::string value)
+{
+    while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
+        value = value.substr(0, value.length() - 1);
+    return value + '0';
+}
+
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string format(const char* fmt, ...)
+{
+    FMT_TO_RESULT(fmt, fmt, result);
+    return result;
+}
+
+std::string format(const std::string& fmt, ...)
+{
+    FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    return result;
 }
 
 static std::string __testlib_part(const std::string& s);
@@ -313,8 +335,6 @@ static bool __testlib_isInfinite(double r)
     volatile double ra = r;
     return (ra > 1E100 || ra < -1E100);
 }
-
-NORETURN static void __testlib_fail(const std::string& message);
 
 static void __testlib_set_binary(std::FILE* file)
 {
@@ -1679,17 +1699,17 @@ struct InStream
 
     /* 
      * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replaces any result to FAIL.
+     * input/answer streams replace any result to FAIL.
      */
     NORETURN void quit(TResult result, const char* msg);
     /* 
      * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replaces any result to FAIL.
+     * input/answer streams replace any result to FAIL.
      */
     NORETURN void quitf(TResult result, const char* msg, ...);
     /* 
      * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replaces any result to FAIL.
+     * input/answer streams replace any result to FAIL.
      */
     NORETURN void quits(TResult result, std::string msg);
 
@@ -1845,7 +1865,6 @@ void InStream::textColor(WORD color)
 #endif
 }
 
-
 NORETURN void halt(int exitCode)
 {
 #ifdef FOOTER
@@ -1915,9 +1934,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     default:
         if (result >= _partially)
         {
-            char message[INLINE_CHAR_BUFFER_SIZE];
-            std::sprintf(message, "partially correct (%d) ", pctype);
-            errorName = std::string(message);
+            errorName = format("partially correct (%d) ", pctype);
             isPartial = true;
             quitscrS(LightYellow, errorName);
         }
@@ -1932,25 +1949,26 @@ NORETURN void InStream::quit(TResult result, const char* msg)
             quit(_fail, "Can not write to the result file");
         if (appesMode)
         {
-            fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
+            std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
             if (isPartial)
-                fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">", outcomes[(int)_partially].c_str(), pctype);
+                std::fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">", outcomes[(int)_partially].c_str(), pctype);
             else
             {
                 if (result != _points)
-                    fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
+                    std::fprintf(resultFile, "<result outcome = \"%s\">", outcomes[(int)result].c_str());
                 else
                 {
                     if (__testlib_points == std::numeric_limits<float>::infinity())
                         quit(_fail, "Expected points, but infinity found");
-                    fprintf(resultFile, "<result outcome = \"%s\" points = \"%.10f\">", outcomes[(int)result].c_str(), __testlib_points);
+                    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", __testlib_points));
+                    std::fprintf(resultFile, "<result outcome = \"%s\" points = \"%s\">", outcomes[(int)result].c_str(), stringPoints.c_str());
                 }
             }
             xmlSafeWrite(resultFile, msg);
-            fprintf(resultFile, "</result>\n");
+            std::fprintf(resultFile, "</result>\n");
         }
         else
-             fprintf(resultFile, "%s", msg);
+             std::fprintf(resultFile, "%s", msg);
         if (NULL == resultFile || fclose(resultFile) != 0)
             quit(_fail, "Can not write to the result file");
     }
@@ -1996,30 +2014,30 @@ void InStream::xmlSafeWrite(std::FILE * file, const char* msg)
     {
         if (msg[i] == '&')
         {
-            fprintf(file, "%s", "&amp;");
+            std::fprintf(file, "%s", "&amp;");
             continue;
         }
         if (msg[i] == '<')
         {
-            fprintf(file, "%s", "&lt;");
+            std::fprintf(file, "%s", "&lt;");
             continue;
         }
         if (msg[i] == '>')
         {
-            fprintf(file, "%s", "&gt;");
+            std::fprintf(file, "%s", "&gt;");
             continue;
         }
         if (msg[i] == '"')
         {
-            fprintf(file, "%s", "&quot;");
+            std::fprintf(file, "%s", "&quot;");
             continue;
         }
         if (0 <= msg[i] && msg[i] <= 31)
         {
-            fprintf(file, "%c", '.');
+            std::fprintf(file, "%c", '.');
             continue;
         }
-        fprintf(file, "%c", msg[i]);
+        std::fprintf(file, "%c", msg[i]);
     }
 }
 
@@ -2820,12 +2838,15 @@ NORETURN void quit(TResult result, const char* msg)
 NORETURN void __testlib_quitp(double points, const char* message)
 {
     __testlib_points = points;
-    char buffer[INLINE_CHAR_BUFFER_SIZE];
+    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", points));
+
+    std::string quitMessage;
     if (NULL == message || 0 == strlen(message))
-        std::sprintf(buffer, "%.10f", points);
+        quitMessage = stringPoints;
     else
-        std::sprintf(buffer, "%.10f %s", points, message);
-    quit(_points, buffer);
+        quitMessage = stringPoints + " " + message;
+
+    quit(_points, quitMessage.c_str());
 }
 
 NORETURN void quitp(float points, const std::string& message = "")
@@ -2893,7 +2914,7 @@ NORETURN void __testlib_help()
     std::fprintf(stderr, "Program must be run with the following arguments: \n");
     std::fprintf(stderr, "    <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
 
-    std::exit(0);
+    std::exit(FAIL_EXIT_CODE);
 }
 
 static void __testlib_ensuresPreconditions()
@@ -2933,14 +2954,6 @@ void registerGen(int argc, char* argv[])
     registerGen(argc, argv, 0);
 }
 #else
-    template <class T>
-    class use_registerGen_argc_argv_0_or_registerGen_argc_argv_1 {
-    private:
-        ~use_registerGen_argc_argv_0_or_registerGen_argc_argv_1() {
-        }
-    };
-
-    template <class T>
 #ifdef __GNUC__
     __attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
             " The third parameter stands for the random generator version."
@@ -2953,10 +2966,14 @@ void registerGen(int argc, char* argv[])
             " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
             " Version 1 has been released on Spring, 2013. Use it to write new generators."))
 #endif
-    void registerGen(T argc, char* argv[])
-    {
-        use_registerGen_argc_argv_0_or_registerGen_argc_argv_1<void> use_registerGen_argc_argv_0_or_registerGen_argc_argv_1;
-    }
+void registerGen(int argc, char* argv[])
+{
+    std::fprintf(stderr, "Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
+            " The third parameter stands for the random generator version."
+            " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
+            " Version 1 has been released on Spring, 2013. Use it to write new generators.\n\n");
+    registerGen(argc, argv, 0);
+}
 #endif
 
 void registerInteraction(int argc, char* argv[])
@@ -3242,7 +3259,6 @@ int rand() RAND_THROW_STATEMENT
     //throw "Don't use rand(), use rnd.next() instead";
 }
 
-
 #ifdef __GNUC__
 __attribute__ ((error("Don't use srand(), you should use " 
         "'registerGen(argc, argv, 1);' to initialize generator seed "
@@ -3262,21 +3278,6 @@ void startTest(int test)
     const std::string testFileName = vtos(test);
     if (NULL == freopen(testFileName.c_str(), "wt", stdout))
         __testlib_fail("Unable to write file '" + testFileName + "'");
-}
-
-#ifdef __GNUC__
-__attribute__ ((format (printf, 1, 2)))
-#endif
-std::string format(const char* fmt, ...)
-{
-    FMT_TO_RESULT(fmt, fmt, result);
-    return result;
-}
-
-std::string format(const std::string& fmt, ...)
-{
-    FMT_TO_RESULT(fmt, fmt.c_str(), result);
-    return result;
 }
 
 inline std::string upperCase(std::string s)
@@ -3366,14 +3367,6 @@ template <typename _Collection>
 std::string join(const _Collection& collection)
 {
     return join(collection, ' ');
-}
-
-static std::string removeDoubleTrailingZeroes(std::string value)
-{
-    while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
-        value = value.substr(0, value.length() - 1);
-    value += '0';
-    return value;
 }
 
 template <typename T>
