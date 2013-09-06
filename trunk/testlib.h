@@ -2640,8 +2640,8 @@ bool InStream::eoln()
 
             if (c != LF)
             {
-                reader->unreadChar(CR);
                 reader->unreadChar(c);
+                reader->unreadChar(CR);
                 return false;
             }
             else
@@ -2673,9 +2673,9 @@ bool InStream::eoln()
 #endif        
         if (c != LF)
         {
+            reader->unreadChar(c);
             if (returnCr)
                 reader->unreadChar(CR);
-            reader->unreadChar(LF);
             return false;
         }
 
