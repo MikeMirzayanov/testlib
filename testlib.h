@@ -3038,6 +3038,8 @@ void registerInteraction(int argc, char* argv[])
     
     if (argc >= 4)
         ans.init(argv[3], _answer);
+    else
+        ans.name = "unopened answer stream";
 }
 
 void registerValidation()
@@ -3378,7 +3380,7 @@ NORETURN void __testlib_expectedButFound(TResult result, std::string expected, s
     else
         message = format("expected '%s', but found '%s'",
             compress(expected).c_str(), compress(found).c_str());
-    quitf(result, "%s", message.c_str());
+    quit(result, message);
 }
 
 NORETURN void __testlib_expectedButFound(TResult result, double expected, double found, const char* prepend)
