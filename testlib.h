@@ -419,10 +419,10 @@ private:
 class random_t
 {
 private:
-    long long seed;
-    static const long long multiplier;
-    static const long long addend;
-    static const long long mask;
+    unsigned long long seed;
+    static const unsigned long long multiplier;
+    static const unsigned long long addend;
+    static const unsigned long long mask;
     static const int lim;
 
     long long nextBits(int bits) 
@@ -872,9 +872,9 @@ public:
 };
 
 const int random_t::lim = 25;
-const long long random_t::multiplier = 0x5DEECE66DLL;
-const long long random_t::addend = 0xBLL;
-const long long random_t::mask = (1LL << 48) - 1;
+const unsigned long long random_t::multiplier = 0x5DEECE66DLL;
+const unsigned long long random_t::addend = 0xBLL;
+const unsigned long long random_t::mask = (1LL << 48) - 1;
 int random_t::version = -1;
 
 /* Pattern implementation */
