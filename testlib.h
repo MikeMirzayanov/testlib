@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2013
  */
 
-#define VERSION "0.9.4"
+#define VERSION "0.9.5"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Removed disable buffers for interactive problems, because it works unexpectedly in wine",
                           "InStream over string: constructor of InStream from base InStream to inherit policies and std::string",
                           "Added expectedButFound quit function, examples: expectedButFound(_wa, 10, 20), expectedButFound(_fail, ja, pa, \"[n=%d,m=%d]\", n, m)",
                           "Fixed incorrect interval parsing in patterns",
@@ -3018,15 +3019,6 @@ void registerInteraction(int argc, char* argv[])
             appesMode = true;
         }
     }
-
-    if (setvbuf(stdin,  NULL, _IONBF, 0) != 0)
-        quit(_fail, std::string("Can not disable buffer for stdin"));
-
-    if (setvbuf(stdout,  NULL, _IONBF, 0) != 0)
-        quit(_fail, std::string("Can not disable buffer for stdout"));
-    
-    if (setvbuf(stderr,  NULL, _IONBF, 0) != 0)
-        quit(_fail, std::string("Can not disable buffer for stderr"));
 
     inf.init(argv[1], _input);
 
