@@ -1551,7 +1551,6 @@ struct InStream
 
     InputStreamReader* reader;
 
-    //std::FILE* file;
     std::string name;
     TMode mode;
     bool opened;
@@ -1995,14 +1994,6 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     quitscr(LightGray, msg);
     std::fprintf(stderr, "\n");
 
-    /*
-    if (inf.file)
-        fclose(inf.file);
-    if (ouf.file)
-        fclose(ouf.file);
-    if (ans.file)
-        fclose(ans.file);
-    */
     inf.close();
     ouf.close();
     ans.close();
