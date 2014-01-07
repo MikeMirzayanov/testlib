@@ -1404,7 +1404,16 @@ public:
 
     bool eof()
     {
-        return NULL == file || feof(file);
+        if (NULL == file || feof(file))
+            return true;
+        else
+        {
+            int c = nextChar();
+            if (c == EOFC || (c == EOF && feof(file)))
+                return true;
+            unreadChar(c);
+            return false;
+        }
     }
 
     void close()
