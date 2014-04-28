@@ -2882,6 +2882,20 @@ NORETURN void __testlib_quitp(double points, const char* message)
     quit(_points, quitMessage.c_str());
 }
 
+NORETURN void __testlib_quitp(int points, const char* message)
+{
+    __testlib_points = points;
+    std::string stringPoints = format("%d", points);
+
+    std::string quitMessage;
+    if (NULL == message || 0 == strlen(message))
+        quitMessage = stringPoints;
+    else
+        quitMessage = stringPoints + " " + message;
+
+    quit(_points, quitMessage.c_str());
+}
+
 NORETURN void quitp(float points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
@@ -2895,6 +2909,11 @@ NORETURN void quitp(double points, const std::string& message = "")
 NORETURN void quitp(long double points, const std::string& message = "")
 {
     __testlib_quitp(double(points), message.c_str());
+}
+
+NORETURN void quitp(int points, const std::string& message = "")
+{
+    __testlib_quitp(points, message.c_str());
 }
 
 template<typename F>
