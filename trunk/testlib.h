@@ -1903,6 +1903,11 @@ NORETURN void halt(int exitCode)
     std::exit(exitCode);
 }
 
+static bool __testlib_shouldCheckDirt(TResult result)
+{
+    return result == _ok || result == _points || result >= _partially;
+}
+
 NORETURN void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
@@ -1919,7 +1924,7 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     std::FILE * resultFile;
     std::string errorName;
     
-    if (result == _ok)
+    if (__testlib_shouldCheckDirt(result))
     {
         if (testlibMode != _interactor && !ouf.seekEof())
             quit(_dirt, "Extra information in the output file");
