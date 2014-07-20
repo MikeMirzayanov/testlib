@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2013
+ * Copyright (c) 2005-2014
  */
 
-#define VERSION "0.9.7-SNAPSHOT"
+#define VERSION "0.9.8-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -1189,7 +1189,7 @@ pattern::pattern(std::string s): s(s), from(0), to(0)
     {
         if (seps.size() > 0)
         {
-            seps.push_back(s.length());
+            seps.push_back(int(s.length()));
             int last = 0;
 
             for (size_t i = 0; i < seps.size(); i++)
@@ -1542,8 +1542,8 @@ public:
     }
 };
 
-const size_t BufferedFileInputStreamReader::BUFFER_SIZE = 1000000;
-const size_t BufferedFileInputStreamReader::MAX_UNREAD_COUNT = 100; 
+const size_t BufferedFileInputStreamReader::BUFFER_SIZE = 2000000;
+const size_t BufferedFileInputStreamReader::MAX_UNREAD_COUNT = BufferedFileInputStreamReader::BUFFER_SIZE / 2; 
 
 /*
  * Streams to be used for reading data in checkers or validators.
@@ -2098,7 +2098,10 @@ void InStream::reset(std::FILE* file)
         if (NULL == (file = std::fopen(name.c_str(), "rb")))
         {
             if (mode == _output)
-                quits(_pe, std::string("File not found: \"") + name + "\"");
+                quits(_pe, std::string("Output file not found: \"") + name + "\"");
+            
+            if (mode == _answer)
+                quits(_fail, std::string("Answer file not found: \"") + name + "\"");
         }
 
     if (NULL != file)
@@ -2125,6 +2128,7 @@ void InStream::init(std::string fileName, TMode mode)
     name = fileName;
     stdfile = false;
     this->mode = mode;
+    
     reset();
 }
 
@@ -2144,7 +2148,7 @@ void InStream::init(std::FILE* f, TMode mode)
         name = "stderr", stdfile = true;
 
     this->mode = mode;
-    
+
     reset(f);
 }
 
@@ -2951,7 +2955,7 @@ NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2013\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2014\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
@@ -2979,6 +2983,9 @@ static void __testlib_ensuresPreconditions()
 
     // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
+
+    // testlib assumes: sizeof(double) = 8.
+    __TESTLIB_STATIC_ASSERT(sizeof(double) == 8);
 
     // testlib assumes: no -ffast-math.
     if (!__testlib_isNaN(+__testlib_nan()))

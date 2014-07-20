@@ -10,7 +10,7 @@ using namespace std;
 int main()
 {
     registerValidation();
-    
+
     inf.readInt(1, 100, "n");
     inf.readEoln();
     inf.readEof();
