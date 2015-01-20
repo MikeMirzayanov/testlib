@@ -338,6 +338,10 @@ static bool __testlib_isInfinite(double r)
     return (ra > 1E100 || ra < -1E100);
 }
 
+#ifndef _fileno
+#define _fileno(_stream)  ((_stream)->_file)
+#endif
+
 static void __testlib_set_binary(std::FILE* file)
 {
 #ifdef O_BINARY
@@ -1362,6 +1366,14 @@ private:
     std::FILE* file;
     std::string name;
 
+    inline int postprocessGetc(int getcResult)
+    {
+        if (getcResult != EOF)
+            return getcResult;
+        else
+            return EOFC;
+    }
+
 public:
     FileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
     {
@@ -1376,7 +1388,7 @@ public:
         {
             int c = getc(file);
             ungetc(c, file);
-            return c;
+            return postprocessGetc(c);
         }
     }
 
@@ -1385,7 +1397,7 @@ public:
         if (feof(file))
             return EOFC;
         else
-            return getc(file);
+            return postprocessGetc(getc(file));
     }
 
     void skipChar()
@@ -2539,6 +2551,7 @@ long long InStream::readLong()
         quit(_unexpected_eof, "Unexpected end of file - int64 expected");
 
     readWordTo(_tmpReadToken);
+
     return stringToLongLong(*this, _tmpReadToken.c_str());
 }
 
@@ -3108,7 +3121,7 @@ void registerTestlibCmd(int argc, char* argv[])
     __testlib_ensuresPreconditions();
 
     testlibMode = _checker;
-    __testlib_set_binary(stdin);    
+    __testlib_set_binary(stdin);
 
     if (argc > 1 && !strcmp("--help", argv[1]))
         __testlib_help();
