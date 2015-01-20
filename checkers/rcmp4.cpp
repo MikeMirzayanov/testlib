@@ -7,7 +7,7 @@ const double EPS = 1E-4;
 
 int main(int argc, char * argv[])
 {
-    setName("compare two sequences of doubles, max absolute or relative error = %.5lf", EPS);
+    setName("compare two sequences of doubles, max absolute or relative error = %.5f", EPS);
     registerTestlibCmd(argc, argv);
 
     int n = 0;
@@ -20,13 +20,13 @@ int main(int argc, char * argv[])
         p = ouf.readDouble();
         if (!doubleCompare(j, p, EPS))
         {
-            quitf(_wa, "%d%s numbers differ - expected: '%.5lf', found: '%.5lf', error = '%.5lf'",
+            quitf(_wa, "%d%s numbers differ - expected: '%.5f', found: '%.5f', error = '%.5f'",
                 n, englishEnding(n).c_str(), j, p, doubleDelta(j, p));
         }
     }
 
     if (n == 1)
-        quitf(_ok, "found '%.5lf', expected '%.5lf', error '%.5lf'", p, j, doubleDelta(j, p));
+        quitf(_ok, "found '%.5f', expected '%.5f', error '%.5f'", p, j, doubleDelta(j, p));
     
     quitf(_ok, "%d numbers", n);
 }

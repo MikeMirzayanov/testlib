@@ -10,5 +10,5 @@ int main(int argc, char * argv[])
     double ja = ans.readDouble();
     double pa = ouf.readDouble();
 
-    quitp(fabs(ja - pa), "ja=%.4lf pa=%.4lf", ja, pa);
+    quitp(fabs(ja - pa), "ja=%.4f pa=%.4f", ja, pa);
 }
