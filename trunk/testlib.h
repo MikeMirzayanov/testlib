@@ -3316,6 +3316,9 @@ void random_shuffle(_RandomAccessIter , _RandomAccessIter )
 #ifdef __GNUC__
 __attribute__ ((error("Don't use rand(), use rnd.next() instead")))
 #endif
+#ifdef _MSC_VER
+#   pragma warning( disable : 4273 )
+#endif
 int rand() RAND_THROW_STATEMENT
 {
     quitf(_fail, "Don't use rand(), use rnd.next() instead");
@@ -3329,6 +3332,9 @@ __attribute__ ((error("Don't use srand(), you should use "
         "'registerGen(argc, argv, 1);' to initialize generator seed "
         "by hash code of the command line params. The third parameter "
         "is randomGeneratorVersion (currently the latest is 1).")))
+#endif
+#ifdef _MSC_VER
+#   pragma warning( disable : 4273 )
 #endif
 void srand(unsigned int seed) RAND_THROW_STATEMENT
 {
