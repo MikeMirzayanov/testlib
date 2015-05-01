@@ -342,7 +342,16 @@ static bool __testlib_isInfinite(double r)
 #define _fileno(_stream)  ((_stream)->_file)
 #endif
 
+#ifndef O_BINARY
+static void __testlib_set_binary(
+#ifdef __GNUC__
+    __attribute__((unused)) 
+#endif
+    std::FILE* file
+)
+#else
 static void __testlib_set_binary(std::FILE* file)
+#endif
 {
 #ifdef O_BINARY
     if (NULL != file)
@@ -1896,7 +1905,12 @@ int resultExitCode(TResult r)
     return FAIL_EXIT_CODE;
 }
 
-void InStream::textColor(WORD color)
+void InStream::textColor(
+#if !(defined(ON_WINDOWS) && (!defined(_MSC_VER) || _MSC_VER>1400)) && defined(__GNUC__)
+    __attribute__((unused)) 
+#endif
+    WORD color
+)
 {
 #if defined(ON_WINDOWS) && (!defined(_MSC_VER) || _MSC_VER>1400)
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
