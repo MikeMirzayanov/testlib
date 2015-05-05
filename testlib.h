@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2014
+ * Copyright (c) 2005-2015
  */
 
-#define VERSION "0.9.8-SNAPSHOT"
+#define VERSION "0.9.9"
 
 /* 
  * Mike Mirzayanov
