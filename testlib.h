@@ -138,7 +138,6 @@ const char* latestFeatures[] = {
 #include <cstring>
 #include <limits>
 #include <stdarg.h>
-
 #include <fcntl.h>
 
 #if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
@@ -146,6 +145,7 @@ const char* latestFeatures[] = {
 #       include <windows.h>
 #   else
 #       define WORD unsigned short
+#       include <unistd.h>
 #   endif
 #   include <io.h>
 #   define ON_WINDOWS
@@ -1917,24 +1917,26 @@ void InStream::textColor(
     SetConsoleTextAttribute(handle, color);
 #endif
 #if !defined(ON_WINDOWS) && defined(__CNUC__)
-    if (isatty(stdout)) {
-	switch (color) {
-	    case LightRed:
-		fprintf(stdout, "\033[1;31m");
-		break
-	    case LightCyan:
-		fprintf(stdout, "\033[1;36m");
-		break
-	    case LightGreen:
-		fprintf(stdout, "\033[1;32m");
-		break
-	    case LightYellow:
-		fprintf(stdout, "\033[1;33m");
-		break
-	    case LightGray:
-	    default:
-		fprintf(stdout, "\033[0m");
-	}
+    if (isatty(2))
+    {
+        switch (color)
+        {
+        case LightRed:
+            fprintf(stderr, "\033[1;31m");
+            break;
+        case LightCyan:
+            fprintf(stderr, "\033[1;36m");
+            break;
+        case LightGreen:
+            fprintf(stderr, "\033[1;32m");
+            break;
+        case LightYellow:
+            fprintf(stderr, "\033[1;33m");
+            break;
+        case LightGray:
+        default:
+            fprintf(stderr, "\033[0m");
+        }
     }
 #endif
 }
