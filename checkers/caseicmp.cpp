@@ -74,9 +74,9 @@ int main(int argc, char* argv[])
             quitf(_wa, "Expected %s found %s [test case %d]", vtos(ja[i]).c_str(), vtos(pa[i]).c_str(), i + 1);
 
     if (ja.size() != pa.size())
-        quitf(_pe, "Expected %d test case(s) but found %d", ja.size(), pa.size());
+        quitf(_pe, "Expected %zu test case(s) but found %zu", ja.size(), pa.size());
 
-    string message = format("%d case(s):", ja.size());
+    string message = format("%zu case(s):", ja.size());
     if (ja.size() <= 5)
     {
         forn(i, ja.size())

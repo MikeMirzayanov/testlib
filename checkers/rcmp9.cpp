@@ -11,7 +11,7 @@ int main(int argc, char * argv[])
     registerTestlibCmd(argc, argv);
 
     int n = 0;
-    double j, p;
+    double j = 0, p = 0;
 
     while (!ans.seekEof()) 
     {

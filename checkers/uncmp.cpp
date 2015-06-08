@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    setName("compare unordered sequences of signed int%d numbers", 8 * sizeof(long long));
+    setName("compare unordered sequences of signed int%lu numbers", 8 * sizeof(long long));
 
     registerTestlibCmd(argc, argv);
 
@@ -18,13 +18,13 @@ int main(int argc, char * argv[])
         pa.push_back(ouf.readLong());
 
     if (ja.size() != pa.size())
-        quitf(_wa, "Expected %d elements, but %d found", ja.size(), pa.size());
+        quitf(_wa, "Expected %zu elements, but %zu found", ja.size(), pa.size());
 
     sort(ja.begin(), ja.end());
     sort(pa.begin(), pa.end());
 
     if (ja != pa)
-        quitf(_wa, "Expected sequence and output are different (as unordered sequences) [size=%d]", ja.size());
+        quitf(_wa, "Expected sequence and output are different (as unordered sequences) [size=%zu]", ja.size());
 
     string message;
     
