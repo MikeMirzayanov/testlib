@@ -1916,6 +1916,27 @@ void InStream::textColor(
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(handle, color);
 #endif
+#if !defined(ON_WINDOWS) && defined(__CNUC__)
+    if (isatty(stdout)) {
+	switch (color) {
+	    case LightRed:
+		fprintf(stdout, "\033[1;31m");
+		break
+	    case LightCyan:
+		fprintf(stdout, "\033[1;36m");
+		break
+	    case LightGreen:
+		fprintf(stdout, "\033[1;32m");
+		break
+	    case LightYellow:
+		fprintf(stdout, "\033[1;33m");
+		break
+	    case LightGray:
+	    default:
+		fprintf(stdout, "\033[0m");
+	}
+    }
+#endif
 }
 
 NORETURN void halt(int exitCode)
