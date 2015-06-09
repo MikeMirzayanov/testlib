@@ -92,7 +92,7 @@ string longLongsToString(const vector<long long>& a)
             elems += vtos(a[a.size() - 2 + i]) + " ";
     }
 
-    return format("\"%s\" [size=%zu]", trim(elems).c_str(), a.size());
+    return format("\"%s\" [size=%u]", trim(elems).c_str(), (unsigned int)(a.size()));
 }
 
 int main(int argc, char* argv[])

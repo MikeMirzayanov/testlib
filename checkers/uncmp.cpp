@@ -18,13 +18,13 @@ int main(int argc, char * argv[])
         pa.push_back(ouf.readLong());
 
     if (ja.size() != pa.size())
-        quitf(_wa, "Expected %zu elements, but %zu found", ja.size(), pa.size());
+        quitf(_wa, "Expected %u elements, but %u found", (unsigned int)(ja.size()), (unsigned int)(pa.size()));
 
     sort(ja.begin(), ja.end());
     sort(pa.begin(), pa.end());
 
     if (ja != pa)
-        quitf(_wa, "Expected sequence and output are different (as unordered sequences) [size=%zu]", ja.size());
+        quitf(_wa, "Expected sequence and output are different (as unordered sequences) [size=%u]", (unsigned int)(ja.size()));
 
     string message;
     

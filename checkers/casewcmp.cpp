@@ -81,7 +81,7 @@ string stringsToString(const vector<string>& a)
     forn(i, a.size())
         elems += a[i] + " ";
 
-    return format("\"%s\" [size=%zu]", compress(trim(elems)).c_str(), a.size());
+    return format("\"%s\" [size=%u]", compress(trim(elems)).c_str(), (unsigned int)(a.size()));
 }
 
 int main(int argc, char* argv[])
