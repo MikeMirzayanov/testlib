@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2015
  */
 
-#define VERSION "0.9.9"
+#define VERSION "0.9.10-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed UB (sequence points) in random_t",
                           "POINTS_EXIT_CODE returned back to 7 (instead of 0)",
                           "Removed disable buffers for interactive problems, because it works unexpectedly in wine",
                           "InStream over string: constructor of InStream from base InStream to inherit policies and std::string",
@@ -453,7 +454,11 @@ private:
                 __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
 
             int lowerBitCount = (random_t::version == 0 ? 31 : 32);
-            return ((nextBits(31) << 32) ^ nextBits(lowerBitCount));
+            
+            long long left = (nextBits(31) << 32);
+            long long right = nextBits(lowerBitCount);
+            
+            return left ^ right;
         }
     }
 
@@ -614,7 +619,9 @@ public:
     /* Random double value in range [0, 1). */
     double next() 
     {
-        return (double)(((long long)(nextBits(26)) << 27) + nextBits(27)) / (double)(1LL << 53);
+        long long left = ((long long)(nextBits(26)) << 27);
+        long long right = nextBits(27);
+        return (double)(left + right) / (double)(1LL << 53);
     }
 
     /* Random double value in range [0, n). */
