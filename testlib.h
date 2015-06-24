@@ -133,6 +133,7 @@ const char* latestFeatures[] = {
 #include <cctype>
 #include <string>
 #include <vector>
+#include <map>
 #include <cmath>
 #include <sstream>
 #include <fstream>
@@ -337,6 +338,63 @@ static bool __testlib_isInfinite(double r)
 {
     volatile double ra = r;
     return (ra > 1E100 || ra < -1E100);
+}
+
+#ifdef __GNUC__
+__attribute__((const))
+#endif
+inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
+{
+        if (__testlib_isNaN(expected))
+        {
+            return __testlib_isNaN(result);
+        }
+        else 
+            if (__testlib_isInfinite(expected))
+            {
+                if (expected > 0)
+                {
+                    return result > 0 && __testlib_isInfinite(result);
+                }
+                else
+                {
+                    return result < 0 && __testlib_isInfinite(result);
+                }
+            }
+            else 
+                if (__testlib_isNaN(result) || __testlib_isInfinite(result))
+                {
+                    return false;
+                }
+                else 
+                if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15)
+                {
+                    return true;
+                }
+                else
+                {
+                    double minv = __testlib_min(expected * (1.0 - MAX_DOUBLE_ERROR),
+                                 expected * (1.0 + MAX_DOUBLE_ERROR));
+                    double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
+                                  expected * (1.0 + MAX_DOUBLE_ERROR));
+                    return result + 1E-15 >= minv && result <= maxv + 1E-15;
+                }
+}
+
+#ifdef __GNUC__
+__attribute__((const))
+#endif
+inline double doubleDelta(double expected, double result)
+{
+    double absolute = __testlib_abs(result - expected);
+    
+    if (__testlib_abs(expected) > 1E-9)
+    {
+        double relative = __testlib_abs(absolute / expected);
+        return __testlib_min(absolute, relative);
+    }
+    else
+        return absolute;
 }
 
 #ifndef _fileno
@@ -633,6 +691,8 @@ public:
     /* Random double value in range [from, to). */
     double next(double from, double to)
     {
+        if (from > to)
+            __testlib_fail("random_t::next(double from, double to): from can't not exceed to");
         return next(to - from) + from;
     }
 
@@ -829,18 +889,24 @@ public:
     /* Returns weighted random value in range [from, to]. */
     int wnext(int from, int to, int type)
     {
+        if (from > to)
+            __testlib_fail("random_t::wnext(int from, int to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
     
     /* Returns weighted random value in range [from, to]. */
     int wnext(unsigned int from, unsigned int to, int type)
     {
+        if (from > to)
+            __testlib_fail("random_t::wnext(unsigned int from, unsigned int to, int type): from can't not exceed to");
         return int(wnext(to - from + 1, type) + from);
     }
     
     /* Returns weighted random value in range [from, to]. */
     long long wnext(long long from, long long to, int type)
     {
+        if (from > to)
+            __testlib_fail("random_t::wnext(long long from, long long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
     
@@ -855,6 +921,8 @@ public:
     /* Returns weighted random value in range [from, to]. */
     long wnext(long from, long to, int type)
     {
+        if (from > to)
+            __testlib_fail("random_t::wnext(long from, long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
     
@@ -869,6 +937,8 @@ public:
     /* Returns weighted random double value in range [from, to). */
     double wnext(double from, double to, int type)
     {
+        if (from > to)
+            __testlib_fail("random_t::wnext(double from, double to, int type): from can't not exceed to");
         return wnext(to - from, type) + from;
     }
 
@@ -1795,6 +1865,115 @@ random_t rnd;
 TTestlibMode testlibMode = _unknown;
 double __testlib_points = std::numeric_limits<float>::infinity();
 
+struct ValidatorBoundsHit
+{
+    static const double EPS;
+    bool minHit;
+    bool maxHit;
+
+    ValidatorBoundsHit(bool minHit = false, bool maxHit = false): minHit(minHit), maxHit(maxHit)
+    {
+    };
+
+    ValidatorBoundsHit merge(const ValidatorBoundsHit& validatorBoundsHit)
+    {
+        return ValidatorBoundsHit(
+            std::max(minHit, validatorBoundsHit.minHit),
+            std::max(maxHit, validatorBoundsHit.maxHit)
+        );
+    }
+};
+
+const double ValidatorBoundsHit::EPS = 1E-12;
+
+class Validator
+{
+private:
+    std::string _testset;
+    std::string _group;
+    std::string _boundsHitLogFileName;
+    std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
+
+    bool isVariableNameBoundsAnalyzable(const std::string& variableName)
+    {
+        for (size_t i = 0; i < variableName.length(); i++)
+            if (variableName[i] >= '0' && variableName[i] <= '9')
+                return false;
+        return true;
+    }
+
+public:
+    Validator(): _testset("tests"), _group()
+    {
+    }
+
+    std::string testset() const
+    {
+        return _testset;
+    }
+    
+    std::string group() const
+    {
+        return _group;
+    }
+
+    std::string boundsHitLogFileName() const
+    {
+        return _boundsHitLogFileName;
+    }
+    
+    void setTestset(const char* const testset)
+    {
+        _testset = testset;
+    }
+
+    void setGroup(const char* const group)
+    {
+        _group = group;
+    }
+
+    void setBoundsHitLogFileName(const char* const boundsHitLogFileName)
+    {
+        _boundsHitLogFileName = boundsHitLogFileName;
+    }
+
+    void addBoundsHit(const std::string& variableName, ValidatorBoundsHit boundsHit)
+    {
+        if (isVariableNameBoundsAnalyzable(variableName))
+        {
+            _boundsHitByVariableName[variableName]
+                = boundsHit.merge(_boundsHitByVariableName[variableName]);
+        }
+    }
+
+    std::string getBoundsHitLog()
+    {
+        std::string result;
+        for (std::map<std::string, ValidatorBoundsHit>::iterator i = _boundsHitByVariableName.begin();
+            i != _boundsHitByVariableName.end();
+            i++)
+        {
+            result += "\"" + i->first + "\": " + (i->second.minHit ? "min-value-hit" : "") + " " + (i->second.maxHit ? "max-value-hit" : "") + "\n";
+        }
+        return result;
+    }
+
+    void writeBoundsHitLog()
+    {
+        if (!_boundsHitLogFileName.empty())
+        {
+            std::string fileName(_boundsHitLogFileName);
+            _boundsHitLogFileName = "";
+            FILE* boundsHitLogFile = fopen(fileName.c_str(), "w");
+            if (NULL == boundsHitLogFile)
+                __testlib_fail("Validator::writeBoundsHitLog: can't write bounds hit log to (" + fileName + ")");
+            fprintf(boundsHitLogFile, "%s", getBoundsHitLog().c_str());
+            if (fclose(boundsHitLogFile))
+                __testlib_fail("Validator::writeBoundsHitLog: can't close file (" + fileName + ")");
+        }
+    }
+} validator;
+
 struct TestlibFinalizeGuard
 {
     static bool alive;
@@ -1818,6 +1997,8 @@ struct TestlibFinalizeGuard
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
         }
+
+        validator.writeBoundsHitLog();
     }
 };
 
@@ -2611,6 +2792,9 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
             quit(_wa, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
 
+    if (strict && !variableName.empty())
+        validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
+
     return result;
 }
 
@@ -2630,6 +2814,9 @@ int InStream::readInt(int minv, int maxv, const std::string& variableName)
         else
             quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
+
+    if (strict && !variableName.empty())
+        validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
 
     return result;
 }
@@ -2664,6 +2851,12 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
             quit(_wa, ("Double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
 
+    if (strict && !variableName.empty())
+        validator.addBoundsHit(variableName, ValidatorBoundsHit(
+            doubleDelta(minv, result) < ValidatorBoundsHit::EPS,
+            doubleDelta(maxv, result) < ValidatorBoundsHit::EPS
+        ));
+
     return result;
 }
 
@@ -2689,6 +2882,12 @@ double InStream::readStrictReal(double minv, double maxv,
         else
             quit(_wa, ("Strict double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
     }
+
+    if (strict && !variableName.empty())
+        validator.addBoundsHit(variableName, ValidatorBoundsHit(
+            doubleDelta(minv, result) < ValidatorBoundsHit::EPS,
+            doubleDelta(maxv, result) < ValidatorBoundsHit::EPS
+        ));
 
     return result;
 }
@@ -3160,6 +3359,39 @@ void registerValidation()
     inf.strict = true;
 }
 
+void registerValidation(int argc, char* argv[])
+{
+    registerValidation();
+
+    for (int i = 1; i < argc; i++)
+    {
+        if (!strcmp("--testset", argv[i]))
+        {
+            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+                validator.setTestset(argv[++i]);
+            else
+                quit(_fail, std::string("Validator must be run with the following arguments: ") +
+                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+        }
+        if (!strcmp("--group", argv[i]))
+        {
+            if (i + 1 < argc)
+                validator.setGroup(argv[++i]);
+            else
+                quit(_fail, std::string("Validator must be run with the following arguments: ") +
+                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+        }
+        if (!strcmp("--boundsHitLogFileName", argv[i]))
+        {
+            if (i + 1 < argc)
+                validator.setBoundsHitLogFileName(argv[++i]);
+            else
+                quit(_fail, std::string("Validator must be run with the following arguments: ") +
+                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+        }
+    }        
+}
+
 void registerTestlibCmd(int argc, char* argv[])
 {
     __testlib_ensuresPreconditions();
@@ -3227,63 +3459,6 @@ void registerTestlib(int argc, ...)
 
     registerTestlibCmd(argc + 1, argv);
     delete[] argv;
-}
-
-#ifdef __GNUC__
-__attribute__((const))
-#endif
-inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR)
-{
-        if (__testlib_isNaN(expected))
-        {
-            return __testlib_isNaN(result);
-        }
-        else 
-            if (__testlib_isInfinite(expected))
-            {
-                if (expected > 0)
-                {
-                    return result > 0 && __testlib_isInfinite(result);
-                }
-                else
-                {
-                    return result < 0 && __testlib_isInfinite(result);
-                }
-            }
-            else 
-                if (__testlib_isNaN(result) || __testlib_isInfinite(result))
-                {
-                    return false;
-                }
-                else 
-                if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15)
-                {
-                    return true;
-                }
-                else
-                {
-                    double minv = __testlib_min(expected * (1.0 - MAX_DOUBLE_ERROR),
-                                 expected * (1.0 + MAX_DOUBLE_ERROR));
-                    double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
-                                  expected * (1.0 + MAX_DOUBLE_ERROR));
-                    return result + 1E-15 >= minv && result <= maxv + 1E-15;
-                }
-}
-
-#ifdef __GNUC__
-__attribute__((const))
-#endif
-inline double doubleDelta(double expected, double result)
-{
-    double absolute = __testlib_abs(result - expected);
-    
-    if (__testlib_abs(expected) > 1E-9)
-    {
-        double relative = __testlib_abs(absolute / expected);
-        return __testlib_min(absolute, relative);
-    }
-    else
-        return absolute;
 }
 
 static inline void __testlib_ensure(bool cond, const std::string& msg)
