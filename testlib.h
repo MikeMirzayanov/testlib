@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Supported --testOverviewLogFileName for validator: bounds hits + features",
                           "Fixed UB (sequence points) in random_t",
                           "POINTS_EXIT_CODE returned back to 7 (instead of 0)",
                           "Removed disable buffers for interactive problems, because it works unexpectedly in wine",
@@ -134,6 +135,7 @@ const char* latestFeatures[] = {
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <cmath>
 #include <sstream>
 #include <fstream>
@@ -1891,17 +1893,26 @@ class Validator
 private:
     std::string _testset;
     std::string _group;
-    std::string _boundsHitLogFileName;
+    std::string _testOverviewLogFileName;
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
+    std::set<std::string> _features;
+    std::set<std::string> _hitFeatures;
 
     bool isVariableNameBoundsAnalyzable(const std::string& variableName)
     {
         for (size_t i = 0; i < variableName.length(); i++)
-            if (variableName[i] >= '0' && variableName[i] <= '9')
+            if ((variableName[i] >= '0' && variableName[i] <= '9') || variableName[i] < ' ')
                 return false;
         return true;
     }
 
+    bool isFeatureNameAnalyzable(const std::string& featureName)
+    {
+        for (size_t i = 0; i < featureName.length(); i++)
+            if (featureName[i] < ' ')
+                return false;
+        return true;
+    }
 public:
     Validator(): _testset("tests"), _group()
     {
@@ -1917,9 +1928,9 @@ public:
         return _group;
     }
 
-    std::string boundsHitLogFileName() const
+    std::string testOverviewLogFileName() const
     {
-        return _boundsHitLogFileName;
+        return _testOverviewLogFileName;
     }
     
     void setTestset(const char* const testset)
@@ -1932,9 +1943,9 @@ public:
         _group = group;
     }
 
-    void setBoundsHitLogFileName(const char* const boundsHitLogFileName)
+    void setTestOverviewLogFileName(const char* const testOverviewLogFileName)
     {
-        _boundsHitLogFileName = boundsHitLogFileName;
+        _testOverviewLogFileName = testOverviewLogFileName;
     }
 
     void addBoundsHit(const std::string& variableName, ValidatorBoundsHit boundsHit)
@@ -1953,24 +1964,65 @@ public:
             i != _boundsHitByVariableName.end();
             i++)
         {
-            result += "\"" + i->first + "\": " + (i->second.minHit ? "min-value-hit" : "") + " " + (i->second.maxHit ? "max-value-hit" : "") + "\n";
+            result += "\"" + i->first + "\":";
+            if (i->second.minHit)
+                result += " min-value-hit";
+            if (i->second.maxHit)
+                result += " max-value-hit";
+            result += "\n";
         }
         return result;
     }
 
-    void writeBoundsHitLog()
+    std::string getFeaturesLog()
     {
-        if (!_boundsHitLogFileName.empty())
+        std::string result;
+        for (std::set<std::string>::iterator i = _features.begin();
+            i != _features.end();
+            i++)
         {
-            std::string fileName(_boundsHitLogFileName);
-            _boundsHitLogFileName = "";
-            FILE* boundsHitLogFile = fopen(fileName.c_str(), "w");
-            if (NULL == boundsHitLogFile)
-                __testlib_fail("Validator::writeBoundsHitLog: can't write bounds hit log to (" + fileName + ")");
-            fprintf(boundsHitLogFile, "%s", getBoundsHitLog().c_str());
-            if (fclose(boundsHitLogFile))
-                __testlib_fail("Validator::writeBoundsHitLog: can't close file (" + fileName + ")");
+            result += "feature \"" + *i + "\":";
+            if (_hitFeatures.count(*i))
+                result += " hit";
+            result += "\n";
         }
+        return result;
+    }
+
+    void writeTestOverviewLog()
+    {
+        if (!_testOverviewLogFileName.empty())
+        {
+            std::string fileName(_testOverviewLogFileName);
+            _testOverviewLogFileName = "";
+            FILE* testOverviewLogFile = fopen(fileName.c_str(), "w");
+            if (NULL == testOverviewLogFile)
+                __testlib_fail("Validator::writeTestOverviewLog: can't test overview log to (" + fileName + ")");
+            fprintf(testOverviewLogFile, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
+            if (fclose(testOverviewLogFile))
+                __testlib_fail("Validator::writeTestOverviewLog: can't close test overview log file (" + fileName + ")");
+        }
+    }
+
+    void addFeature(const std::string& feature)
+    {
+        if (_features.count(feature))
+            __testlib_fail("Feature " + feature + " registered twice.");
+        if (!isFeatureNameAnalyzable(feature))
+            __testlib_fail("Feature name '" + feature + "' contains restricted characters.");
+
+        _features.insert(feature);
+    }
+
+    void feature(const std::string& feature)
+    {
+        if (!isFeatureNameAnalyzable(feature))
+            __testlib_fail("Feature name '" + feature + "' contains restricted characters.");
+
+        if (!_features.count(feature))
+            __testlib_fail("Feature " + feature + " didn't registered via addFeature(feature).");
+
+        _hitFeatures.insert(feature);
     }
 } validator;
 
@@ -1998,7 +2050,7 @@ struct TestlibFinalizeGuard
                 __testlib_fail("Validator must end with readEof call.");
         }
 
-        validator.writeBoundsHitLog();
+        validator.writeTestOverviewLog();
     }
 };
 
@@ -3371,7 +3423,7 @@ void registerValidation(int argc, char* argv[])
                 validator.setTestset(argv[++i]);
             else
                 quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
         }
         if (!strcmp("--group", argv[i]))
         {
@@ -3379,17 +3431,31 @@ void registerValidation(int argc, char* argv[])
                 validator.setGroup(argv[++i]);
             else
                 quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
         }
-        if (!strcmp("--boundsHitLogFileName", argv[i]))
+        if (!strcmp("--testOverviewLogFileName", argv[i]))
         {
             if (i + 1 < argc)
-                validator.setBoundsHitLogFileName(argv[++i]);
+                validator.setTestOverviewLogFileName(argv[++i]);
             else
                 quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--boundsHitLogFileName fileName]");
+                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
         }
     }        
+}
+
+void addFeature(const std::string& feature)
+{
+    if (testlibMode != _validator)
+        quit(_fail, "Features are supported in validators only.");
+    validator.addFeature(feature);    
+}
+
+void feature(const std::string& feature)
+{
+    if (testlibMode != _validator)
+        quit(_fail, "Features are supported in validators only.");
+    validator.feature(feature);    
 }
 
 void registerTestlibCmd(int argc, char* argv[])
