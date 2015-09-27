@@ -1880,8 +1880,8 @@ struct ValidatorBoundsHit
     ValidatorBoundsHit merge(const ValidatorBoundsHit& validatorBoundsHit)
     {
         return ValidatorBoundsHit(
-            std::max(minHit, validatorBoundsHit.minHit),
-            std::max(maxHit, validatorBoundsHit.maxHit)
+            __testlib_max(minHit, validatorBoundsHit.minHit),
+            __testlib_max(maxHit, validatorBoundsHit.maxHit)
         );
     }
 };
