@@ -144,7 +144,7 @@ const char* latestFeatures[] = {
 #include <stdarg.h>
 #include <fcntl.h>
 
-#if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
+#if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ || __CYGWIN__ )
 #   if !defined(_MSC_VER) || _MSC_VER>1400
 #       include <windows.h>
 #   else
