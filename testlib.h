@@ -162,6 +162,10 @@ const char* latestFeatures[] = {
 #define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
 
+#ifndef ULLONG_MAX
+#define ULLONG_MAX   (18446744073709551615)
+#endif
+
 #define LF ((char)10)
 #define CR ((char)13)
 #define TAB ((char)9)
@@ -1739,6 +1743,7 @@ struct InStream
      * (strict mode is used in validators usually). 
      */
     long long readLong();
+    unsigned long long readUnsignedLong();
     /* 
      * Reads new int. Ignores white-spaces into the non-strict mode 
      * (strict mode is used in validators usually). 
@@ -1752,6 +1757,9 @@ struct InStream
 
     /* As "readLong()" but ensures that value in the range [minv,maxv]. */
     long long readLong(long long minv, long long maxv, const std::string& variableName = "");
+    unsigned long long readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
+    unsigned long long readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
+
     /* As "readInteger()" but ensures that value in the range [minv,maxv]. */
     int readInteger(int minv, int maxv, const std::string& variableName = "");
     /* As "readInt()" but ensures that value in the range [minv,maxv]. */
@@ -2636,6 +2644,36 @@ static inline bool equals(long long integer, const char* s)
     return length == 0;
 }
 
+#ifdef __GNUC__
+__attribute__((pure))
+#endif
+static inline bool equals(unsigned long long integer, const char* s)
+{
+    if (integer == ULLONG_MAX)
+        return strcmp(s, "18446744073709551615") == 0;
+
+    if (integer == 0ULL)
+        return strcmp(s, "0") == 0;
+
+    size_t length = strlen(s);
+
+    if (length == 0)
+        return false;
+
+    while (integer > 0)
+    {
+        int digit = int(integer % 10);
+
+        if (s[length - 1] != '0' + digit)
+            return false;
+
+        length--;
+        integer /= 10;
+    }
+
+    return length == 0;
+}
+
 static inline double stringToDouble(InStream& in, const char* buffer)
 {
     double retval;
@@ -2809,6 +2847,35 @@ static inline long long stringToLongLong(InStream& in, const char* buffer)
         in.quit(_pe, ("Expected int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+static inline unsigned long long stringToUnsignedLongLong(InStream& in, const char* buffer)
+{
+    size_t length = strlen(buffer);
+
+    if (length > 20)
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+    if (length > 1 && buffer[0] == '0')
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    unsigned long long retval = 0LL;
+    for (int i = 0; i < int(length); i++)
+    {
+        if (buffer[i] < '0' || buffer[i] > '9')
+            in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+        retval = retval * 10 + (buffer[i] - '0');
+    }
+
+    if (length < 19)
+        return retval;
+
+    if (length == 20 && strcmp(buffer, "18446744073709551615") == 1)
+        in.quit(_pe, ("Expected unsigned int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
+
+    if (equals(retval, buffer))
+        return retval;
+    else
+        in.quit(_pe, ("Expected unsigned int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
+}
+
 int InStream::readInteger()
 {
     if (!strict && seekEof())
@@ -2833,6 +2900,16 @@ long long InStream::readLong()
     return stringToLongLong(*this, _tmpReadToken.c_str());
 }
 
+unsigned long long InStream::readUnsignedLong()
+{
+    if (!strict && seekEof())
+        quit(_unexpected_eof, "Unexpected end of file - int64 expected");
+
+    readWordTo(_tmpReadToken);
+
+    return stringToUnsignedLongLong(*this, _tmpReadToken.c_str());
+}
+
 long long InStream::readLong(long long minv, long long maxv, const std::string& variableName)
 {
     long long result = readLong();
@@ -2849,6 +2926,29 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
         validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
 
     return result;
+}
+
+unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
+{
+    unsigned long long result = readUnsignedLong();
+
+    if (result < minv || result > maxv)
+    {
+        if (variableName.empty())
+            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        else
+            quit(_wa, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+    }
+
+    if (strict && !variableName.empty())
+        validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
+
+    return result;
+}
+
+unsigned long long InStream::readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
+{
+    return readUnsignedLong(minv, maxv, variableName);
 }
 
 int InStream::readInt()
