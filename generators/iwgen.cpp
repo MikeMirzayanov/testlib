@@ -9,14 +9,14 @@
  * <code>
  * result = rnd.next(1, 1000000);
  * for (int i = 0; i < weight; i++)
- *     result = max(result, rnd.next(1, 1000000);
+ *     result = max(result, rnd.next(1, 1000000));
  * </code> 
  * 
  * If parameter "weight" < 0 then you can think about it as code like this:
  * <code>
  * result = rnd.next(1, 1000000);
  * for (int i = 0; i < -weight; i++)
- *     result = min(result, rnd.next(1, 1000000);
+ *     result = min(result, rnd.next(1, 1000000));
  * </code> 
  *
  * It is typical behaviour of "wnext" methods to use this strategy to 
