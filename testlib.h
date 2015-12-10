@@ -340,7 +340,7 @@ static double __testlib_nan()
 static bool __testlib_isInfinite(double r)
 {
     volatile double ra = r;
-    return (ra > 1E100 || ra < -1E100);
+    return (ra > 1E300 || ra < -1E300);
 }
 
 #ifdef __GNUC__
@@ -2680,7 +2680,7 @@ static inline double stringToDouble(InStream& in, const char* buffer)
 
     if (scanned == 1 || (scanned == 2 && empty))
     {
-        if (__testlib_isNaN(retval) || __testlib_isInfinite(retval))
+        if (__testlib_isNaN(retval))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
     }
