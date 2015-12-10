@@ -2091,7 +2091,7 @@ static std::string toString(const T& t)
 
 InStream::InStream()
 {
-    // file = NULL;
+    reader = NULL;
     name = "";
     mode = _input;
     strict = false;
@@ -3264,7 +3264,7 @@ NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2014\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2015\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
