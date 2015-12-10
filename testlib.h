@@ -146,6 +146,7 @@ const char* latestFeatures[] = {
 
 #if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
 #   if !defined(_MSC_VER) || _MSC_VER>1400
+#       define NOMINMAX 1
 #       include <windows.h>
 #   else
 #       define WORD unsigned short
