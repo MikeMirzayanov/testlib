@@ -3422,11 +3422,14 @@ void registerGen(int argc, char* argv[])
     registerGen(argc, argv, 0);
 }
 #else
-#ifdef __GNUC__
+#if defined(__GNUC__) && (GNUC > 4 || (GNUC == 4 && (GNUC_MINOR > 4)))
     __attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
             " The third parameter stands for the random generator version."
             " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
             " Version 1 has been released on Spring, 2013. Use it to write new generators.")))
+#endif
+#if defined(__GNUC__) && (GNUC <= 4 || (GNUC == 4 && (GNUC_MINOR <= 4)))
+    __attribute__ ((deprecated))
 #endif
 #ifdef _MSC_VER
     __declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
