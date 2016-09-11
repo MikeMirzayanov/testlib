@@ -3177,9 +3177,27 @@ void InStream::readStringTo(std::string& result)
 
     for (;;)
     {
-        cur = reader->curChar();
+        cur = reader->nextChar();
 
-        if (isEoln(cur))
+        if (cur == CR)
+        {
+            cur == reader->nextChar();
+
+            if (cur == LF)
+            {
+                reader->unreadChar(LF);
+                reader->unreadChar(CR);
+                break;
+            }
+            else
+            {
+                reader->unreadChar(cur);
+                cur = CR;
+            }
+                
+        }
+
+        if (cur == LF)
             break;
 
         if (cur == EOFC)
