@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2015
+ * Copyright (c) 2005-2016
  */
 
-#define VERSION "0.9.10-SNAPSHOT"
+#define VERSION "0.9.11"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,8 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced split/tokenize functions to separate string by given char",
+                          "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long paramerters",
                           "Supported --testOverviewLogFileName for validator: bounds hits + features",
                           "Fixed UB (sequence points) in random_t",
                           "POINTS_EXIT_CODE returned back to 7 (instead of 0)",
@@ -1410,15 +1412,16 @@ public:
         if (pos >= s.length())
             return EOFC;
         else
-        {
             return s[pos];
-        }
     }
 
     int nextChar()
     {
         if (pos >= s.length())
+        {
+            pos++;
             return EOFC;
+        }
         else
             return s[pos++];
     }
@@ -3824,6 +3827,104 @@ template <typename _Collection>
 std::string join(const _Collection& collection)
 {
     return join(collection, ' ');
+}
+
+/**
+ * Splits string s by character separator returning exactly k+1 items,
+ * where k is the number of separator occurences.
+ */ 
+std::vector<std::string> split(const std::string& s, char separator)
+{
+    std::vector<std::string> result;
+    std::string item;
+    for (size_t i = 0; i < s.length(); i++)
+        if (s[i] == separator)
+        {
+            result.push_back(item);
+            item = "";
+        }
+        else
+            item += s[i];
+    result.push_back(item);
+    return result;
+}
+
+/**
+ * Splits string s by character separators returning exactly k+1 items,
+ * where k is the number of separator occurences.
+ */ 
+std::vector<std::string> split(const std::string& s, const std::string& separators)
+{
+    if (separators.empty())
+        return std::vector<std::string>(1, s);
+
+    std::vector<bool> isSeparator(256);
+    for (size_t i = 0; i < separators.size(); i++)
+        isSeparator[(unsigned char)(separators[i])] = true;
+
+    std::vector<std::string> result;
+    std::string item;
+    for (size_t i = 0; i < s.length(); i++)
+        if (isSeparator[(unsigned char)(s[i])])
+        {
+            result.push_back(item);
+            item = "";
+        }
+        else
+            item += s[i];
+    result.push_back(item);
+    return result;
+}
+
+/**
+ * Splits string s by character separator returning non-empty items.
+ */ 
+std::vector<std::string> tokenize(const std::string& s, char separator)
+{
+    std::vector<std::string> result;
+    std::string item;
+    for (size_t i = 0; i < s.length(); i++)
+        if (s[i] == separator)
+        {
+            if (!item.empty())
+                result.push_back(item);
+            item = "";
+        }
+        else
+            item += s[i];
+    if (!item.empty())
+        result.push_back(item);
+    return result;
+}
+
+/**
+ * Splits string s by character separators returning non-empty items.
+ */ 
+std::vector<std::string> tokenize(const std::string& s, const std::string& separators)
+{
+    if (separators.empty())
+        return std::vector<std::string>(1, s);
+
+    std::vector<bool> isSeparator(256);
+    for (size_t i = 0; i < separators.size(); i++)
+        isSeparator[(unsigned char)(separators[i])] = true;
+
+    std::vector<std::string> result;
+    std::string item;
+    for (size_t i = 0; i < s.length(); i++)
+        if (isSeparator[(unsigned char)(s[i])])
+        {
+            if (!item.empty())
+                result.push_back(item);
+            item = "";
+        }
+        else
+            item += s[i];
+    
+    if (!item.empty())
+        result.push_back(item);
+
+    return result;
 }
 
 NORETURN void __testlib_expectedButFound(TResult result, std::string expected, std::string found, const char* prepend)
