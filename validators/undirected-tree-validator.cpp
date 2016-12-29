@@ -47,9 +47,9 @@ bool merge(vector<int>& dsu, int a, int b)
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    registerValidation();
+    registerValidation(argc, argv);
 
     int n = inf.readInt(2, 100000, "n");
     inf.readEoln();

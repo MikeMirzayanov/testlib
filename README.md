@@ -37,9 +37,9 @@ This code reads input from the standard input and checks that it contains the on
 ```c++
 #include "testlib.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-    registerValidation();
+    registerValidation(argc, argv);
     inf.readInt(1, 100);
     inf.readEoln();
     inf.readEof();

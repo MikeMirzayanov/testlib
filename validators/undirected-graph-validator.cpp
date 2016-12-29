@@ -26,9 +26,9 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char* argv[])
 {
-    registerValidation();
+    registerValidation(argc, argv);
 
     int n = inf.readInt(1, 1000, "n");
     inf.readSpace();

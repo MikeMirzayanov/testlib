@@ -8,9 +8,9 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char* argv[])
 {
-    registerValidation();
+    registerValidation(argc, argv);
     
     int n = inf.readInt(1, 100000, "n");
     inf.readEoln();
