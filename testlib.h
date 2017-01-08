@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced space-separated read functions: readWords/readTokes, multilines read functions: readStrings/readLines",
                           "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
                           "Introduced split/tokenize functions to separate string by given char",
                           "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long paramerters",
@@ -1733,9 +1734,13 @@ struct InStream
     /* The same as "readWord()", but ensures that token matches to given pattern. */
     std::string readWord(const std::string& ptrn, const std::string& variableName = "");
     std::string readWord(const pattern& p, const std::string& variableName = "");
+    std::vector<std::string> readWords(int size, const std::string& ptrn, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<std::string> readWords(int size, const pattern& p, const std::string& variablesName = "", int indexBase = 1);
     /* The same as "readToken()", but ensures that token matches to given pattern. */
     std::string readToken(const std::string& ptrn, const std::string& variableName = "");
     std::string readToken(const pattern& p, const std::string& variableName = "");
+    std::vector<std::string> readTokens(int size, const std::string& ptrn, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<std::string> readTokens(int size, const pattern& p, const std::string& variablesName = "", int indexBase = 1);
 
     void readWordTo(std::string& result);
     void readWordTo(std::string& result, const pattern& p, const std::string& variableName = "");
@@ -1825,12 +1830,18 @@ struct InStream
     
     /* As readLine(). */
     std::string readString();
+    /* Read many lines. */
+    std::vector<std::string> readStrings(int size, int indexBase = 1);
     /* See readLine(). */
     void readStringTo(std::string& result);
     /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
     std::string readString(const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
     std::string readString(const std::string& ptrn, const std::string& variableName = "");
+    /* Read many lines. */
+    std::vector<std::string> readStrings(int size, const pattern& p, const std::string& variableName = "", int indexBase = 1);
+    /* Read many lines. */
+    std::vector<std::string> readStrings(int size, const std::string& ptrn, const std::string& variableName = "", int indexBase = 1);
     /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
     void readStringTo(std::string& result, const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
@@ -1841,12 +1852,18 @@ struct InStream
      * the first character of the new line (if possible). 
      */
     std::string readLine();
+    /* Read many lines. */
+    std::vector<std::string> readLines(int size, int indexBase = 1);
     /* See readLine(). */
     void readLineTo(std::string& result);
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
     std::string readLine(const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
     std::string readLine(const std::string& ptrn, const std::string& variableName = "");
+    /* Read many lines. */
+    std::vector<std::string> readLines(int size, const pattern& p, const std::string& variableName = "", int indexBase = 1);
+    /* Read many lines. */
+    std::vector<std::string> readLines(int size, const std::string& ptrn, const std::string& variableName = "", int indexBase = 1);
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
     void readLineTo(std::string& result, const pattern& p, const std::string& variableName = "");
     /* The same as "readLine()", but ensures that line matches to the given pattern. */
@@ -2579,17 +2596,52 @@ static std::string __testlib_part(const std::string& s)
         return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
 }
 
+#define __testlib_readMany(readMany, readOne, typeName, space)                  \
+    if (size < 0)                                                               \
+        quit(_fail, #readMany ": size should be non-negative.");                \
+    if (size > 100000000)                                                       \
+        quit(_fail, #readMany ": size should be at most 100000000.");           \
+                                                                                \
+    std::vector<typeName> result(size);                                         \
+    readManyIteration = indexBase;                                              \
+                                                                                \
+    for (int i = 0; i < size; i++)                                              \
+    {                                                                           \
+        result[i] = readOne;                                                    \
+        readManyIteration++;                                                    \
+        if (space && i + 1 < size)                                              \
+            readSpace();                                                        \
+    }                                                                           \
+                                                                                \
+    readManyIteration = NO_INDEX;                                               \
+    return result;                                                              \
+
 std::string InStream::readWord(const pattern& p, const std::string& variableName)
 {
     readWordTo(_tmpReadToken);
     if (!p.matches(_tmpReadToken))
     {
-        if (variableName.empty())
-            quit(_wa, ("Token \"" + __testlib_part(_tmpReadToken) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Token \"" + __testlib_part(_tmpReadToken) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            else
+                quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(_tmpReadToken) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        }
         else
-            quit(_wa, ("Token parameter [name=" + variableName + "] equals to \"" + __testlib_part(_tmpReadToken) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Token element [index=" + vtos(readManyIteration) + "] equals to \"" + __testlib_part(_tmpReadToken) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            else
+                quit(_wa, ("Token element " + variableName + "[" + vtos(readManyIteration) + "] equals to \"" + __testlib_part(_tmpReadToken) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        }
     }
     return _tmpReadToken;
+}
+
+std::vector<std::string> InStream::readWords(int size, const pattern& p, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
 }
 
 std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
@@ -2597,14 +2649,31 @@ std::string InStream::readWord(const std::string& ptrn, const std::string& varia
     return readWord(pattern(ptrn), variableName);
 }
 
+std::vector<std::string> InStream::readWords(int size, const std::string& ptrn, const std::string& variablesName, int indexBase)
+{
+    pattern p(ptrn);
+    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
+}
+
 std::string InStream::readToken(const pattern& p, const std::string& variableName)
 {
     return readWord(p, variableName);
 }
 
+std::vector<std::string> InStream::readTokens(int size, const pattern& p, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readTokens, readToken(p, variablesName), std::string, true);
+}
+
 std::string InStream::readToken(const std::string& ptrn, const std::string& variableName)
 {
     return readWord(ptrn, variableName);
+}
+
+std::vector<std::string> InStream::readTokens(int size, const std::string& ptrn, const std::string& variablesName, int indexBase)
+{
+    pattern p(ptrn);
+    __testlib_readMany(readTokens, readWord(p, variablesName), std::string, true);
 }
 
 void InStream::readWordTo(std::string& result, const pattern& p, const std::string& variableName)
@@ -2967,29 +3036,9 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
     return result;
 }
 
-#define __testlib_readMany(readMany, readOne, typeName)                         \
-    if (size < 0)                                                               \
-        quit(_fail, #readMany ": size should be non-negative.");                \
-    if (size > 100000000)                                                       \
-        quit(_fail, #readMany ": size should be at most 100000000.");           \
-                                                                                \
-    std::vector<typeName> result(size);                                         \
-    readManyIteration = indexBase;                                              \
-                                                                                \
-    for (int i = 0; i < size; i++)                                              \
-    {                                                                           \
-        result[i] = readOne;                                                    \
-        readManyIteration++;                                                    \
-        if (i + 1 < size)                                                       \
-            readSpace();                                                        \
-    }                                                                           \
-                                                                                \
-    readManyIteration = NO_INDEX;                                               \
-    return result;                                                              \
-
 std::vector<long long> InStream::readLongs(int size, long long minv, long long maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long)
+    __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long, true)
 }
 
 unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
@@ -3022,7 +3071,7 @@ unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned 
 
 std::vector<unsigned long long> InStream::readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long)
+    __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long, true)
 }
 
 unsigned long long InStream::readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
@@ -3070,12 +3119,12 @@ int InStream::readInteger(int minv, int maxv, const std::string& variableName)
 
 std::vector<int> InStream::readInts(int size, int minv, int maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int)
+    __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int, true)
 }
 
 std::vector<int> InStream::readIntegers(int size, int minv, int maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int)
+    __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int, true)
 }
 
 double InStream::readReal()
@@ -3124,7 +3173,7 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
 
 std::vector<double> InStream::readReals(int size, double minv, double maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double)
+    __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double, true)
 }
 
 double InStream::readDouble(double minv, double maxv, const std::string& variableName)
@@ -3134,7 +3183,7 @@ double InStream::readDouble(double minv, double maxv, const std::string& variabl
 
 std::vector<double> InStream::readDoubles(int size, double minv, double maxv, const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double)
+    __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double, true)
 }
 
 double InStream::readStrictReal(double minv, double maxv,
@@ -3178,7 +3227,7 @@ std::vector<double> InStream::readStrictReals(int size, double minv, double maxv
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
         const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readStrictReals, readStrictReal(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double)
+    __testlib_readMany(readStrictReals, readStrictReal(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double, true)
 }
 
 double InStream::readStrictDouble(double minv, double maxv,
@@ -3194,7 +3243,7 @@ std::vector<double> InStream::readStrictDoubles(int size, double minv, double ma
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
         const std::string& variablesName, int indexBase)
 {
-    __testlib_readMany(readStrictDoubles, readStrictDouble(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double)
+    __testlib_readMany(readStrictDoubles, readStrictDouble(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double, true)
 }
 
 bool InStream::eof()
@@ -3343,15 +3392,30 @@ std::string InStream::readString()
     return _tmpReadToken;
 }
 
+std::vector<std::string> InStream::readStrings(int size, int indexBase)
+{
+    __testlib_readMany(readStrings, readString(), std::string, false)
+}
+
 void InStream::readStringTo(std::string& result, const pattern& p, const std::string& variableName)
 {
     readStringTo(result);
     if (!p.matches(result))
     {
-        if (variableName.empty())
-            quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Line \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            else
+                quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        }
         else
-            quit(_wa, ("Line [name=" + variableName + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Line element [index=" + vtos(readManyIteration) + "] equals to \"" + __testlib_part(result) + "\" doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+            else
+                quit(_wa, ("Line element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to \"" + __testlib_part(result) + "\", doesn't correspond to pattern \"" + p.src() + "\"").c_str());
+        }
     }
 }
 
@@ -3366,10 +3430,21 @@ std::string InStream::readString(const pattern& p, const std::string& variableNa
     return _tmpReadToken;
 }
 
+std::vector<std::string> InStream::readStrings(int size, const pattern& p, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
+}
+
 std::string InStream::readString(const std::string& ptrn, const std::string& variableName)
 {
     readStringTo(_tmpReadToken, ptrn, variableName);
     return _tmpReadToken;
+}
+
+std::vector<std::string> InStream::readStrings(int size, const std::string& ptrn, const std::string& variablesName, int indexBase)
+{
+    pattern p(ptrn);
+    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
 }
 
 void InStream::readLineTo(std::string& result)
@@ -3380,6 +3455,11 @@ void InStream::readLineTo(std::string& result)
 std::string InStream::readLine()
 {
     return readString();
+}
+
+std::vector<std::string> InStream::readLines(int size, int indexBase)
+{
+    __testlib_readMany(readLines, readString(), std::string, false)
 }
 
 void InStream::readLineTo(std::string& result, const pattern& p, const std::string& variableName)
@@ -3397,9 +3477,20 @@ std::string InStream::readLine(const pattern& p, const std::string& variableName
     return readString(p, variableName);
 }
 
+std::vector<std::string> InStream::readLines(int size, const pattern& p, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
+}
+
 std::string InStream::readLine(const std::string& ptrn, const std::string& variableName)
 {
     return readString(ptrn, variableName);
+}
+
+std::vector<std::string> InStream::readLines(int size, const std::string& ptrn, const std::string& variablesName, int indexBase)
+{
+    pattern p(ptrn);
+    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
 }
 
 void InStream::close()
