@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2016
+ * Copyright (c) 2005-2017
  */
 
-#define VERSION "0.9.11"
+#define VERSION "0.9.12"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
                           "Introduced split/tokenize functions to separate string by given char",
                           "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long paramerters",
                           "Supported --testOverviewLogFileName for validator: bounds hits + features",
@@ -122,6 +123,7 @@ const char* latestFeatures[] = {
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NO_VA_START_VALIDATION
 #endif
 
 /* Overrides random() for Borland C++. */
@@ -1678,6 +1680,8 @@ struct InStream
     int wordReserveSize;
     std::string _tmpReadToken;
 
+    int readManyIteration;
+
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
 
@@ -1760,13 +1764,22 @@ struct InStream
 
     /* As "readLong()" but ensures that value in the range [minv,maxv]. */
     long long readLong(long long minv, long long maxv, const std::string& variableName = "");
+    /* Reads space-separated sequence of long longs. */
+    std::vector<long long> readLongs(int size, long long minv, long long maxv, const std::string& variablesName = "", int indexBase = 1);
+
     unsigned long long readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
+    std::vector<unsigned long long> readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
     unsigned long long readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
+    std::vector<unsigned long long> readLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
 
     /* As "readInteger()" but ensures that value in the range [minv,maxv]. */
     int readInteger(int minv, int maxv, const std::string& variableName = "");
     /* As "readInt()" but ensures that value in the range [minv,maxv]. */
     int readInt(int minv, int maxv, const std::string& variableName = "");
+    /* Reads space-separated sequence of integers. */
+    std::vector<int> readIntegers(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
+    /* Reads space-separated sequence of integers. */
+    std::vector<int> readInts(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
 
     /* 
      * Reads new double. Ignores white-spaces into the non-strict mode 
@@ -1781,8 +1794,10 @@ struct InStream
     
     /* As "readReal()" but ensures that value in the range [minv,maxv]. */
     double readReal(double minv, double maxv, const std::string& variableName = "");
+    std::vector<double> readReals(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
     /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
     double readDouble(double minv, double maxv, const std::string& variableName = "");
+    std::vector<double> readDoubles(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
     
     /* 
      * As "readReal()" but ensures that value in the range [minv,maxv] and
@@ -1792,6 +1807,10 @@ struct InStream
     double readStrictReal(double minv, double maxv,
             int minAfterPointDigitCount, int maxAfterPointDigitCount,
             const std::string& variableName = "");
+    std::vector<double> readStrictReals(int size, double minv, double maxv,
+            int minAfterPointDigitCount, int maxAfterPointDigitCount,
+            const std::string& variablesName = "", int indexBase = 1);
+
     /* 
      * As "readDouble()" but ensures that value in the range [minv,maxv] and
      * number of digit after the decimal point is in range [minAfterPointDigitCount,maxAfterPointDigitCount]
@@ -1800,6 +1819,9 @@ struct InStream
     double readStrictDouble(double minv, double maxv,
             int minAfterPointDigitCount, int maxAfterPointDigitCount,
             const std::string& variableName = "");
+    std::vector<double> readStrictDoubles(int size, double minv, double maxv,
+            int minAfterPointDigitCount, int maxAfterPointDigitCount,
+            const std::string& variablesName = "", int indexBase = 1);
     
     /* As readLine(). */
     std::string readString();
@@ -1852,6 +1874,8 @@ struct InStream
     NORETURN void quits(TResult result, std::string msg);
 
     void close();
+
+    const static int NO_INDEX = INT_MAX;
 
     const static WORD LightGray = 0x07;    
     const static WORD LightRed = 0x0c;    
@@ -2108,6 +2132,7 @@ InStream::InStream()
     strict = false;
     stdfile = false;
     wordReserveSize = 4;
+    readManyIteration = NO_INDEX;
 }
 
 InStream::InStream(const InStream& baseStream, std::string content)
@@ -2117,6 +2142,7 @@ InStream::InStream(const InStream& baseStream, std::string content)
     strict = baseStream.strict;
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
+    readManyIteration = NO_INDEX;
 }
 
 InStream::~InStream()
@@ -2855,15 +2881,15 @@ static inline unsigned long long stringToUnsignedLongLong(InStream& in, const ch
     size_t length = strlen(buffer);
 
     if (length > 20)
-        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+        in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     if (length > 1 && buffer[0] == '0')
-        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+        in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     unsigned long long retval = 0LL;
     for (int i = 0; i < int(length); i++)
     {
         if (buffer[i] < '0' || buffer[i] > '9')
-            in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
+            in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
         retval = retval * 10 + (buffer[i] - '0');
     }
 
@@ -2919,10 +2945,20 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
 
     if (result < minv || result > maxv)
     {
-        if (variableName.empty())
-            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
         else
-            quit(_wa, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Integer element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
     }
 
     if (strict && !variableName.empty())
@@ -2931,22 +2967,62 @@ long long InStream::readLong(long long minv, long long maxv, const std::string& 
     return result;
 }
 
+#define __testlib_readMany(readMany, readOne, typeName)                         \
+    if (size < 0)                                                               \
+        quit(_fail, #readMany ": size should be non-negative.");                \
+    if (size > 100000000)                                                       \
+        quit(_fail, #readMany ": size should be at most 100000000.");           \
+                                                                                \
+    std::vector<typeName> result(size);                                         \
+    readManyIteration = indexBase;                                              \
+                                                                                \
+    for (int i = 0; i < size; i++)                                              \
+    {                                                                           \
+        result[i] = readOne;                                                    \
+        readManyIteration++;                                                    \
+        if (i + 1 < size)                                                       \
+            readSpace();                                                        \
+    }                                                                           \
+                                                                                \
+    readManyIteration = NO_INDEX;                                               \
+    return result;                                                              \
+
+std::vector<long long> InStream::readLongs(int size, long long minv, long long maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long)
+}
+
 unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
 {
     unsigned long long result = readUnsignedLong();
 
     if (result < minv || result > maxv)
     {
-        if (variableName.empty())
-            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Unsigned integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Unsigned integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
         else
-            quit(_wa, ("Integer parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Unsigned integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Unsigned integer element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
     }
 
     if (strict && !variableName.empty())
         validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
 
     return result;
+}
+
+std::vector<unsigned long long> InStream::readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long)
 }
 
 unsigned long long InStream::readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
@@ -2965,10 +3041,20 @@ int InStream::readInt(int minv, int maxv, const std::string& variableName)
 
     if (result < minv || result > maxv)
     {
-        if (variableName.empty())
-            quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
         else
-            quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Integer element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
     }
 
     if (strict && !variableName.empty())
@@ -2980,6 +3066,16 @@ int InStream::readInt(int minv, int maxv, const std::string& variableName)
 int InStream::readInteger(int minv, int maxv, const std::string& variableName)
 {
     return readInt(minv, maxv, variableName);
+}
+
+std::vector<int> InStream::readInts(int size, int minv, int maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int)
+}
+
+std::vector<int> InStream::readIntegers(int size, int minv, int maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int)
 }
 
 double InStream::readReal()
@@ -3001,10 +3097,20 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
 
     if (result < minv || result > maxv)
     {
-        if (variableName.empty())
-            quit(_wa, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Double parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
         else
-            quit(_wa, ("Double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Double element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Double element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
     }
 
     if (strict && !variableName.empty())
@@ -3016,10 +3122,20 @@ double InStream::readReal(double minv, double maxv, const std::string& variableN
     return result;
 }
 
+std::vector<double> InStream::readReals(int size, double minv, double maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double)
+}
+
 double InStream::readDouble(double minv, double maxv, const std::string& variableName)
 {
     return readReal(minv, maxv, variableName);
 }                                           
+
+std::vector<double> InStream::readDoubles(int size, double minv, double maxv, const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double)
+}
 
 double InStream::readStrictReal(double minv, double maxv,
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
@@ -3033,10 +3149,20 @@ double InStream::readStrictReal(double minv, double maxv,
 
     if (result < minv || result > maxv)
     {
-        if (variableName.empty())
-            quit(_wa, ("Strict double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        if (readManyIteration == NO_INDEX)
+        {
+            if (variableName.empty())
+                quit(_wa, ("Strict double " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Strict double parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
         else
-            quit(_wa, ("Strict double parameter [name=" + variableName + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        {
+            if (variableName.empty())
+                quit(_wa, ("Strict double element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+            else
+                quit(_wa, ("Strict double element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+        }
     }
 
     if (strict && !variableName.empty())
@@ -3048,6 +3174,13 @@ double InStream::readStrictReal(double minv, double maxv,
     return result;
 }
 
+std::vector<double> InStream::readStrictReals(int size, double minv, double maxv,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount,
+        const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readStrictReals, readStrictReal(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double)
+}
+
 double InStream::readStrictDouble(double minv, double maxv,
         int minAfterPointDigitCount, int maxAfterPointDigitCount,
         const std::string& variableName)
@@ -3055,6 +3188,13 @@ double InStream::readStrictDouble(double minv, double maxv,
     return readStrictReal(minv, maxv,
             minAfterPointDigitCount, maxAfterPointDigitCount,
             variableName);
+}
+
+std::vector<double> InStream::readStrictDoubles(int size, double minv, double maxv,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount,
+        const std::string& variablesName, int indexBase)
+{
+    __testlib_readMany(readStrictDoubles, readStrictDouble(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName), double)
 }
 
 bool InStream::eof()
@@ -3367,7 +3507,7 @@ NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2015\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2017\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
