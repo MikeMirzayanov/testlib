@@ -63,7 +63,7 @@
  */
 
 const char* latestFeatures[] = {
-                          "Introduced space-separated read functions: readWords/readTokes, multilines read functions: readStrings/readLines",
+                          "Introduced space-separated read functions: readWords/readTokens, multilines read functions: readStrings/readLines",
                           "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
                           "Introduced split/tokenize functions to separate string by given char",
                           "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long paramerters",
