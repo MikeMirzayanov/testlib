@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2017
  */
 
-#define VERSION "0.9.12"
+#define VERSION "0.9.13"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed compilation in VS 2015+",
                           "Introduced space-separated read functions: readWords/readTokens, multilines read functions: readStrings/readLines",
                           "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
                           "Introduced split/tokenize functions to separate string by given char",
@@ -313,7 +314,7 @@ std::string format(const char* fmt, ...)
     return result;
 }
 
-std::string format(const std::string& fmt, ...)
+std::string format(const std::string fmt, ...)
 {
     FMT_TO_RESULT(fmt, fmt.c_str(), result);
     return result;
@@ -409,8 +410,10 @@ inline double doubleDelta(double expected, double result)
         return absolute;
 }
 
+#if !defined(_MSC_VER) || _MSC_VER<1900
 #ifndef _fileno
 #define _fileno(_stream)  ((_stream)->_file)
+#endif
 #endif
 
 #ifndef O_BINARY
@@ -3868,6 +3871,9 @@ static inline void __testlib_ensure(bool cond, const std::string& msg)
         quit(_fail, msg.c_str());
 }
 
+#ifdef __GNUC__
+    __attribute__((unused)) 
+#endif
 static inline void __testlib_ensure(bool cond, const char* msg)
 {
     if (!cond)
@@ -3919,7 +3925,7 @@ void shuffle(_RandomAccessIter __first, _RandomAccessIter __last)
 
 
 template<typename _RandomAccessIter>
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 __attribute__ ((error("Don't use random_shuffle(), use shuffle() instead")))
 #endif
 void random_shuffle(_RandomAccessIter , _RandomAccessIter )
@@ -3933,7 +3939,7 @@ void random_shuffle(_RandomAccessIter , _RandomAccessIter )
 #  define RAND_THROW_STATEMENT
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 __attribute__ ((error("Don't use rand(), use rnd.next() instead")))
 #endif
 #ifdef _MSC_VER
@@ -3947,7 +3953,7 @@ int rand() RAND_THROW_STATEMENT
     //throw "Don't use rand(), use rnd.next() instead";
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 __attribute__ ((error("Don't use srand(), you should use " 
         "'registerGen(argc, argv, 1);' to initialize generator seed "
         "by hash code of the command line params. The third parameter "
