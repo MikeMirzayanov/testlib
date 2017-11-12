@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2017
  */
 
-#define VERSION "0.9.13"
+#define VERSION "0.9.14"
 
 /* 
  * Mike Mirzayanov
@@ -150,7 +150,7 @@ const char* latestFeatures[] = {
 #include <stdarg.h>
 #include <fcntl.h>
 
-#if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ )
+#if ( _WIN32 || __WIN32__ || _WIN64 || __WIN64__ || __CYGWIN__ )
 #   if !defined(_MSC_VER) || _MSC_VER>1400
 #       define NOMINMAX 1
 #       include <windows.h>
