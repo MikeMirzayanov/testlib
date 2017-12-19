@@ -162,6 +162,7 @@ const char* latestFeatures[] = {
 #   define ON_WINDOWS
 #else
 #   define WORD unsigned short
+#   include <unistd.h>
 #endif
 
 #ifndef LLONG_MIN
@@ -2214,7 +2215,7 @@ void InStream::textColor(
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(handle, color);
 #endif
-#if !defined(ON_WINDOWS) && defined(__CNUC__)
+#if !defined(ON_WINDOWS) && defined(__GNUC__)
     if (isatty(2))
     {
         switch (color)
