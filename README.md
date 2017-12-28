@@ -29,6 +29,43 @@ int main(int argc, char * argv[])
 }
 ```
 
+### Interactor
+
+This sample interactor reads pairs of numbers from input file, sends it to the other program, reads
+result and writes it to output file (to be verified later). Another option could be terminating
+interactor with `quitf(_wa, <comment>)`.
+
+```c++
+#include "testlib.h"
+#include <iostream>
+
+using namespace std;
+
+int main(int argc, char* argv[])
+{
+    setName("Interactor A+B");
+    registerInteraction(argc, argv);
+
+    // reads number of queries from test (input) file
+    int n = inf.readInt();
+    for (int i = 0; i < n; i++)
+    {
+        // reads query from test (input) file
+        int a = inf.readInt();
+        int b = inf.readInt();
+
+        // writes query to the solution, endl makes flush
+        cout << a << " " << b << endl;
+
+        // writes output file to be verified by checker later
+        tout << ouf.readInt() << endl;
+    }
+
+    // just message
+    quitf(_ok, "%d queries processed", n);
+}
+```
+
 ### Validator
 
 This code reads input from the standard input and checks that it contains the only integer between 1 and 100, inclusive. Also validates that file ends with EOLN and EOF. On Windows it expects #13#10 as EOLN and it expects #10 as EOLN on other platforms. It doesn't ignore white-spaces, so it works very strict. It will return non-zero code in case of illegal input and writes message into the standard output. See more examples in the package.
