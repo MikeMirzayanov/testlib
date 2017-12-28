@@ -166,6 +166,10 @@ const char* latestFeatures[] = {
 #   include <unistd.h>
 #endif
 
+#if defined(FOR_WINDOWS) && defined(FOR_LINUX)
+#error Only one target system is allowed
+#endif
+
 #ifndef LLONG_MIN
 #define LLONG_MIN   (-9223372036854775807LL - 1)
 #endif
@@ -3313,7 +3317,7 @@ bool InStream::eoln()
     {
         bool returnCr = false;
 
-#ifdef ON_WINDOWS
+#if (defined(ON_WINDOWS) && !defined(FOR_LINUX)) || defined(FOR_WINDOWS)
         if (c != CR)
         {
             reader->unreadChar(c);
