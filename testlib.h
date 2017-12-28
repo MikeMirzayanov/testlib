@@ -119,7 +119,8 @@ const char* latestFeatures[] = {
                           "Added \'ensure(condition, message = \"\")\' feature, it works like assert()",
                           "Fixed compatibility with MS C++ 7.1",
                           "Added footer with exit code information",
-                          "Added compatibility with EJUDGE (compile with EJUDGE directive)"
+                          "Added compatibility with EJUDGE (compile with EJUDGE directive)",
+                          "Added compatibility with Contester (compile with CONTESTER directive)"
                          };
 
 #ifdef _MSC_VER
@@ -180,12 +181,18 @@ const char* latestFeatures[] = {
 #define EOFC (255)
 
 #ifndef OK_EXIT_CODE
-#   define OK_EXIT_CODE 0
+#   ifdef CONTESTER
+#       define OK_EXIT_CODE 0xAC
+#   else
+#       define OK_EXIT_CODE 0
+#   endif
 #endif
 
 #ifndef WA_EXIT_CODE
 #   ifdef EJUDGE
 #       define WA_EXIT_CODE 5
+#   elif defined(CONTESTER)
+#       define WA_EXIT_CODE 0xAB
 #   else
 #       define WA_EXIT_CODE 1
 #   endif
@@ -194,6 +201,8 @@ const char* latestFeatures[] = {
 #ifndef PE_EXIT_CODE
 #   ifdef EJUDGE
 #       define PE_EXIT_CODE 4
+#   elif defined(CONTESTER)
+#       define PE_EXIT_CODE 0xAA
 #   else
 #       define PE_EXIT_CODE 2
 #   endif
@@ -202,6 +211,8 @@ const char* latestFeatures[] = {
 #ifndef FAIL_EXIT_CODE
 #   ifdef EJUDGE
 #       define FAIL_EXIT_CODE 6
+#   elif defined(CONTESTER)
+#       define FAIL_EXIT_CODE 0xA3
 #   else
 #       define FAIL_EXIT_CODE 3
 #   endif
