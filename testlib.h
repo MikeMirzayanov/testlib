@@ -331,7 +331,7 @@ static bool __testlib_isNaN(double r)
     std::memcpy((void*)&llr1, (void*)&ra, sizeof(double)); 
     ra = -ra;
     std::memcpy((void*)&llr2, (void*)&ra, sizeof(double)); 
-    long long llnan = 0xFFF8000000000000;
+    long long llnan = 0xFFF8000000000000LL;
     return __testlib_prelimIsNaN(r) || llnan == llr1 || llnan == llr2;
 }
 
@@ -339,7 +339,7 @@ static double __testlib_nan()
 {
     __TESTLIB_STATIC_ASSERT(sizeof(double) == sizeof(long long));
 #ifndef NAN
-    long long llnan = 0xFFF8000000000000;
+    long long llnan = 0xFFF8000000000000LL;
     double nan;
     std::memcpy(&nan, &llnan, sizeof(double));
     return nan;
@@ -3661,10 +3661,14 @@ void registerGen(int argc, char* argv[])
 }
 #else
 #ifdef __GNUC__
+#if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 4))
     __attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
             " The third parameter stands for the random generator version."
             " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
             " Version 1 has been released on Spring, 2013. Use it to write new generators.")))
+#else
+    __attribute__ ((deprecated))
+#endif
 #endif
 #ifdef _MSC_VER
     __declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
