@@ -3,7 +3,7 @@
 
 int main(int argc, char * argv[])
 {
-    setName("compare two signed int%ld's", 8 * sizeof(int));
+    setName("compare two signed int%d's", 8 * int(sizeof(int)));
     registerTestlibCmd(argc, argv);
     
     int ja = ans.readInt();
