@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2017
+ * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.14"
+#define VERSION "0.9.15"
 
 /* 
  * Mike Mirzayanov
@@ -3623,7 +3623,7 @@ NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2017\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2018\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
