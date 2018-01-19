@@ -3384,35 +3384,23 @@ void InStream::readStringTo(std::string& result)
         quit(_pe, "Expected line");
 
     result.clear();
-    int cur;
 
     for (;;)
     {
-        cur = reader->nextChar();
+        int cur = reader->curChar();
+
+        if (cur == LF || cur == EOFC)
+            break;
 
         if (cur == CR)
         {
-            cur == reader->nextChar();
-
-            if (cur == LF)
-            {
-                reader->unreadChar(LF);
-                reader->unreadChar(CR);
-                break;
-            }
-            else
+            cur = reader->nextChar();
+            if (reader->curChar() == LF)
             {
                 reader->unreadChar(cur);
-                cur = CR;
+                break;
             }
-                
         }
-
-        if (cur == LF)
-            break;
-
-        if (cur == EOFC)
-            break;
 
         result += char(reader->nextChar());
     }
