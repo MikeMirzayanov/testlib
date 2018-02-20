@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Show line number in validators in case of incorrect format",
                           "Truncate huge checker/validator/interactor message",
                           "Fixed issue with readTokenTo of very long tokens, now aborts with _pe/_fail depending of a stream type",
                           "Introduced InStream::ensure/ensuref checking a condition, returns wa/fail depending of a stream type",
@@ -1417,6 +1418,7 @@ public:
     virtual std::string getName() = 0;
     virtual bool eof() = 0;
     virtual void close() = 0;
+    virtual int getLine() = 0;
     virtual ~InputStreamReader() = 0;
 };
 
@@ -1475,6 +1477,11 @@ public:
         return __testlib_part(s);
     }
 
+    int getLine()
+    {
+        return -1;
+    }
+
     bool eof()
     {
         return pos >= s.length();
@@ -1491,6 +1498,7 @@ class FileInputStreamReader: public InputStreamReader
 private:
     std::FILE* file;
     std::string name;
+    int line;
 
     inline int postprocessGetc(int getcResult)
     {
@@ -1502,16 +1510,21 @@ private:
 
     int getc(FILE* file)
     {
-        return ::getc(file);
+        int c = ::getc(file);
+        if (c == LF)
+            line++;
+        return c;
     }
 
-    void ungetc(int c, FILE* file)
+    int ungetc(int c, FILE* file)
     {
-        ::ungetc(c, file);
+        if (c == LF)
+            line--;
+        return ::ungetc(c, file);
     }
 
 public:
-    FileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
+    FileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name), line(1)
     {
         // No operations.
     }
@@ -1551,6 +1564,11 @@ public:
         return name;
     }
 
+    int getLine()
+    {
+        return line;
+    }
+
     bool eof()
     {
         if (NULL == file || feof(file))
@@ -1588,6 +1606,7 @@ private:
     size_t bufferSize;
 
     std::string name;
+    int line;
 
     bool refill()
     {
@@ -1617,8 +1636,16 @@ private:
             return true;
     }
 
+    char increment()
+    {
+        char c;
+        if ((c = buffer[bufferPos++]) == LF)
+            line++;
+        return c;
+    }
+
 public:
-    BufferedFileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
+    BufferedFileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name), line(1)
     {
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
@@ -1653,12 +1680,12 @@ public:
         if (!refill())
             return EOFC;
 
-        return isEof[bufferPos] ? EOFC : buffer[bufferPos++];
+        return isEof[bufferPos] ? EOFC : increment();
     }
 
     void skipChar()
     {
-        bufferPos++;
+        increment();
     }
 
     void unreadChar(int c)
@@ -1668,11 +1695,18 @@ public:
             __testlib_fail("BufferedFileInputStreamReader::unreadChar(int): bufferPos < 0");
         isEof[bufferPos] = (c == EOFC);
         buffer[bufferPos] = char(c);
+        if (c == LF)
+            line--;
     }
 
     std::string getName()
     {
         return name;
+    }
+
+    int getLine()
+    {
+        return line;
     }
     
     bool eof()
@@ -1708,6 +1742,7 @@ struct InStream
     InStream(const InStream& baseStream, std::string content);
 
     InputStreamReader* reader;
+    int lastLine;
 
     std::string name;
     TMode mode;
@@ -2194,6 +2229,7 @@ static std::string toString(const T& t)
 InStream::InStream()
 {
     reader = NULL;
+    lastLine = -1;
     name = "";
     mode = _input;
     strict = false;
@@ -2208,6 +2244,7 @@ InStream::InStream()
 InStream::InStream(const InStream& baseStream, std::string content)
 {
     reader = new StringInputStreamReader(content);
+    lastLine = -1;
     opened = true;
     strict = baseStream.strict;
     mode = baseStream.mode;
@@ -2329,7 +2366,12 @@ NORETURN void InStream::quit(TResult result, const char* msg)
 #endif
 
     if (mode != _output && result != _fail)
-        quits(_fail, std::string(msg) + " (" + name + ")");
+    {
+        if (mode == _input && testlibMode == _validator && lastLine != -1)
+            quits(_fail, std::string(msg) + " (" + name + ", line " + vtos(lastLine) + ")");
+        else
+            quits(_fail, std::string(msg) + " (" + name + ")");
+    }
 
     std::FILE * resultFile;
     std::string errorName;
@@ -2591,6 +2633,7 @@ char InStream::readChar()
 
 char InStream::readChar(char c)
 {
+    lastLine = reader->getLine();
     char found = readChar();
     if (c != found)
     {
@@ -2634,6 +2677,7 @@ void InStream::readWordTo(std::string& result)
     if (!strict)
         skipBlanks();
 
+    lastLine = reader->getLine();
     int cur = reader->nextChar();
 
     if (cur == EOFC)
@@ -3409,12 +3453,14 @@ bool InStream::eoln()
 
 void InStream::readEoln()
 {
+    lastLine = reader->getLine();
     if (!eoln())
         quit(_pe, "Expected EOLN");
 }
 
 void InStream::readEof()
 {
+    lastLine = reader->getLine();
     if (!eof())
         quit(_pe, "Expected EOF");
 
@@ -3467,6 +3513,7 @@ void InStream::readStringTo(std::string& result)
             }
         }
 
+        lastLine = reader->getLine();
         result += char(reader->nextChar());
     }
 
