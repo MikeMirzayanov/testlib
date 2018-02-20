@@ -15,7 +15,7 @@
  *
  * Also read about wnext() to generate off-center random distribution.
  *
- * See http://code.google.com/p/testlib/ to get latest version or bug tracker.
+ * See https://github.com/MikeMirzayanov/testlib/ to get latest version or bug tracker.
  */
 
 #ifndef _TESTLIB_H_
@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.15"
+#define VERSION "0.9.16"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,9 @@
  */
 
 const char* latestFeatures[] = {
+                          "Truncate huge checker/validator/interactor message",
+                          "Fixed issue with readTokenTo of very long tokens, now aborts with _pe/_fail depending of a stream type",
+                          "Introduced InStream::ensure/ensuref checking a condition, returns wa/fail depending of a stream type",
                           "Fixed compilation in VS 2015+",
                           "Introduced space-separated read functions: readWords/readTokens, multilines read functions: readStrings/readLines",
                           "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
@@ -161,6 +164,10 @@ const char* latestFeatures[] = {
 #   endif
 #   include <io.h>
 #   define ON_WINDOWS
+#   if defined(_MSC_VER) && _MSC_VER>1400
+#       pragma warning( disable : 4127 )
+#       pragma warning( disable : 4458 )
+#   endif
 #else
 #   define WORD unsigned short
 #   include <unistd.h>
@@ -277,8 +284,9 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count++;                                         \
             va_list ap;                                                                    \
             va_start(ap, fmt);                                                             \
-            std::vsprintf(__testlib_format_buffer, cstr, ap);                              \
+            vsnprintf(__testlib_format_buffer, sizeof(__testlib_format_buffer), cstr, ap); \
             va_end(ap);                                                                    \
+            __testlib_format_buffer[sizeof(__testlib_format_buffer) - 1] = 0;              \
             result = std::string(__testlib_format_buffer);                                 \
             __testlib_format_buffer_usage_count--;                                         \
 
@@ -1492,6 +1500,16 @@ private:
             return EOFC;
     }
 
+    int getc(FILE* file)
+    {
+        return ::getc(file);
+    }
+
+    void ungetc(int c, FILE* file)
+    {
+        ::ungetc(c, file);
+    }
+
 public:
     FileInputStreamReader(std::FILE* file, const std::string& name): file(file), name(name)
     {
@@ -1701,6 +1719,9 @@ struct InStream
     std::string _tmpReadToken;
 
     int readManyIteration;
+    size_t maxFileSize;
+    size_t maxTokenLength;
+    size_t maxMessageLength;
 
     void init(std::string fileName, TMode mode);
     void init(std::FILE* f, TMode mode);
@@ -1908,6 +1929,16 @@ struct InStream
      * input/answer streams replace any result to FAIL.
      */
     NORETURN void quits(TResult result, std::string msg);
+
+    /* 
+     * Checks condition and aborts a program if codition is false.
+     * Returns _wa for ouf and _fail on any other streams.
+     */
+    #ifdef __GNUC__
+    __attribute__ ((format (printf, 3, 4)))
+    #endif
+    void ensuref(bool cond, const char* format, ...);
+    void __testlib_ensure(bool cond, std::string message);
 
     void close();
 
@@ -2169,6 +2200,9 @@ InStream::InStream()
     stdfile = false;
     wordReserveSize = 4;
     readManyIteration = NO_INDEX;
+    maxFileSize = 128 * 1024 * 1024; // 128MB.
+    maxTokenLength = 32 * 1024 * 1024; // 32MB.
+    maxMessageLength = 32000;
 }
 
 InStream::InStream(const InStream& baseStream, std::string content)
@@ -2179,6 +2213,9 @@ InStream::InStream(const InStream& baseStream, std::string content)
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
     readManyIteration = NO_INDEX;
+    maxFileSize = 128 * 1024 * 1024; // 128MB.
+    maxTokenLength = 32 * 1024 * 1024; // 32MB.
+    maxMessageLength = 32000;
 }
 
 InStream::~InStream()
@@ -2275,6 +2312,16 @@ NORETURN void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
         testlibFinalizeGuard.quitCount++;
+
+    // You can change maxMessageLength.
+    // Example: 'inf.maxMessageLength = 1024 * 1024;'.
+    if (strlen(msg) > maxMessageLength)
+    {
+        std::string message(msg);
+        std::string warn = "message length exceeds " + vtos(maxMessageLength)
+            + ", the message is truncated: ";
+        msg = (warn + message.substr(0, maxMessageLength - warn.length())).c_str();
+    }
 
 #ifndef ENABLE_UNEXPECTED_EOF
     if (result == _unexpected_eof)
@@ -2492,25 +2539,37 @@ void InStream::init(std::string fileName, TMode mode)
     stdfile = false;
     this->mode = mode;
     
+    std::ifstream stream;
+    stream.open(fileName.c_str(), std::ios::in);
+    if (stream.is_open())
+    {
+        std::streampos start = stream.tellg();
+        stream.seekg(0, std::ios::end);
+        std::streampos end = stream.tellg();
+        size_t fileSize = size_t(end - start);
+        stream.close();
+        
+        // You can change maxFileSize.
+        // Example: 'inf.maxFileSize = 256 * 1024 * 1024;'.
+        if (fileSize > maxFileSize)
+            quitf(_pe, "File size exceeds %d bytes, size is %d", int(maxFileSize), int(fileSize));
+    }
+
     reset();
 }
 
 void InStream::init(std::FILE* f, TMode mode)
 {
     opened = false;
-    
     name = "untitled";
+    this->mode = mode;
     
     if (f == stdin)
         name = "stdin", stdfile = true;
-    
     if (f == stdout)
         name = "stdout", stdfile = true;
-    
     if (f == stderr)
         name = "stderr", stdfile = true;
-
-    this->mode = mode;
 
     reset(f);
 }
@@ -2588,6 +2647,12 @@ void InStream::readWordTo(std::string& result)
     while (!(isBlanks(cur) || cur == EOFC))
     {
         result += char(cur);
+        
+        // You can change maxTokenLength.
+        // Example: 'inf.maxTokenLength = 128 * 1024 * 1024;'.
+        if (result.length() > maxTokenLength)
+            quitf(_pe, "Length of token exceeds %d, token is '%s...'", int(maxTokenLength), __testlib_part(result).c_str());
+
         cur = reader->nextChar();
     }
 
@@ -3518,6 +3583,24 @@ std::vector<std::string> InStream::readLines(int size, const std::string& ptrn, 
     __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
 }
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 3, 4)))
+#endif
+void InStream::ensuref(bool cond, const char* format, ...)
+{
+    if (!cond)
+    {
+        FMT_TO_RESULT(format, format, message);
+        this->__testlib_ensure(cond, message);
+    }
+}
+
+void InStream::__testlib_ensure(bool cond, std::string message)
+{
+    if (!cond)
+        this->quit(_wa, message.c_str());        
+}
+
 void InStream::close()
 {
     if (NULL != reader)
@@ -3622,7 +3705,7 @@ void quitif(bool condition, TResult result, const char* format, ...)
 NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
-    std::fprintf(stderr, "TESTLIB %s, http://code.google.com/p/testlib/ ", VERSION);
+    std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
     std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2018\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
