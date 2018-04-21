@@ -2215,7 +2215,7 @@ static std::string vtos(const T& t)
 {
     std::string s;
     static std::stringstream ss;
-	ss.str(std::string());
+    ss.str(std::string());
 
     ss << t;
     ss >> s;
