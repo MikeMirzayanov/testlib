@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.16"
+#define VERSION "0.9.17"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Speed up of vtos",
                           "Show line number in validators in case of incorrect format",
                           "Truncate huge checker/validator/interactor message",
                           "Fixed issue with readTokenTo of very long tokens, now aborts with _pe/_fail depending of a stream type",
@@ -2210,14 +2211,43 @@ std::fstream tout;
 /* implementation
  */
 
-template <typename T>
-static std::string vtos(const T& t)
+template<typename T>
+static std::string vtos(const T& t, std::true_type)
+{ 
+    if (t == 0)
+        return "0";
+    else
+    {
+        T n(t);
+        bool negative = n < 0;
+        std::string s;
+        while (n != 0) {
+            T digit = n % 10;
+            if (digit < 0)
+                digit = -digit;
+            s += char('0' + digit);
+            n /= 10;
+        }
+        std::reverse(s.begin(), s.end());
+        return negative ? "-" + s : s;
+    }
+}
+
+template<typename T>
+static std::string vtos(const T& t, std::false_type)
 {
     std::string s;
-    std::stringstream ss;
+    static std::stringstream ss;
+    ss.str(std::string());
     ss << t;
     ss >> s;
     return s;
+}
+
+template <typename T>
+static std::string vtos(const T& t)
+{
+    return vtos(t, std::is_integral<T>());
 }
 
 template <typename T>
