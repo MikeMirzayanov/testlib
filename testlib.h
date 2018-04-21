@@ -2214,7 +2214,9 @@ template <typename T>
 static std::string vtos(const T& t)
 {
     std::string s;
-    std::stringstream ss;
+    static std::stringstream ss;
+	ss.str(std::string());
+
     ss << t;
     ss >> s;
     return s;
