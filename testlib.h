@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.17"
+#define VERSION "0.9.18"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Ignore 4+ command line arguments ifdef EJUDGE",
                           "Speed up of vtos",
                           "Show line number in validators in case of incorrect format",
                           "Truncate huge checker/validator/interactor message",
@@ -3890,6 +3891,7 @@ void registerInteraction(int argc, char* argv[])
         appesMode = false;
     }
 
+#ifndef EJUDGE
     if (argc == 5)
     {
         resultName = argv[4];
@@ -3909,6 +3911,7 @@ void registerInteraction(int argc, char* argv[])
             appesMode = true;
         }
     }
+#endif
 
     inf.init(argv[1], _input);
 
