@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.18"
+#define VERSION "0.9.19"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,9 @@
  */
 
 const char* latestFeatures[] = {
+                          "Batch of println functions (support collections, iterator ranges)",
+                          "Introduced rnd.perm(size, first = 0) to generate a `first`-indexed permutation",
+                          "Allow any whitespace in readInts-like functions for non-validators",
                           "Ignore 4+ command line arguments ifdef EJUDGE",
                           "Speed up of vtos",
                           "Show line number in validators in case of incorrect format",
@@ -4518,7 +4521,7 @@ void __println_range(A begin, B end)
     std::cout << std::endl;
 }
 
-template<class T>
+template<class T, class Enable = void>
 struct is_iterator
 {   
     static T makeT();
@@ -4527,6 +4530,12 @@ struct is_iterator
     template<class R> static typename R::iterator_category * test(R);
     template<class R> static void * test(R *);
     static const bool value = sizeof(test(makeT())) == sizeof(void *); 
+};
+
+template<class T>
+struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value >::type>
+{
+    static const bool value = false; 
 };
 
 template <typename A, typename B>
@@ -4548,6 +4557,15 @@ template <typename A>
 void println(const A* a, const A* b)
 {
     __println_range(a, b);
+}
+
+template <>
+void println<char>(const char* a, const char* b)
+{
+    __testlib_print_one(a);
+    std::cout << " ";
+    __testlib_print_one(b);
+    std::cout << std::endl;
 }
 
 template<typename T>
