@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.19"
+#define VERSION "0.9.20"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed compilation in g++ (for std=c++03)",
                           "Batch of println functions (support collections, iterator ranges)",
                           "Introduced rnd.perm(size, first = 0) to generate a `first`-indexed permutation",
                           "Allow any whitespace in readInts-like functions for non-validators",
@@ -173,6 +174,7 @@ const char* latestFeatures[] = {
 #   define ON_WINDOWS
 #   if defined(_MSC_VER) && _MSC_VER>1400
 #       pragma warning( disable : 4127 )
+#       pragma warning( disable : 4146 )
 #       pragma warning( disable : 4458 )
 #   endif
 #else
@@ -2236,6 +2238,7 @@ std::fstream tout;
 /* implementation
  */
 
+#if __cplusplus > 199711L || defined(_MSC_VER)
 template<typename T>
 static std::string vtos(const T& t, std::true_type)
 { 
@@ -2274,6 +2277,18 @@ static std::string vtos(const T& t)
 {
     return vtos(t, std::is_integral<T>());
 }
+#else
+template<typename T>
+static std::string vtos(const T& t)
+{
+    std::string s;
+    static std::stringstream ss;
+    ss.str(std::string());
+    ss << t;
+    ss >> s;
+    return s;
+}
+#endif
 
 template <typename T>
 static std::string toString(const T& t)
@@ -4462,6 +4477,7 @@ NORETURN void expectedButFound<long double>(TResult result, long double expected
 
 #endif
 
+#if __cplusplus > 199711L || defined(_MSC_VER)
 template <typename T>
 struct is_iterable
 {
@@ -4649,3 +4665,4 @@ void println(const A& a, const B& b, const C& c, const D& d, const E& e, const F
     __testlib_print_one(g);
     std::cout << std::endl;
 }
+#endif

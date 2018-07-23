@@ -58,10 +58,9 @@ int main(int argc, char* argv[])
         pb[i] = i + 1;
     shuffle(pb.begin(), pb.end());
 
-    cout << n << " " << m << " " << e.size() << endl;
-
+    println(n, m, e.size());
     forn(i, e.size())
-        cout << pa[e[i].first] << " " << pb[e[i].second] << endl;
+        println(pa[e[i].first], pb[e[i].second]);
 
     return 0;
 }
