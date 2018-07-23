@@ -1527,6 +1527,7 @@ private:
     std::FILE* file;
     std::string name;
     int line;
+    std::vector<int> undoChars;
 
     inline int postprocessGetc(int getcResult)
     {
@@ -1538,17 +1539,26 @@ private:
 
     int getc(FILE* file)
     {
-        int c = ::getc(file);
+        int c;
+        if (undoChars.empty())
+            c = ::getc(file);
+        else
+        {
+            c = undoChars.back();
+            undoChars.pop_back();
+        }
+
         if (c == LF)
             line++;
         return c;
     }
 
-    int ungetc(int c, FILE* file)
+    int ungetc(int c/*, FILE* file*/)
     {
         if (c == LF)
             line--;
-        return ::ungetc(c, file);
+        undoChars.push_back(c);
+        return c;
     }
 
 public:
@@ -1564,7 +1574,7 @@ public:
         else
         {
             int c = getc(file);
-            ungetc(c, file);
+            ungetc(c/*, file*/);
             return postprocessGetc(c);
         }
     }
@@ -1584,7 +1594,7 @@ public:
 
     void unreadChar(int c)
     {   
-        ungetc(c, file);
+        ungetc(c/*, file*/);
     }
 
     std::string getName()
