@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2018
  */
 
-#define VERSION "0.9.20"
+#define VERSION "0.9.21"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed stringstream repeated usage issue",
                           "Fixed compilation in g++ (for std=c++03)",
                           "Batch of println functions (support collections, iterator ranges)",
                           "Introduced rnd.perm(size, first = 0) to generate a `first`-indexed permutation",
@@ -2277,6 +2278,7 @@ static std::string vtos(const T& t, std::false_type)
     std::string s;
     static std::stringstream ss;
     ss.str(std::string());
+    ss.clear();
     ss << t;
     ss >> s;
     return s;
@@ -2294,6 +2296,7 @@ static std::string vtos(const T& t)
     std::string s;
     static std::stringstream ss;
     ss.str(std::string());
+    ss.clear();
     ss << t;
     ss >> s;
     return s;
