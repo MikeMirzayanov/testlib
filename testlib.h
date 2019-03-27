@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2018
+ * Copyright (c) 2005-2019
  */
 
-#define VERSION "0.9.21"
+#define VERSION "0.9.22-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,10 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed issue #83: added InStream::quitif(condition, ...)",
+                          "Fixed issue #79: fixed missed guard against repeated header include",
+                          "Fixed issue #80: fixed UB in case of huge quitf message",
+                          "Fixed issue #84: added readXs(size)",
                           "Fixed stringstream repeated usage issue",
                           "Fixed compilation in g++ (for std=c++03)",
                           "Batch of println functions (support collections, iterator ranges)",
@@ -1850,11 +1854,13 @@ struct InStream
     std::string readWord(const pattern& p, const std::string& variableName = "");
     std::vector<std::string> readWords(int size, const std::string& ptrn, const std::string& variablesName = "", int indexBase = 1);
     std::vector<std::string> readWords(int size, const pattern& p, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<std::string> readWords(int size, int indexBase = 1);
     /* The same as "readToken()", but ensures that token matches to given pattern. */
     std::string readToken(const std::string& ptrn, const std::string& variableName = "");
     std::string readToken(const pattern& p, const std::string& variableName = "");
     std::vector<std::string> readTokens(int size, const std::string& ptrn, const std::string& variablesName = "", int indexBase = 1);
     std::vector<std::string> readTokens(int size, const pattern& p, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<std::string> readTokens(int size, int indexBase = 1);
 
     void readWordTo(std::string& result);
     void readWordTo(std::string& result, const pattern& p, const std::string& variableName = "");
@@ -1885,9 +1891,12 @@ struct InStream
     long long readLong(long long minv, long long maxv, const std::string& variableName = "");
     /* Reads space-separated sequence of long longs. */
     std::vector<long long> readLongs(int size, long long minv, long long maxv, const std::string& variablesName = "", int indexBase = 1);
+    /* Reads space-separated sequence of long longs. */
+    std::vector<long long> readLongs(int size);
 
     unsigned long long readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
     std::vector<unsigned long long> readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<unsigned long long> readUnsignedLongs(int size);
     unsigned long long readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
     std::vector<unsigned long long> readLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
 
@@ -1898,7 +1907,11 @@ struct InStream
     /* Reads space-separated sequence of integers. */
     std::vector<int> readIntegers(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
     /* Reads space-separated sequence of integers. */
+    std::vector<int> readIntegers(int size);
+    /* Reads space-separated sequence of integers. */
     std::vector<int> readInts(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
+    /* Reads space-separated sequence of integers. */
+    std::vector<int> readInts(int size);
 
     /* 
      * Reads new double. Ignores white-spaces into the non-strict mode 
@@ -1914,9 +1927,11 @@ struct InStream
     /* As "readReal()" but ensures that value in the range [minv,maxv]. */
     double readReal(double minv, double maxv, const std::string& variableName = "");
     std::vector<double> readReals(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<double> readReals(int size);
     /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
     double readDouble(double minv, double maxv, const std::string& variableName = "");
     std::vector<double> readDoubles(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
+    std::vector<double> readDoubles(int size);
     
     /* 
      * As "readReal()" but ensures that value in the range [minv,maxv] and
@@ -1998,6 +2013,11 @@ struct InStream
      * input/answer streams replace any result to FAIL.
      */
     NORETURN void quitf(TResult result, const char* msg, ...);
+    /* 
+     * Quit-functions aborts program with <result> and <message>:
+     * input/answer streams replace any result to FAIL.
+     */
+    void quitif(bool condition, TResult result, const char* msg, ...);
     /* 
      * Quit-functions aborts program with <result> and <message>:
      * input/answer streams replace any result to FAIL.
@@ -2433,14 +2453,15 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     if (TestlibFinalizeGuard::alive)
         testlibFinalizeGuard.quitCount++;
 
+    std::string message(msg);
+
     // You can change maxMessageLength.
     // Example: 'inf.maxMessageLength = 1024 * 1024;'.
-    if (strlen(msg) > maxMessageLength)
+    if (message.length() > maxMessageLength)
     {
-        std::string message(msg);
         std::string warn = "message length exceeds " + vtos(maxMessageLength)
             + ", the message is truncated: ";
-        msg = (warn + message.substr(0, maxMessageLength - warn.length())).c_str();
+        message = warn + message.substr(0, maxMessageLength - warn.length());
     }
 
 #ifndef ENABLE_UNEXPECTED_EOF
@@ -2451,9 +2472,9 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     if (mode != _output && result != _fail)
     {
         if (mode == _input && testlibMode == _validator && lastLine != -1)
-            quits(_fail, std::string(msg) + " (" + name + ", line " + vtos(lastLine) + ")");
+            quits(_fail, message + " (" + name + ", line " + vtos(lastLine) + ")");
         else
-            quits(_fail, std::string(msg) + " (" + name + ")");
+            quits(_fail, message + " (" + name + ")");
     }
 
     std::FILE * resultFile;
@@ -2532,16 +2553,16 @@ NORETURN void InStream::quit(TResult result, const char* msg)
                     std::fprintf(resultFile, "<result outcome = \"%s\" points = \"%s\">", outcomes[(int)result].c_str(), stringPoints.c_str());
                 }
             }
-            xmlSafeWrite(resultFile, msg);
+            xmlSafeWrite(resultFile, message.c_str());
             std::fprintf(resultFile, "</result>\n");
         }
         else
-             std::fprintf(resultFile, "%s", msg);
+             std::fprintf(resultFile, "%s", message.c_str());
         if (NULL == resultFile || fclose(resultFile) != 0)
             quit(_fail, "Can not write to the result file");
     }
 
-    quitscr(LightGray, msg);
+    quitscr(LightGray, message.c_str());
     std::fprintf(stderr, "\n");
 
     inf.close();
@@ -2565,6 +2586,18 @@ NORETURN void InStream::quitf(TResult result, const char* msg, ...)
 {
     FMT_TO_RESULT(msg, msg, message);
     InStream::quit(result, message.c_str());
+}
+
+#ifdef __GNUC__
+    __attribute__ ((format (printf, 4, 5)))
+#endif
+void InStream::quitif(bool condition, TResult result, const char* msg, ...)
+{
+    if (condition)
+    {
+        FMT_TO_RESULT(msg, msg, message);
+        InStream::quit(result, message.c_str());
+    }
 }
 
 NORETURN void InStream::quits(TResult result, std::string msg)
@@ -2855,6 +2888,11 @@ std::vector<std::string> InStream::readWords(int size, const pattern& p, const s
     __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
 }
 
+std::vector<std::string> InStream::readWords(int size, int indexBase)
+{
+    __testlib_readMany(readWords, readWord(), std::string, true);
+}
+
 std::string InStream::readWord(const std::string& ptrn, const std::string& variableName)
 {
     return readWord(pattern(ptrn), variableName);
@@ -2874,6 +2912,11 @@ std::string InStream::readToken(const pattern& p, const std::string& variableNam
 std::vector<std::string> InStream::readTokens(int size, const pattern& p, const std::string& variablesName, int indexBase)
 {
     __testlib_readMany(readTokens, readToken(p, variablesName), std::string, true);
+}
+
+std::vector<std::string> InStream::readTokens(int size, int indexBase)
+{
+    __testlib_readMany(readTokens, readToken(), std::string, true);
 }
 
 std::string InStream::readToken(const std::string& ptrn, const std::string& variableName)
@@ -3252,6 +3295,12 @@ std::vector<long long> InStream::readLongs(int size, long long minv, long long m
     __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long, true)
 }
 
+std::vector<long long> InStream::readLongs(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readLongs, readLong(), long long, true)
+}
+
 unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
 {
     unsigned long long result = readUnsignedLong();
@@ -3283,6 +3332,12 @@ unsigned long long InStream::readUnsignedLong(unsigned long long minv, unsigned 
 std::vector<unsigned long long> InStream::readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName, int indexBase)
 {
     __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long, true)
+}
+
+std::vector<unsigned long long> InStream::readUnsignedLongs(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readUnsignedLongs, readUnsignedLong(), unsigned long long, true)
 }
 
 unsigned long long InStream::readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName)
@@ -3333,9 +3388,21 @@ std::vector<int> InStream::readInts(int size, int minv, int maxv, const std::str
     __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int, true)
 }
 
+std::vector<int> InStream::readInts(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readInts, readInt(), int, true)
+}
+
 std::vector<int> InStream::readIntegers(int size, int minv, int maxv, const std::string& variablesName, int indexBase)
 {
     __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int, true)
+}
+
+std::vector<int> InStream::readIntegers(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readIntegers, readInt(), int, true)
 }
 
 double InStream::readReal()
@@ -3387,6 +3454,12 @@ std::vector<double> InStream::readReals(int size, double minv, double maxv, cons
     __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double, true)
 }
 
+std::vector<double> InStream::readReals(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readReals, readReal(), double, true)
+}
+
 double InStream::readDouble(double minv, double maxv, const std::string& variableName)
 {
     return readReal(minv, maxv, variableName);
@@ -3395,6 +3468,12 @@ double InStream::readDouble(double minv, double maxv, const std::string& variabl
 std::vector<double> InStream::readDoubles(int size, double minv, double maxv, const std::string& variablesName, int indexBase)
 {
     __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double, true)
+}
+
+std::vector<double> InStream::readDoubles(int size)
+{
+    int indexBase = 1;
+    __testlib_readMany(readDoubles, readDouble(), double, true)
 }
 
 double InStream::readStrictReal(double minv, double maxv,
@@ -3836,7 +3915,7 @@ NORETURN void __testlib_help()
 {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2018\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2019\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
@@ -4488,8 +4567,6 @@ NORETURN void expectedButFound<long double>(TResult result, long double expected
     __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
 }
 
-#endif
-
 #if __cplusplus > 199711L || defined(_MSC_VER)
 template <typename T>
 struct is_iterable
@@ -4678,4 +4755,5 @@ void println(const A& a, const B& b, const C& c, const D& d, const E& e, const F
     __testlib_print_one(g);
     std::cout << std::endl;
 }
+#endif
 #endif
