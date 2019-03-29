@@ -66,7 +66,7 @@ const char* latestFeatures[] = {
                           "Fixed issue #83: added InStream::quitif(condition, ...)",
                           "Fixed issue #79: fixed missed guard against repeated header include",
                           "Fixed issue #80: fixed UB in case of huge quitf message",
-                          "Fixed issue #84: added readXs(size)",
+                          "Fixed issue #84: added readXs(size, indexBase = 1)",
                           "Fixed stringstream repeated usage issue",
                           "Fixed compilation in g++ (for std=c++03)",
                           "Batch of println functions (support collections, iterator ranges)",
@@ -1892,11 +1892,11 @@ struct InStream
     /* Reads space-separated sequence of long longs. */
     std::vector<long long> readLongs(int size, long long minv, long long maxv, const std::string& variablesName = "", int indexBase = 1);
     /* Reads space-separated sequence of long longs. */
-    std::vector<long long> readLongs(int size);
+    std::vector<long long> readLongs(int size, int indexBase = 1);
 
     unsigned long long readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
     std::vector<unsigned long long> readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
-    std::vector<unsigned long long> readUnsignedLongs(int size);
+    std::vector<unsigned long long> readUnsignedLongs(int size, int indexBase = 1);
     unsigned long long readLong(unsigned long long minv, unsigned long long maxv, const std::string& variableName = "");
     std::vector<unsigned long long> readLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string& variablesName = "", int indexBase = 1);
 
@@ -1907,11 +1907,11 @@ struct InStream
     /* Reads space-separated sequence of integers. */
     std::vector<int> readIntegers(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
     /* Reads space-separated sequence of integers. */
-    std::vector<int> readIntegers(int size);
+    std::vector<int> readIntegers(int size, int indexBase = 1);
     /* Reads space-separated sequence of integers. */
     std::vector<int> readInts(int size, int minv, int maxv, const std::string& variablesName = "", int indexBase = 1);
     /* Reads space-separated sequence of integers. */
-    std::vector<int> readInts(int size);
+    std::vector<int> readInts(int size, int indexBase = 1);
 
     /* 
      * Reads new double. Ignores white-spaces into the non-strict mode 
@@ -1927,11 +1927,11 @@ struct InStream
     /* As "readReal()" but ensures that value in the range [minv,maxv]. */
     double readReal(double minv, double maxv, const std::string& variableName = "");
     std::vector<double> readReals(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
-    std::vector<double> readReals(int size);
+    std::vector<double> readReals(int size, int indexBase = 1);
     /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
     double readDouble(double minv, double maxv, const std::string& variableName = "");
     std::vector<double> readDoubles(int size, double minv, double maxv, const std::string& variablesName = "", int indexBase = 1);
-    std::vector<double> readDoubles(int size);
+    std::vector<double> readDoubles(int size, int indexBase = 1);
     
     /* 
      * As "readReal()" but ensures that value in the range [minv,maxv] and
@@ -3295,9 +3295,8 @@ std::vector<long long> InStream::readLongs(int size, long long minv, long long m
     __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long, true)
 }
 
-std::vector<long long> InStream::readLongs(int size)
+std::vector<long long> InStream::readLongs(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readLongs, readLong(), long long, true)
 }
 
@@ -3334,9 +3333,8 @@ std::vector<unsigned long long> InStream::readUnsignedLongs(int size, unsigned l
     __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long, true)
 }
 
-std::vector<unsigned long long> InStream::readUnsignedLongs(int size)
+std::vector<unsigned long long> InStream::readUnsignedLongs(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readUnsignedLongs, readUnsignedLong(), unsigned long long, true)
 }
 
@@ -3388,9 +3386,8 @@ std::vector<int> InStream::readInts(int size, int minv, int maxv, const std::str
     __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int, true)
 }
 
-std::vector<int> InStream::readInts(int size)
+std::vector<int> InStream::readInts(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readInts, readInt(), int, true)
 }
 
@@ -3399,9 +3396,8 @@ std::vector<int> InStream::readIntegers(int size, int minv, int maxv, const std:
     __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int, true)
 }
 
-std::vector<int> InStream::readIntegers(int size)
+std::vector<int> InStream::readIntegers(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readIntegers, readInt(), int, true)
 }
 
@@ -3454,9 +3450,8 @@ std::vector<double> InStream::readReals(int size, double minv, double maxv, cons
     __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double, true)
 }
 
-std::vector<double> InStream::readReals(int size)
+std::vector<double> InStream::readReals(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readReals, readReal(), double, true)
 }
 
@@ -3470,9 +3465,8 @@ std::vector<double> InStream::readDoubles(int size, double minv, double maxv, co
     __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double, true)
 }
 
-std::vector<double> InStream::readDoubles(int size)
+std::vector<double> InStream::readDoubles(int size, int indexBase)
 {
-    int indexBase = 1;
     __testlib_readMany(readDoubles, readDouble(), double, true)
 }
 
