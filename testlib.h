@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2019
  */
 
-#define VERSION "0.9.22-SNAPSHOT"
+#define VERSION "0.9.23-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Fixed issue #87: readStrictDouble accepts \"-0.00\"",
                           "Fixed issue #83: added InStream::quitif(condition, ...)",
                           "Fixed issue #79: fixed missed guard against repeated header include",
                           "Fixed issue #80: fixed UB in case of huge quitf message",
@@ -3145,6 +3146,8 @@ static inline double stringToStrictDouble(InStream& in, const char* buffer, int 
     {
         if (__testlib_isNaN(retval) || __testlib_isInfinite(retval))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
+        if (buffer[0] == '-' && retval >= 0)
+            in.quit(_pe, ("Redundant minus in \"" + __testlib_part(buffer) + "\" found").c_str());
         return retval;
     }
     else
