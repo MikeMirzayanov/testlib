@@ -2535,8 +2535,10 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     if (resultName != "")
     {
         resultFile = std::fopen(resultName.c_str(), "w");
-        if (resultFile == NULL)
+        if (resultFile == NULL) {
+            resultName = "";
             quit(_fail, "Can not write to the result file");
+        }
         if (appesMode)
         {
             std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
@@ -2559,8 +2561,10 @@ NORETURN void InStream::quit(TResult result, const char* msg)
         }
         else
              std::fprintf(resultFile, "%s", message.c_str());
-        if (NULL == resultFile || fclose(resultFile) != 0)
+        if (NULL == resultFile || fclose(resultFile) != 0) {
+            resultName = "";
             quit(_fail, "Can not write to the result file");
+        }
     }
 
     quitscr(LightGray, message.c_str());
