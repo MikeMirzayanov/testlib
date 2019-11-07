@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2019
  */
 
-#define VERSION "0.9.23-SNAPSHOT"
+#define VERSION "0.9.24-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char* latestFeatures[] = {
+                          "Use setTestCase(i) or unsetTestCase() to support test cases (you can use it in any type of program: generator, interactor, validator or checker)",
                           "Fixed issue #87: readStrictDouble accepts \"-0.00\"",
                           "Fixed issue #83: added InStream::quitif(condition, ...)",
                           "Fixed issue #79: fixed missed guard against repeated header include",
@@ -306,6 +307,21 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count--;                                         \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
+
+bool __testlib_hasTestCase;
+int __testlib_testCase = -1;
+
+void setTestCase(int testCase)
+{
+    __testlib_hasTestCase = true;
+    __testlib_testCase = testCase;
+}
+
+void unsetTestCase()
+{
+    __testlib_hasTestCase = false;
+    __testlib_testCase = -1;
+}
 
 NORETURN static void __testlib_fail(const std::string& message);
 
@@ -1392,6 +1408,26 @@ inline bool isBlanks(C c)
     return (c == LF || c == CR || c == SPACE || c == TAB);
 }
 
+inline std::string trim(const std::string& s)
+{
+    if (s.empty())
+        return s;
+
+    int left = 0;
+    while (left < int(s.length()) && isBlanks(s[left]))
+        left++;
+    if (left >= int(s.length()))
+        return "";
+
+    int right = int(s.length()) - 1;
+    while (right >= 0 && isBlanks(s[right]))
+        right--;
+    if (right < 0)
+        return "";
+
+    return s.substr(left, right - left + 1);
+}
+
 enum TMode
 {
     _input, _output, _answer
@@ -2038,6 +2074,8 @@ struct InStream
     void close();
 
     const static int NO_INDEX = INT_MAX;
+    const static char OPEN_BRACKET = char(11);
+    const static char CLOSE_BRACKET = char(17);
 
     const static WORD LightGray = 0x07;    
     const static WORD LightRed = 0x0c;    
@@ -2281,7 +2319,8 @@ static std::string vtos(const T& t, std::true_type)
         T n(t);
         bool negative = n < 0;
         std::string s;
-        while (n != 0) {
+        while (n != 0)
+        {
             T digit = n % 10;
             if (digit < 0)
                 digit = -digit;
@@ -2449,12 +2488,96 @@ static bool __testlib_shouldCheckDirt(TResult result)
     return result == _ok || result == _points || result >= _partially;
 }
 
+static std::string __testlib_appendMessage(const std::string& message, const std::string& extra)
+{
+    int openPos = -1, closePos = -1;
+    for (size_t i = 0; i < message.length(); i++)
+    {
+        if (message[i] == InStream::OPEN_BRACKET)
+        {
+            if (openPos == -1)
+                openPos = i;
+            else
+                openPos = INT_MAX;
+        }
+        if (message[i] == InStream::CLOSE_BRACKET)
+        {
+            if (closePos == -1)
+                closePos = i;
+            else
+                closePos = INT_MAX;
+        }
+    }
+    if (openPos != -1 && openPos != INT_MAX
+        && closePos != -1 && closePos != INT_MAX
+        && openPos < closePos)
+    {
+        size_t index = message.find(extra, openPos);
+        if (index == std::string::npos || int(index) >= closePos)
+        {
+            std::string result(message);
+            result.insert(closePos, ", " + extra);
+            return result;
+        }
+        return message;
+    }
+
+    return message + " " + InStream::OPEN_BRACKET + extra + InStream::CLOSE_BRACKET;
+}
+
+static std::string __testlib_toPrintableMessage(const std::string& message)
+{
+    int openPos = -1, closePos = -1;
+    for (size_t i = 0; i < message.length(); i++)
+    {
+        if (message[i] == InStream::OPEN_BRACKET)
+        {
+            if (openPos == -1)
+                openPos = i;
+            else
+                openPos = INT_MAX;
+        }
+        if (message[i] == InStream::CLOSE_BRACKET)
+        {
+            if (closePos == -1)
+                closePos = i;
+            else
+                closePos = INT_MAX;
+        }
+    }
+    if (openPos != -1 && openPos != INT_MAX
+        && closePos != -1 && closePos != INT_MAX
+        && openPos < closePos)
+    {
+        std::string result(message);
+        result[openPos] = '(';
+        result[closePos] = ')';
+        return result;
+    }
+
+    return message;
+}
+
 NORETURN void InStream::quit(TResult result, const char* msg)
 {
     if (TestlibFinalizeGuard::alive)
         testlibFinalizeGuard.quitCount++;
 
     std::string message(msg);
+    message = trim(message);
+
+    if (__testlib_hasTestCase)
+    {
+        if (result != _ok)
+            message = __testlib_appendMessage(message, "test case " + vtos(__testlib_testCase));
+        else
+        {
+            if (__testlib_testCase == 1)
+                message = __testlib_appendMessage(message, vtos(__testlib_testCase) + " test case");
+            else
+                message = __testlib_appendMessage(message, vtos(__testlib_testCase) + " test cases");
+        }
+    }
 
     // You can change maxMessageLength.
     // Example: 'inf.maxMessageLength = 1024 * 1024;'.
@@ -2473,9 +2596,9 @@ NORETURN void InStream::quit(TResult result, const char* msg)
     if (mode != _output && result != _fail)
     {
         if (mode == _input && testlibMode == _validator && lastLine != -1)
-            quits(_fail, message + " (" + name + ", line " + vtos(lastLine) + ")");
+            quits(_fail, __testlib_appendMessage(__testlib_appendMessage(message, name), "line " + vtos(lastLine)));
         else
-            quits(_fail, message + " (" + name + ")");
+            quits(_fail, __testlib_appendMessage(message, name));
     }
 
     std::FILE * resultFile;
@@ -2554,16 +2677,16 @@ NORETURN void InStream::quit(TResult result, const char* msg)
                     std::fprintf(resultFile, "<result outcome = \"%s\" points = \"%s\">", outcomes[(int)result].c_str(), stringPoints.c_str());
                 }
             }
-            xmlSafeWrite(resultFile, message.c_str());
+            xmlSafeWrite(resultFile, __testlib_toPrintableMessage(message).c_str());
             std::fprintf(resultFile, "</result>\n");
         }
         else
-             std::fprintf(resultFile, "%s", message.c_str());
+             std::fprintf(resultFile, "%s", __testlib_toPrintableMessage(message).c_str());
         if (NULL == resultFile || fclose(resultFile) != 0)
             quit(_fail, "Can not write to the result file");
     }
 
-    quitscr(LightGray, message.c_str());
+    quitscr(LightGray, __testlib_toPrintableMessage(message).c_str());
     std::fprintf(stderr, "\n");
 
     inf.close();
@@ -4327,26 +4450,6 @@ inline std::string englishEnding(int x)
     if (x % 10 == 3)
         return "rd";
     return "th";
-}
-
-inline std::string trim(const std::string& s)
-{
-    if (s.empty())
-        return s;
-
-    int left = 0;
-    while (left < int(s.length()) && isBlanks(s[left]))
-        left++;
-    if (left >= int(s.length()))
-        return "";
-
-    int right = int(s.length()) - 1;
-    while (right >= 0 && isBlanks(s[right]))
-        right--;
-    if (right < 0)
-        return "";
-
-    return s.substr(left, right - left + 1);
 }
 
 template <typename _ForwardIterator, typename _Separator>

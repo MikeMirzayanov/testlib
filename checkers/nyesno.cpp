@@ -61,7 +61,7 @@ int main(int argc, char * argv[])
     else if (index == 1)
         quitf(_ok, "%s", pa.c_str());
     else
-        quitf(_ok, "%d token(s): yes=%d, no=%d", index, yesCount, noCount);
+        quitf(_ok, "%d token(s): yes count is %d, no count is %d", index, yesCount, noCount);
 
     quitf(_fail, "Impossible case");
 }
