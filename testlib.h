@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2019
  */
 
-#define VERSION "0.9.25-SNAPSHOT"
+#define VERSION "0.9.26-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Opts supported: use them like n = opt<int>(\"n\")",
         "Reformatted",
         "Use setTestCase(i) or unsetTestCase() to support test cases (you can use it in any type of program: generator, interactor, validator or checker)",
         "Fixed issue #87: readStrictDouble accepts \"-0.00\"",
@@ -462,6 +463,11 @@ static void __testlib_set_binary(std::FILE *file)
     }
 #endif
 }
+
+#if __cplusplus > 199711L || defined(_MSC_VER)
+/* opts */
+void prepareOpts(int argc, char* argv[]);
+#endif
 
 /*
  * Very simple regex-like pattern.
@@ -2194,7 +2200,6 @@ std::fstream tout;
  */
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
-
 template<typename T>
 static std::string vtos(const T &t, std::true_type) {
     if (t == 0)
@@ -3817,6 +3822,10 @@ void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
     testlibMode = _generator;
     __testlib_set_binary(stdin);
     rnd.setSeed(argc, argv);
+
+#if __cplusplus > 199711L || defined(_MSC_VER)
+    prepareOpts(argc, argv);
+#endif
 }
 
 #ifdef USE_RND_AS_BEFORE_087
@@ -4341,7 +4350,6 @@ expectedButFound<long double>(TResult result, long double expected, long double 
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
-
 template<typename T>
 struct is_iterable {
     template<typename U>
@@ -4522,5 +4530,224 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
     std::cout << std::endl;
 }
 
+/* opts */
+size_t getOptType(char* s) {
+    if (!s || strlen(s) <= 1)
+        return false;
+
+    if (s[0] == '-') {
+        if (isalpha(s[1]))
+            return 1;
+        else if (s[1] == '-')
+            return isalpha(s[2]) ? 2 : 0;
+    }
+
+    return 0;
+}
+
+size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, std::string>& opts) {
+    if (index >= argc)
+        return 0;
+
+    size_t type = getOptType(argv[index]), inc = 1;
+    if (type > 0) {
+        std::string key(argv[index] + type), val;
+        size_t sep = key.find('=');
+        if (sep != std::string::npos) {
+            val = key.substr(sep + 1);
+            key = key.substr(0, sep);
+        } else {
+            if (index + 1 < argc && getOptType(argv[index + 1]) == 0) {
+                val = argv[index + 1];
+                inc = 2;
+            } else {
+                if (key.length() > 1 && isdigit(key[1])) {
+                    val = key.substr(1);
+                    key = key.substr(0, 1);
+                } else {
+                    val = "true";
+                }
+            }
+        }
+        opts[key] = val;
+    } else {
+        return inc;
+    }
+
+    return inc;
+}
+
+std::vector<std::string> __testlib_argv;
+std::map<std::string, std::string> __testlib_opts;
+
+void prepareOpts(int argc, char* argv[]) {
+    if (argc <= 0)
+        __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
+    size_t n = static_cast<size_t>(argc); // NOLINT(hicpp-use-auto,modernize-use-auto)
+    __testlib_opts = std::map<std::string, std::string>();
+    for (size_t index = 1; index < n; index += parseOpt(n, argv, index, __testlib_opts));
+    __testlib_argv = std::vector<std::string>(n);
+    for (size_t index = 0; index < n; index++)
+        __testlib_argv[index] = argv[index];
+}
+
+std::string __testlib_indexToArgv(int index) {
+    if (index < 0 || index >= int(__testlib_argv.size()))
+        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0," + toString(__testlib_argv.size()) + ")");
+    return __testlib_argv[size_t(index)];
+}
+
+std::string __testlib_keyToOpts(const std::string& key) {
+    if (__testlib_opts.count(key) == 0)
+        __testlib_fail("Opts: unknown key '" + compress(key) + "'");
+    return __testlib_opts[key];
+}
+
+template<typename T>
+T toIntegral(const std::string& s, bool nonnegative) {
+    if (s.empty())
+        __testlib_fail("Opts: expected integer but '" + compress(s) + "' found");
+    T value = 0;
+    long double about = 0.0;
+    signed char sign = +1;
+    size_t pos = 0;
+    if (s[pos] == '-') {
+        if (nonnegative)
+            __testlib_fail("Opts: expected non-negative integer but '" + compress(s) + "' found");
+        sign = -1;
+        pos++;
+    }
+    for (size_t i = pos; i < s.length(); i++) {
+        if (s[i] < '0' || s[i] > '9')
+            __testlib_fail("Opts: expected integer but '" + compress(s) + "' found");
+        value = value * 10 + s[i] - '0';
+        about = about * 10 + s[i] - '0';
+    }
+    value *= sign;
+    about *= sign;
+    if (fabsl(value - about) > 0.1)
+        __testlib_fail("Opts: integer overflow: expected integer but '" + compress(s) + "' found");
+    return value;
+}
+
+long double toLongDouble(const std::string& s) {
+    if (s.empty())
+        __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+    long double value = 0.0;
+    signed char sign = +1;
+    size_t pos = 0;
+    if (s[pos] == '-') {
+        sign = -1;
+        pos++;
+    }
+    bool period = false;
+    long double mul = 1.0;
+    for (size_t i = pos; i < s.length(); i++) {
+        if (s[i] == '.') {
+            if (period)
+                __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+            else {
+                period = true;
+                continue;
+            }
+        }
+        if (period)
+            mul *= 10.0;
+        if (s[i] < '0' || s[i] > '9')
+            __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+        if (period)
+            value += (s[i] - '0') / mul;
+        else
+            value = value * 10 + s[i] - '0';
+    }
+    value *= sign;
+    return value;
+}
+
+template<typename T>
+T opt(std::false_type, int index);
+
+template<>
+std::string opt(std::false_type, int index) {
+    return __testlib_indexToArgv(index);
+}
+
+template<typename T>
+T opt(std::true_type, int index) {
+    return T(toLongDouble(__testlib_indexToArgv(index)));
+}
+
+template<typename T, typename U>
+T opt(std::false_type, U, int index) {
+    return opt<T>(std::is_floating_point<T>(), index);
+}
+
+template<typename T>
+T opt(std::true_type, std::false_type, int index) {
+    return toIntegral<T>(__testlib_indexToArgv(index), false);
+}
+
+template<typename T>
+T opt(std::true_type, std::true_type, int index) {
+    return toIntegral<T>(__testlib_indexToArgv(index), true);
+}
+
+template<>
+bool opt(std::true_type, std::true_type, int index) {
+    std::string value = __testlib_indexToArgv(index);
+    if (value == "true" || value == "1")
+        return true;
+    if (value == "false" || value == "0")
+        return false;
+    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+}
+
+template<typename T>
+T opt(int index) {
+    return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
+}
+
+template<typename T>
+T opt(std::false_type, const std::string& key);
+
+template<>
+std::string opt(std::false_type, const std::string& key) {
+    return __testlib_keyToOpts(key);
+}
+
+template<typename T>
+T opt(std::true_type, const std::string& key) {
+    return T(toLongDouble(__testlib_keyToOpts(key)));
+}
+
+template<typename T, typename U>
+T opt(std::false_type, U, const std::string& key) {
+    return opt<T>(std::is_floating_point<T>(), key);
+}
+
+template<typename T>
+T opt(std::true_type, std::false_type, const std::string& key) {
+    return toIntegral<T>(__testlib_keyToOpts(key), false);
+}
+
+template<typename T>
+T opt(std::true_type, std::true_type, const std::string& key) {
+    return toIntegral<T>(__testlib_keyToOpts(key), true);
+}
+
+template<>
+bool opt(std::true_type, std::true_type, const std::string& key) {
+    std::string value = __testlib_keyToOpts(key);
+    if (value == "true" || value == "1")
+        return true;
+    if (value == "false" || value == "0")
+        return false;
+    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+}
+
+template<typename T>
+T opt(const std::string key) {
+    return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
+}
 #endif
 #endif
