@@ -4707,6 +4707,10 @@ T opt(int index) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
 }
 
+std::string opt(int index) {
+    return opt<std::string>(index);
+}
+
 template<typename T>
 T opt(std::false_type, const std::string& key);
 
@@ -4748,6 +4752,10 @@ bool opt(std::true_type, std::true_type, const std::string& key) {
 template<typename T>
 T opt(const std::string key) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
+}
+
+std::string opt(const std::string key) {
+    return opt<std::string>(key);
 }
 #endif
 #endif
