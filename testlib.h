@@ -4609,14 +4609,14 @@ T optValueToIntegral(const std::string& s, bool nonnegative);
 long double optValueToLongDouble(const std::string& s);
 
 std::string parseExponentialOptValue(const std::string& s) {
-    int pos = -1;
+    size_t pos = std::string::npos;
     for (size_t i = 0; i < s.length(); i++)
         if (s[i] == 'e' || s[i] == 'E') {
             if (pos >= 0)
                 __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
             pos = i;
         }
-    if (pos == -1)
+    if (pos == std::string::npos)
         return s;
     std::string e = s.substr(pos + 1);
     if (!e.empty() && e[0] == '+')
@@ -4651,7 +4651,7 @@ std::string parseExponentialOptValue(const std::string& s) {
     for (int i = 0; i < -ne; i++) {
         size_t sep = num.find('.');
         if (sep == std::string::npos)
-            num.insert(num.begin() + num.length() - 1, '.');
+            num.insert(num.begin() + int(num.length()) - 1, '.');
         else {
             if (sep == 0)
                 num.insert(num.begin() + 1, '0');
