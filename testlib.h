@@ -22,7 +22,7 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2019
+ * Copyright (c) 2005-2020
  */
 
 #define VERSION "0.9.27-SNAPSHOT"
@@ -3775,7 +3775,7 @@ void quitif(bool condition, TResult result, const char *format, ...) {
 NORETURN void __testlib_help() {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2019\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2020\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
