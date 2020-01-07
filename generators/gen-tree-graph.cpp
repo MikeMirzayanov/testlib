@@ -30,8 +30,8 @@ int main(int argc, char* argv[])
 {
     registerGen(argc, argv, 1);
 
-    int n = atoi(argv[1]);
-    int t = atoi(argv[2]);
+    int n = opt<int>(1);
+    int t = opt<int>(2);
 
     vector<int> p(n);
     forn(i, n)

@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 {
     registerGen(argc, argv, 1);
 
-    cout << rnd.wnext(1, 1000000, atoi(argv[1])) << endl;
+    cout << rnd.wnext(1, 1000000, opt<int>(1)) << endl;
 
     return 0;
 }

@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2019
  */
 
-#define VERSION "0.9.26-SNAPSHOT"
+#define VERSION "0.9.27-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Opts supported: use them like n = opt<int>(\"n\")",
+        "Opts supported: use them like n = opt<int>(\"n\"), in a command line you can use an exponential notation",
         "Reformatted",
         "Use setTestCase(i) or unsetTestCase() to support test cases (you can use it in any type of program: generator, interactor, validator or checker)",
         "Fixed issue #87: readStrictDouble accepts \"-0.00\"",
@@ -4604,35 +4604,104 @@ std::string __testlib_keyToOpts(const std::string& key) {
 }
 
 template<typename T>
-T toIntegral(const std::string& s, bool nonnegative) {
+T optValueToIntegral(const std::string& s, bool nonnegative);
+
+long double optValueToLongDouble(const std::string& s);
+
+std::string parseExponentialOptValue(const std::string& s) {
+    int pos = -1;
+    for (size_t i = 0; i < s.length(); i++)
+        if (s[i] == 'e' || s[i] == 'E') {
+            if (pos >= 0)
+                __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
+            pos = i;
+        }
+    if (pos == -1)
+        return s;
+    std::string e = s.substr(pos + 1);
+    if (!e.empty() && e[0] == '+')
+        e = e.substr(1);
+    if (e.empty())
+        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
+    if (e.length() > 20)
+        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
+    int ne = optValueToIntegral<int>(e, false);
+    std::string num = s.substr(0, pos);
+    if (num.length() > 20)
+        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
+    if (!num.empty() && num[0] == '+')
+        num = num.substr(1);
+    optValueToLongDouble(num);
+    bool minus = false;
+    if (num[0] == '-') {
+        minus = true;
+        num = num.substr(1);
+    }
+    for (int i = 0; i < +ne; i++) {
+        size_t sep = num.find('.');
+        if (sep == std::string::npos)
+            num += '0';
+        else {
+            if (sep + 1 == num.length())
+                num[sep] = '0';
+            else
+                std::swap(num[sep], num[sep + 1]);
+        }
+    }
+    for (int i = 0; i < -ne; i++) {
+        size_t sep = num.find('.');
+        if (sep == std::string::npos)
+            num.insert(num.begin() + num.length() - 1, '.');
+        else {
+            if (sep == 0)
+                num.insert(num.begin() + 1, '0');
+            else
+                std::swap(num[sep - 1], num[sep]);
+        }
+    }
+    while (!num.empty() && num[0] == '0')
+        num = num.substr(1);
+    while (num.find('.') != std::string::npos && num.back() == '0')
+        num = num.substr(0, num.length() - 1);
+    if (!num.empty() && num.back() == '.')
+        num = num.substr(0, num.length() - 1);
+    if ((!num.empty() && num[0] == '.') || num.empty())
+        num.insert(num.begin(), '0');
+    return (minus ? "-" : "") + num;
+}
+
+template<typename T>
+T optValueToIntegral(const std::string& s_, bool nonnegative) {
+    std::string s(parseExponentialOptValue(s_));
     if (s.empty())
-        __testlib_fail("Opts: expected integer but '" + compress(s) + "' found");
+        __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
     T value = 0;
     long double about = 0.0;
     signed char sign = +1;
     size_t pos = 0;
     if (s[pos] == '-') {
         if (nonnegative)
-            __testlib_fail("Opts: expected non-negative integer but '" + compress(s) + "' found");
+            __testlib_fail("Opts: expected non-negative integer but '" + compress(s_) + "' found");
         sign = -1;
         pos++;
     }
     for (size_t i = pos; i < s.length(); i++) {
         if (s[i] < '0' || s[i] > '9')
-            __testlib_fail("Opts: expected integer but '" + compress(s) + "' found");
+            __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
         value = value * 10 + s[i] - '0';
         about = about * 10 + s[i] - '0';
     }
     value *= sign;
     about *= sign;
     if (fabsl(value - about) > 0.1)
-        __testlib_fail("Opts: integer overflow: expected integer but '" + compress(s) + "' found");
+        __testlib_fail("Opts: integer overflow: expected integer but '" + compress(s_) + "' found");
     return value;
 }
 
-long double toLongDouble(const std::string& s) {
+long double optValueToLongDouble(const std::string& s_) {
+    std::string s(parseExponentialOptValue(s_));
     if (s.empty())
-        __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+        __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
     long double value = 0.0;
     signed char sign = +1;
     size_t pos = 0;
@@ -4645,7 +4714,7 @@ long double toLongDouble(const std::string& s) {
     for (size_t i = pos; i < s.length(); i++) {
         if (s[i] == '.') {
             if (period)
-                __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+                __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
             else {
                 period = true;
                 continue;
@@ -4654,7 +4723,7 @@ long double toLongDouble(const std::string& s) {
         if (period)
             mul *= 10.0;
         if (s[i] < '0' || s[i] > '9')
-            __testlib_fail("Opts: expected float number but '" + compress(s) + "' found");
+            __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
         if (period)
             value += (s[i] - '0') / mul;
         else
@@ -4674,7 +4743,7 @@ std::string opt(std::false_type, int index) {
 
 template<typename T>
 T opt(std::true_type, int index) {
-    return T(toLongDouble(__testlib_indexToArgv(index)));
+    return T(optValueToLongDouble(__testlib_indexToArgv(index)));
 }
 
 template<typename T, typename U>
@@ -4684,12 +4753,12 @@ T opt(std::false_type, U, int index) {
 
 template<typename T>
 T opt(std::true_type, std::false_type, int index) {
-    return toIntegral<T>(__testlib_indexToArgv(index), false);
+    return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
 }
 
 template<typename T>
 T opt(std::true_type, std::true_type, int index) {
-    return toIntegral<T>(__testlib_indexToArgv(index), true);
+    return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
 }
 
 template<>
@@ -4707,6 +4776,10 @@ T opt(int index) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
 }
 
+std::string opt(int index) {
+    return opt<std::string>(index);
+}
+
 template<typename T>
 T opt(std::false_type, const std::string& key);
 
@@ -4717,7 +4790,7 @@ std::string opt(std::false_type, const std::string& key) {
 
 template<typename T>
 T opt(std::true_type, const std::string& key) {
-    return T(toLongDouble(__testlib_keyToOpts(key)));
+    return T(optValueToLongDouble(__testlib_keyToOpts(key)));
 }
 
 template<typename T, typename U>
@@ -4727,12 +4800,12 @@ T opt(std::false_type, U, const std::string& key) {
 
 template<typename T>
 T opt(std::true_type, std::false_type, const std::string& key) {
-    return toIntegral<T>(__testlib_keyToOpts(key), false);
+    return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
 }
 
 template<typename T>
 T opt(std::true_type, std::true_type, const std::string& key) {
-    return toIntegral<T>(__testlib_keyToOpts(key), true);
+    return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
 }
 
 template<>
@@ -4748,6 +4821,10 @@ bool opt(std::true_type, std::true_type, const std::string& key) {
 template<typename T>
 T opt(const std::string key) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
+}
+
+std::string opt(const std::string key) {
+    return opt<std::string>(key);
 }
 #endif
 #endif
