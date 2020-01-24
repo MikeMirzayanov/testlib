@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.27-SNAPSHOT"
+#define VERSION "0.9.28-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Print integer range violations in a human readable way like `violates the range [1, 10^9]`",
         "Opts supported: use them like n = opt<int>(\"n\"), in a command line you can use an exponential notation",
         "Reformatted",
         "Use setTestCase(i) or unsetTestCase() to support test cases (you can use it in any type of program: generator, interactor, validator or checker)",
@@ -2236,6 +2237,48 @@ static std::string vtos(const T &t) {
     return vtos(t, std::is_integral<T>());
 }
 
+/* signed case. */
+template<typename T>
+static std::string toHumanReadableString(const T &n, std::false_type) {
+    if (n == 0)
+        return vtos(n);
+    int trailingZeroCount = 0;
+    T n_ = n;
+    while (n_ % 10 == 0)
+        n_ /= 10, trailingZeroCount++;
+    if (trailingZeroCount >= 7) {
+        if (n_ == 1)
+            return "10^" + vtos(trailingZeroCount);
+        else if (n_ == -1)
+            return "-10^" + vtos(trailingZeroCount);
+        else
+            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
+    } else
+        return vtos(n);
+}
+
+/* unsigned case. */
+template<typename T>
+static std::string toHumanReadableString(const T &n, std::true_type) {
+    if (n == 0)
+        return vtos(n);
+    int trailingZeroCount = 0;
+    T n_ = n;
+    while (n_ % 10 == 0)
+        n_ /= 10, trailingZeroCount++;
+    if (trailingZeroCount >= 7) {
+        if (n_ == 1)
+            return "10^" + vtos(trailingZeroCount);
+        else
+            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
+    } else
+        return vtos(n);
+}
+
+template<typename T>
+static std::string toHumanReadableString(const T &n) {
+    return toHumanReadableString(n, std::is_unsigned<T>());
+}
 #else
 template<typename T>
 static std::string vtos(const T& t)
@@ -2247,6 +2290,11 @@ static std::string vtos(const T& t)
     ss << t;
     ss >> s;
     return s;
+}
+
+template<typename T>
+static std::string toHumanReadableString(const T &n) {
+    return vtos(n);
 }
 #endif
 
@@ -3193,19 +3241,19 @@ long long InStream::readLong(long long minv, long long maxv, const std::string &
     if (result < minv || result > maxv) {
         if (readManyIteration == NO_INDEX) {
             if (variableName.empty())
-                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) +
+                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) +
                            "]").c_str());
             else
                 quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) +
-                           ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                           ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
         } else {
             if (variableName.empty())
                 quit(_wa, ("Integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) +
-                           ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                           ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
             else
                 quit(_wa,
                      ("Integer element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " +
-                      vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                      vtos(result) + ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
         }
     }
 
@@ -3232,20 +3280,20 @@ InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, con
         if (readManyIteration == NO_INDEX) {
             if (variableName.empty())
                 quit(_wa,
-                     ("Unsigned integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) +
+                     ("Unsigned integer " + vtos(result) + " violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) +
                       "]").c_str());
             else
                 quit(_wa,
                      ("Unsigned integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) +
-                      ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                      ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
         } else {
             if (variableName.empty())
                 quit(_wa,
                      ("Unsigned integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) +
-                      ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                      ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
             else
                 quit(_wa, ("Unsigned integer element " + std::string(variableName) + "[" + vtos(readManyIteration) +
-                           "] equals to " + vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) +
+                           "] equals to " + vtos(result) + ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) +
                            "]").c_str());
         }
     }
@@ -3280,19 +3328,19 @@ int InStream::readInt(int minv, int maxv, const std::string &variableName) {
     if (result < minv || result > maxv) {
         if (readManyIteration == NO_INDEX) {
             if (variableName.empty())
-                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + vtos(minv) + ", " + vtos(maxv) +
+                quit(_wa, ("Integer " + vtos(result) + " violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) +
                            "]").c_str());
             else
                 quit(_wa, ("Integer parameter [name=" + std::string(variableName) + "] equals to " + vtos(result) +
-                           ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                           ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
         } else {
             if (variableName.empty())
                 quit(_wa, ("Integer element [index=" + vtos(readManyIteration) + "] equals to " + vtos(result) +
-                           ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                           ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
             else
                 quit(_wa,
                      ("Integer element " + std::string(variableName) + "[" + vtos(readManyIteration) + "] equals to " +
-                      vtos(result) + ", violates the range [" + vtos(minv) + ", " + vtos(maxv) + "]").c_str());
+                      vtos(result) + ", violates the range [" + toHumanReadableString(minv) + ", " + toHumanReadableString(maxv) + "]").c_str());
         }
     }
 
@@ -4612,7 +4660,7 @@ std::string parseExponentialOptValue(const std::string& s) {
     size_t pos = std::string::npos;
     for (size_t i = 0; i < s.length(); i++)
         if (s[i] == 'e' || s[i] == 'E') {
-            if (pos >= 0)
+            if (pos != std::string::npos)
                 __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
             pos = i;
         }
