@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.28-SNAPSHOT"
+#define VERSION "0.9.29-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,9 @@
  */
 
 const char *latestFeatures[] = {
+        "opt<bool>(\"some_missing_key\") returns false now",
+        "has_opt(key)",
+        "Abort validator on validator.testset()/validator.group() if registered without using command line",
         "Print integer range violations in a human readable way like `violates the range [1, 10^9]`",
         "Opts supported: use them like n = opt<int>(\"n\"), in a command line you can use an exponential notation",
         "Reformatted",
@@ -2041,6 +2044,7 @@ const double ValidatorBoundsHit::EPS = 1E-12;
 
 class Validator {
 private:
+    bool _initialized;
     std::string _testset;
     std::string _group;
     std::string _testOverviewLogFileName;
@@ -2063,14 +2067,22 @@ private:
     }
 
 public:
-    Validator() : _testset("tests"), _group() {
+    Validator() : _initialized(false), _testset("tests"), _group() {
+    }
+
+    void initialize() {
+        _initialized = true;
     }
 
     std::string testset() const {
+        if (!_initialized)
+            __testlib_fail("Validator should be initialized with registerValidation(argc, argv) instead of registerValidation() to support validator.testset()");
         return _testset;
     }
 
     std::string group() const {
+        if (!_initialized)
+            __testlib_fail("Validator should be initialized with registerValidation(argc, argv) instead of registerValidation() to support validator.group()");
         return _group;
     }
 
@@ -3970,6 +3982,7 @@ void registerValidation() {
 
 void registerValidation(int argc, char *argv[]) {
     registerValidation();
+    validator.initialize();
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp("--testset", argv[i])) {
@@ -4781,6 +4794,10 @@ long double optValueToLongDouble(const std::string& s_) {
     return value;
 }
 
+bool has_opt(const std::string key) {
+    return __testlib_opts.count(key) != 0;
+}
+
 template<typename T>
 T opt(std::false_type, int index);
 
@@ -4858,6 +4875,8 @@ T opt(std::true_type, std::true_type, const std::string& key) {
 
 template<>
 bool opt(std::true_type, std::true_type, const std::string& key) {
+    if (!has_opt(key))
+        return false;
     std::string value = __testlib_keyToOpts(key);
     if (value == "true" || value == "1")
         return true;
