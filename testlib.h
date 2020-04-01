@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.29-SNAPSHOT"
+#define VERSION "0.9.30-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "rnd.distict(size, n) and rnd.distict(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
         "has_opt(key)",
         "Abort validator on validator.testset()/validator.group() if registered without using command line",
@@ -966,8 +967,9 @@ public:
         if (size <= 0)
             __testlib_fail("random_t::perm(T size, E first = 0): size must be positive");
         std::vector<E> p(size);
+        E current = first;
         for (T i = 0; i < size; i++)
-            p[i] = first + i;
+            p[i] = current++;
         if (size > 1)
             for (T i = 1; i < size; i++)
                 std::swap(p[i], p[next(i + 1)]);
@@ -977,6 +979,56 @@ public:
     template<typename T>
     std::vector<T> perm(T size) {
         return perm(size, T(0));
+    }
+
+    template<typename T>
+    std::vector<T> distict(int size, T from, T to) {
+        if (from > to)
+            __testlib_fail("random_t::distict expected from <= to");
+
+        if (size < 0)
+            __testlib_fail("random_t::distict expected size >= 0");
+
+        uint64_t n = to - from + 1;
+        if (uint64_t(size) > n)
+            __testlib_fail("random_t::distict expected size <= to - from + 1");
+
+        std::vector<T> result;
+        if (size == 0)
+            return result;
+
+        double expected = 0.0;
+        for (int i = 1; i <= size; i++)
+            expected += double(n) / double(n - i + 1);
+        
+        if (expected < double(n)) {
+            std::set<T> vals;
+            while (int(vals.size()) < size)
+                vals.insert(T(next(from, to)));
+            result.insert(result.end(), vals.begin(), vals.end());
+        } else {
+            if (n > 1000000000)
+                __testlib_fail("random_t::distict here expected to - from + 1 <= 1000000000");
+            std::vector<T> p(perm(int(n), from));
+            result.insert(result.end(), p.begin(), p.begin() + size);
+        }
+
+        return result;
+    }
+
+    template<typename T>
+    std::vector<T> distict(int size, T upper) {
+        if (size < 0)
+            __testlib_fail("random_t::distict expected size >= 0");
+        if (size == 0)
+            return std::vector<T>();
+        
+        if (upper <= 0)
+            __testlib_fail("random_t::distict expected upper > 0");
+        if (size > upper)
+            __testlib_fail("random_t::distict expected size <= upper");
+            
+        return distict(size, T(0), upper - 1);
     }
 };
 
@@ -4094,6 +4146,9 @@ static inline void __testlib_ensure(bool cond, const char *msg) {
 }
 
 #define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
+#define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
