@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.30-SNAPSHOT"
+#define VERSION "0.9.31-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "rnd.distict(size, n) and rnd.distict(size, from, to)",
+        "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
         "has_opt(key)",
         "Abort validator on validator.testset()/validator.group() if registered without using command line",
@@ -982,16 +982,16 @@ public:
     }
 
     template<typename T>
-    std::vector<T> distict(int size, T from, T to) {
+    std::vector<T> distinct(int size, T from, T to) {
         if (from > to)
-            __testlib_fail("random_t::distict expected from <= to");
+            __testlib_fail("random_t::distinct expected from <= to");
 
         if (size < 0)
-            __testlib_fail("random_t::distict expected size >= 0");
+            __testlib_fail("random_t::distinct expected size >= 0");
 
         uint64_t n = to - from + 1;
         if (uint64_t(size) > n)
-            __testlib_fail("random_t::distict expected size <= to - from + 1");
+            __testlib_fail("random_t::distinct expected size <= to - from + 1");
 
         std::vector<T> result;
         if (size == 0)
@@ -1008,7 +1008,7 @@ public:
             result.insert(result.end(), vals.begin(), vals.end());
         } else {
             if (n > 1000000000)
-                __testlib_fail("random_t::distict here expected to - from + 1 <= 1000000000");
+                __testlib_fail("random_t::distinct here expected to - from + 1 <= 1000000000");
             std::vector<T> p(perm(int(n), from));
             result.insert(result.end(), p.begin(), p.begin() + size);
         }
@@ -1017,18 +1017,18 @@ public:
     }
 
     template<typename T>
-    std::vector<T> distict(int size, T upper) {
+    std::vector<T> distinct(int size, T upper) {
         if (size < 0)
-            __testlib_fail("random_t::distict expected size >= 0");
+            __testlib_fail("random_t::distinct expected size >= 0");
         if (size == 0)
             return std::vector<T>();
         
         if (upper <= 0)
-            __testlib_fail("random_t::distict expected upper > 0");
+            __testlib_fail("random_t::distinct expected upper > 0");
         if (size > upper)
-            __testlib_fail("random_t::distict expected size <= upper");
+            __testlib_fail("random_t::distinct expected size <= upper");
             
-        return distict(size, T(0), upper - 1);
+        return distinct(size, T(0), upper - 1);
     }
 };
 
