@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.32-SNAPSHOT"
+#define VERSION "0.9.33-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` non-negative integers",
+        "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
         "has_opt(key)",
@@ -1039,6 +1039,10 @@ public:
     /* Returns random (unsorted) partition which is a representation of sum as a sum of integers not less than min_part. */
     template<typename T>
     std::vector<T> partition(int size, T sum, T min_part) {
+        if (size < 0)
+            __testlib_fail("random_t::partition: size < 0");
+        if (size == 0 && sum != 0)
+            __testlib_fail("random_t::partition: size == 0 && sum != 0");
         if (min_part * size > sum)
             __testlib_fail("random_t::partition: min_part * size > sum");
 
@@ -1074,10 +1078,10 @@ public:
         return result;
     }
 
-    /* Returns random (unsorted) partition which is a representation of sum as a sum of non-negative integers. */
+    /* Returns random (unsorted) partition which is a representation of sum as a sum of positive integers. */
     template<typename T>
     std::vector<T> partition(int size, T sum) {
-        return partition(size, sum, T(0));
+        return partition(size, sum, T(1));
     }
 };
 
