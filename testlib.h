@@ -1265,6 +1265,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string &s, size_t &pos
     if (__pattern_isCommandChar(s, pos, '[')) {
         pos++;
         bool negative = __pattern_isCommandChar(s, pos, '^');
+        if (negative) pos++;
 
         char prev = 0;
 
