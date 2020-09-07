@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2020
  */
 
-#define VERSION "0.9.33-SNAPSHOT"
+#define VERSION "0.9.34-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Fixed hypothetical UB in stringToDouble and stringToStrictDouble",
         "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
@@ -1770,7 +1771,6 @@ struct InStream {
     bool stdfile;
     bool strict;
 
-    int wordReserveSize;
     std::string _tmpReadToken;
 
     int readManyIteration;
@@ -2423,11 +2423,11 @@ static std::string toString(const T &t) {
 InStream::InStream() {
     reader = NULL;
     lastLine = -1;
+    opened = false;
     name = "";
     mode = _input;
     strict = false;
     stdfile = false;
-    wordReserveSize = 4;
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
@@ -2439,6 +2439,7 @@ InStream::InStream(const InStream &baseStream, std::string content) {
     lastLine = -1;
     opened = true;
     strict = baseStream.strict;
+    stdfile = false;
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
     readManyIteration = NO_INDEX;
@@ -3165,6 +3166,7 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3234,6 +3236,7 @@ stringToStrictDouble(InStream &in, const char *buffer, int minAfterPointDigitCou
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3264,7 +3267,7 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
     long long retval = 0LL;
 
     int zeroes = 0;
-    int processingZeroes = true;
+    bool processingZeroes = true;
 
     for (int i = (minus ? 1 : 0); i < int(length); i++) {
         if (buffer[i] == '0' && processingZeroes)
@@ -3312,7 +3315,7 @@ static inline unsigned long long stringToUnsignedLongLong(InStream &in, const ch
     if (length < 19)
         return retval;
 
-    if (length == 20 && strcmp(buffer, "18446744073709551615") == 1)
+    if (length == 20 && strcmp(buffer, "18446744073709551615") > 0)
         in.quit(_pe, ("Expected unsigned int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     if (equals(retval, buffer))
@@ -4284,7 +4287,7 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
     quitf(_fail, "Don't use srand(), you should use "
                  "'registerGen(argc, argv, 1);' to initialize generator seed "
                  "by hash code of the command line params. The third parameter "
-                 "is randomGeneratorVersion (currently the latest is 1) [ignored seed=%d].", seed);
+                 "is randomGeneratorVersion (currently the latest is 1) [ignored seed=%u].", seed);
 }
 
 void startTest(int test) {
@@ -4702,7 +4705,7 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 /* opts */
 size_t getOptType(char* s) {
     if (!s || strlen(s) <= 1)
-        return false;
+        return 0;
 
     if (s[0] == '-') {
         if (isalpha(s[1]))
