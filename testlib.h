@@ -988,6 +988,10 @@ public:
     /* Returns `size` unordered (unsorted) distinct numbers between `from` and `to`. */
     template<typename T>
     std::vector<T> distinct(int size, T from, T to) {
+        std::vector<T> result;
+        if (size == 0)
+            return result;
+
         if (from > to)
             __testlib_fail("random_t::distinct expected from <= to");
 
@@ -997,10 +1001,6 @@ public:
         uint64_t n = to - from + 1;
         if (uint64_t(size) > n)
             __testlib_fail("random_t::distinct expected size <= to - from + 1");
-
-        std::vector<T> result;
-        if (size == 0)
-            return result;
 
         double expected = 0.0;
         for (int i = 1; i <= size; i++)
