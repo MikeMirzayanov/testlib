@@ -506,6 +506,10 @@ void prepareOpts(int argc, char* argv[]);
  * new string by pattern.
  * 
  * Simpler way to read token and check it for pattern matching is "inf.readToken("[a-z]+")".
+ *
+ * All spaces are ignored in regex, unless escaped with \. For example, ouf.readLine("NO SOLUTION")
+ * will expect "NOSOLUTION", the correct call should be ouf.readLine("NO\\ SOLUTION") or
+ * ouf.readLine(R"(NO\ SOLUTION)") if you prefer raw string literals from C++11.
  */
 class random_t;
 
