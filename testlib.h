@@ -2063,6 +2063,9 @@ struct InStream {
     /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
     void readEoln();
 
+    /* Calls readEoln or readSpace, depending on condition given. Just a shortcut for common pattern. */
+    void readSpaceOrEoln(bool needEoln);
+
     /* Reads EOF or fails. Use it in validators. Calls "eof()" method internally. */
     void readEof();
 
@@ -3690,6 +3693,13 @@ void InStream::readEoln() {
     lastLine = reader->getLine();
     if (!eoln())
         quit(_pe, "Expected EOLN");
+}
+
+void InStream::readSpaceOrEoln(bool needEoln) {
+    if (needEoln)
+        readEoln();
+    else
+        readSpace();
 }
 
 void InStream::readEof() {
