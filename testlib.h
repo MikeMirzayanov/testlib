@@ -1012,9 +1012,11 @@ public:
         
         if (expected < double(n)) {
             std::set<T> vals;
-            while (int(vals.size()) < size)
-                vals.insert(T(next(from, to)));
-            result.insert(result.end(), vals.begin(), vals.end());
+            while (int(vals.size()) < size) {
+                T x = T(next(from, to));
+                if (vals.insert(x).second)
+                    result.push_back(x);
+            }
         } else {
             if (n > 1000000000)
                 __testlib_fail("random_t::distinct here expected to - from + 1 <= 1000000000");
