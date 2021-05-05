@@ -1072,10 +1072,10 @@ public:
         for (std::size_t i = 0; i < result.size(); i++)
             result_sum += result[i];
         if (result_sum != sum_)
-            __testlib_fail("random_t::partition: partition sum is expeced to be the given sum");
+            __testlib_fail("random_t::partition: partition sum is expected to be the given sum");
         
         if (*std::min_element(result.begin(), result.end()) < min_part)
-            __testlib_fail("random_t::partition: partition min is expeced to be to less than the given min_part");
+            __testlib_fail("random_t::partition: partition min is expected to be no less than the given min_part");
         
         if (int(result.size()) != size || result.size() != (size_t) size)
             __testlib_fail("random_t::partition: partition size is expected to be equal to the given size");
