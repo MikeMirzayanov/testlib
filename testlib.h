@@ -64,7 +64,7 @@
 
 const char *latestFeatures[] = {
         "Fixed hypothetical UB in stringToDouble and stringToStrictDouble",
-        "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
+        "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
         "has_opt(key)",
