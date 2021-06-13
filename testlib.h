@@ -409,6 +409,7 @@ static bool __testlib_isInfinite(double r) {
 __attribute__((const))
 #endif
 inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR) {
+    MAX_DOUBLE_ERROR += 1E-15;
     if (__testlib_isNaN(expected)) {
         return __testlib_isNaN(result);
     } else if (__testlib_isInfinite(expected)) {
@@ -419,14 +420,14 @@ inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERRO
         }
     } else if (__testlib_isNaN(result) || __testlib_isInfinite(result)) {
         return false;
-    } else if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15) {
+    } else if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR) {
         return true;
     } else {
         double minv = __testlib_min(expected * (1.0 - MAX_DOUBLE_ERROR),
                                     expected * (1.0 + MAX_DOUBLE_ERROR));
         double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
                                     expected * (1.0 + MAX_DOUBLE_ERROR));
-        return result + 1E-15 >= minv && result <= maxv + 1E-15;
+        return result >= minv && result <= maxv;
     }
 }
 
