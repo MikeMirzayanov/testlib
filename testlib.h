@@ -63,8 +63,6 @@
  */
 
 const char *latestFeatures[] = {
-        "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
-        "Fixed hypothetical UB in stringToDouble and stringToStrictDouble",
         "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
@@ -1641,13 +1639,13 @@ private:
     static const size_t MAX_UNREAD_COUNT;
 
     std::FILE *file;
+    std::string name;
+    int line;
+
     char *buffer;
     bool *isEof;
     int bufferPos;
     size_t bufferSize;
-
-    std::string name;
-    int line;
 
     bool refill() {
         if (NULL == file)
@@ -1774,6 +1772,7 @@ struct InStream {
     bool stdfile;
     bool strict;
 
+    int wordReserveSize;
     std::string _tmpReadToken;
 
     int readManyIteration;
@@ -2155,6 +2154,7 @@ private:
     bool _initialized;
     std::string _testset;
     std::string _group;
+
     std::string _testOverviewLogFileName;
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
     std::set<std::string> _features;
@@ -2426,11 +2426,11 @@ static std::string toString(const T &t) {
 InStream::InStream() {
     reader = NULL;
     lastLine = -1;
-    opened = false;
     name = "";
     mode = _input;
     strict = false;
     stdfile = false;
+    wordReserveSize = 4;
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
@@ -2442,7 +2442,6 @@ InStream::InStream(const InStream &baseStream, std::string content) {
     lastLine = -1;
     opened = true;
     strict = baseStream.strict;
-    stdfile = false;
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
     readManyIteration = NO_INDEX;
@@ -2799,7 +2798,7 @@ void InStream::reset(std::FILE *file) {
     if (opened)
         close();
 
-    if (!stdfile)
+    if (!stdfile && NULL == file)
         if (NULL == (file = std::fopen(name.c_str(), "rb"))) {
             if (mode == _output)
                 quits(_pe, std::string("Output file not found: \"") + name + "\"");
@@ -3169,7 +3168,6 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
-    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3239,7 +3237,6 @@ stringToStrictDouble(InStream &in, const char *buffer, int minAfterPointDigitCou
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
-    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3914,15 +3911,6 @@ NORETURN void quitp(long double points, const std::string &message = "") {
 
 NORETURN void quitp(int points, const std::string &message = "") {
     __testlib_quitp(points, message.c_str());
-}
-
-NORETURN void quitpi(const std::string &points_info, const std::string &message = "") {
-    if (points_info.find(' ') != std::string::npos)
-        quit(_fail, "Parameter 'points_info' can't contain spaces");
-    if (message.empty())
-        quit(_points, ("points_info=" + points_info).c_str());
-    else
-        quit(_points, ("points_info=" + points_info + " " + message).c_str());
 }
 
 template<typename F>
