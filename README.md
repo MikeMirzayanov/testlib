@@ -77,7 +77,7 @@ This code reads input from the standard input and checks that it contains the on
 int main(int argc, char* argv[])
 {
     registerValidation(argc, argv);
-    inf.readInt(1, 100);
+    inf.readInt(1, 100, "n");
     inf.readEoln();
     inf.readEof();
 }
@@ -111,7 +111,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
     
-    int n = atoi(argv[1]);
+    int n = opt<int>(1);
     println(n);
     println(rnd.perm(n, 1));
 }
