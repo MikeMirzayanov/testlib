@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "rnd.partition(size, sum[, min_part=0]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
+        "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
         "has_opt(key)",
@@ -408,6 +408,7 @@ static bool __testlib_isInfinite(double r) {
 __attribute__((const))
 #endif
 inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR) {
+    MAX_DOUBLE_ERROR += 1E-15;
     if (__testlib_isNaN(expected)) {
         return __testlib_isNaN(result);
     } else if (__testlib_isInfinite(expected)) {
@@ -418,14 +419,14 @@ inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERRO
         }
     } else if (__testlib_isNaN(result) || __testlib_isInfinite(result)) {
         return false;
-    } else if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR + 1E-15) {
+    } else if (__testlib_abs(result - expected) <= MAX_DOUBLE_ERROR) {
         return true;
     } else {
         double minv = __testlib_min(expected * (1.0 - MAX_DOUBLE_ERROR),
                                     expected * (1.0 + MAX_DOUBLE_ERROR));
         double maxv = __testlib_max(expected * (1.0 - MAX_DOUBLE_ERROR),
                                     expected * (1.0 + MAX_DOUBLE_ERROR));
-        return result + 1E-15 >= minv && result <= maxv + 1E-15;
+        return result >= minv && result <= maxv;
     }
 }
 
@@ -505,6 +506,10 @@ void prepareOpts(int argc, char* argv[]);
  * new string by pattern.
  * 
  * Simpler way to read token and check it for pattern matching is "inf.readToken("[a-z]+")".
+ *
+ * All spaces are ignored in regex, unless escaped with \. For example, ouf.readLine("NO SOLUTION")
+ * will expect "NOSOLUTION", the correct call should be ouf.readLine("NO\\ SOLUTION") or
+ * ouf.readLine(R"(NO\ SOLUTION)") if you prefer raw string literals from C++11.
  */
 class random_t;
 
@@ -987,6 +992,10 @@ public:
     /* Returns `size` unordered (unsorted) distinct numbers between `from` and `to`. */
     template<typename T>
     std::vector<T> distinct(int size, T from, T to) {
+        std::vector<T> result;
+        if (size == 0)
+            return result;
+
         if (from > to)
             __testlib_fail("random_t::distinct expected from <= to");
 
@@ -997,19 +1006,17 @@ public:
         if (uint64_t(size) > n)
             __testlib_fail("random_t::distinct expected size <= to - from + 1");
 
-        std::vector<T> result;
-        if (size == 0)
-            return result;
-
         double expected = 0.0;
         for (int i = 1; i <= size; i++)
             expected += double(n) / double(n - i + 1);
         
         if (expected < double(n)) {
             std::set<T> vals;
-            while (int(vals.size()) < size)
-                vals.insert(T(next(from, to)));
-            result.insert(result.end(), vals.begin(), vals.end());
+            while (int(vals.size()) < size) {
+                T x = T(next(from, to));
+                if (vals.insert(x).second)
+                    result.push_back(x);
+            }
         } else {
             if (n > 1000000000)
                 __testlib_fail("random_t::distinct here expected to - from + 1 <= 1000000000");
@@ -1067,10 +1074,10 @@ public:
         for (std::size_t i = 0; i < result.size(); i++)
             result_sum += result[i];
         if (result_sum != sum_)
-            __testlib_fail("random_t::partition: partition sum is expeced to be the given sum");
+            __testlib_fail("random_t::partition: partition sum is expected to be the given sum");
         
         if (*std::min_element(result.begin(), result.end()) < min_part)
-            __testlib_fail("random_t::partition: partition min is expeced to be to less than the given min_part");
+            __testlib_fail("random_t::partition: partition min is expected to be no less than the given min_part");
         
         if (int(result.size()) != size || result.size() != (size_t) size)
             __testlib_fail("random_t::partition: partition size is expected to be equal to the given size");
