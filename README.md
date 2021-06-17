@@ -17,8 +17,7 @@ This is sample checker which expects in the output and in the answer the same in
 ```c++
 #include "testlib.h"
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("compares two signed integers");
     registerTestlibCmd(argc, argv);
     int ja = ans.readInt();
@@ -41,15 +40,13 @@ interactor with `quitf(_wa, <comment>)`.
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     setName("Interactor A+B");
     registerInteraction(argc, argv);
 
     // reads number of queries from test (input) file
     int n = inf.readInt();
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         // reads query from test (input) file
         int a = inf.readInt();
         int b = inf.readInt();
@@ -74,10 +71,9 @@ This code reads input from the standard input and checks that it contains the on
 ```c++
 #include "testlib.h"
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
-    inf.readInt(1, 100);
+    inf.readInt(1, 100, "n");
     inf.readEoln();
     inf.readEof();
 }
@@ -93,8 +89,7 @@ This generator outputs into the standard output random token, containing Latin l
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
     cout << rnd.next(1, 10) << endl; /* Random number in the range [1,10]. */
     cout << rnd.next("[a-zA-Z0-9]{1,1000}") << endl;  /* Random word of length [1,1000]. */
@@ -111,7 +106,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
     
-    int n = atoi(argv[1]);
+    int n = opt<int>(1);
     println(n);
     println(rnd.perm(n, 1));
 }
