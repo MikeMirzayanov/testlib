@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2021
  */
 
-#define VERSION "0.9.35-SNAPSHOT"
+#define VERSION "0.9.36-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
@@ -2433,6 +2434,7 @@ static std::string toString(const T &t) {
 InStream::InStream() {
     reader = NULL;
     lastLine = -1;
+    opened = false;
     name = "";
     mode = _input;
     strict = false;
@@ -2449,6 +2451,7 @@ InStream::InStream(const InStream &baseStream, std::string content) {
     lastLine = -1;
     opened = true;
     strict = baseStream.strict;
+    stdfile = false;
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
     readManyIteration = NO_INDEX;
@@ -3918,6 +3921,15 @@ NORETURN void quitp(long double points, const std::string &message = "") {
 
 NORETURN void quitp(int points, const std::string &message = "") {
     __testlib_quitp(points, message.c_str());
+}
+
+NORETURN void quitpi(const std::string &points_info, const std::string &message = "") {
+    if (points_info.find(' ') != std::string::npos)
+        quit(_fail, "Parameter 'points_info' can't contain spaces");
+    if (message.empty())
+        quit(_points, ("points_info=" + points_info).c_str());
+    else
+        quit(_points, ("points_info=" + points_info + " " + message).c_str());
 }
 
 template<typename F>
