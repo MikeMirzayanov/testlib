@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2021
  */
 
-#define VERSION "0.9.36-SNAPSHOT"
+#define VERSION "0.9.37-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -2961,10 +2961,16 @@ void InStream::readTokenTo(std::string &result) {
 }
 
 static std::string __testlib_part(const std::string &s) {
-    if (s.length() <= 64)
-        return s;
+    std::string t;
+    for (size_t i = 0; i < s.length(); i++)
+        if (s[i] != '\0')
+            t += s[i];
+        else
+            t += '~';
+    if (t.length() <= 64)
+        return t;
     else
-        return s.substr(0, 30) + "..." + s.substr(s.length() - 31, 31);
+        return t.substr(0, 30) + "..." + t.substr(s.length() - 31, 31);
 }
 
 #define __testlib_readMany(readMany, readOne, typeName, space)                  \
@@ -3190,8 +3196,15 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
-static inline double
-stringToStrictDouble(InStream &in, const char *buffer, int minAfterPointDigitCount, int maxAfterPointDigitCount) {
+static inline double stringToDouble(InStream &in, const std::string& buffer) {
+    for (size_t i = 0; i < buffer.length(); i++)
+        if (buffer[i] == '\0')
+            in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found (it contains \\0)").c_str());
+    return stringToDouble(in, buffer.c_str());    
+}
+
+static inline double stringToStrictDouble(InStream &in, const char *buffer,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount) {
     if (minAfterPointDigitCount < 0)
         in.quit(_fail, "stringToStrictDouble: minAfterPointDigitCount should be non-negative.");
 
@@ -3261,6 +3274,14 @@ stringToStrictDouble(InStream &in, const char *buffer, int minAfterPointDigitCou
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+static inline double stringToStrictDouble(InStream &in, const std::string& buffer,
+        int minAfterPointDigitCount, int maxAfterPointDigitCount) {
+    for (size_t i = 0; i < buffer.length(); i++)
+        if (buffer[i] == '\0')
+            in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found (it contains \\0)").c_str());
+    return stringToStrictDouble(in, buffer.c_str(), minAfterPointDigitCount, maxAfterPointDigitCount);
+}
+
 static inline long long stringToLongLong(InStream &in, const char *buffer) {
     if (strcmp(buffer, "-9223372036854775808") == 0)
         return LLONG_MIN;
@@ -3307,6 +3328,13 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+static inline long long stringToLongLong(InStream &in, const std::string& buffer) {
+    for (size_t i = 0; i < buffer.length(); i++)
+        if (buffer[i] == '\0')
+            in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found (it contains \\0)").c_str());
+    return stringToLongLong(in, buffer.c_str());    
+}
+
 static inline unsigned long long stringToUnsignedLongLong(InStream &in, const char *buffer) {
     size_t length = strlen(buffer);
 
@@ -3334,13 +3362,20 @@ static inline unsigned long long stringToUnsignedLongLong(InStream &in, const ch
         in.quit(_pe, ("Expected unsigned int64, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+static inline long long stringToUnsignedLongLong(InStream &in, const std::string& buffer) {
+    for (size_t i = 0; i < buffer.length(); i++)
+        if (buffer[i] == '\0')
+            in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found (it contains \\0)").c_str());
+    return stringToUnsignedLongLong(in, buffer.c_str());    
+}
+
 int InStream::readInteger() {
     if (!strict && seekEof())
         quit(_unexpected_eof, "Unexpected end of file - int32 expected");
 
     readWordTo(_tmpReadToken);
 
-    long long value = stringToLongLong(*this, _tmpReadToken.c_str());
+    long long value = stringToLongLong(*this, _tmpReadToken);
     if (value < INT_MIN || value > INT_MAX)
         quit(_pe, ("Expected int32, but \"" + __testlib_part(_tmpReadToken) + "\" found").c_str());
 
@@ -3353,7 +3388,7 @@ long long InStream::readLong() {
 
     readWordTo(_tmpReadToken);
 
-    return stringToLongLong(*this, _tmpReadToken.c_str());
+    return stringToLongLong(*this, _tmpReadToken);
 }
 
 unsigned long long InStream::readUnsignedLong() {
@@ -3362,7 +3397,7 @@ unsigned long long InStream::readUnsignedLong() {
 
     readWordTo(_tmpReadToken);
 
-    return stringToUnsignedLongLong(*this, _tmpReadToken.c_str());
+    return stringToUnsignedLongLong(*this, _tmpReadToken);
 }
 
 long long InStream::readLong(long long minv, long long maxv, const std::string &variableName) {
@@ -3504,7 +3539,7 @@ double InStream::readReal() {
     if (!strict && seekEof())
         quit(_unexpected_eof, "Unexpected end of file - double expected");
 
-    return stringToDouble(*this, readWord().c_str());
+    return stringToDouble(*this, readWord());
 }
 
 double InStream::readDouble() {
@@ -3570,8 +3605,7 @@ double InStream::readStrictReal(double minv, double maxv,
     if (!strict && seekEof())
         quit(_unexpected_eof, "Unexpected end of file - strict double expected");
 
-    double result = stringToStrictDouble(*this, readWord().c_str(),
-                                         minAfterPointDigitCount, maxAfterPointDigitCount);
+    double result = stringToStrictDouble(*this, readWord(), minAfterPointDigitCount, maxAfterPointDigitCount);
 
     if (result < minv || result > maxv) {
         if (readManyIteration == NO_INDEX) {
