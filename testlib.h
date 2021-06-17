@@ -1053,6 +1053,8 @@ public:
             __testlib_fail("random_t::partition: size == 0 && sum != 0");
         if (min_part * size > sum)
             __testlib_fail("random_t::partition: min_part * size > sum");
+        if (size == 0 && sum == 0)
+            return std::vector<T>();
 
         T sum_ = sum;
         sum -= min_part * size;
