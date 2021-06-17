@@ -24,5 +24,4 @@ int main(int argc, char* argv[]) {
     }
     
     inf.readEof();
-    return 0;
 }

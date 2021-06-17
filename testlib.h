@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2020
+ * Copyright (c) 2005-2021
  */
 
-#define VERSION "0.9.34-SNAPSHOT"
+#define VERSION "0.9.35-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,7 +63,6 @@
  */
 
 const char *latestFeatures[] = {
-        "Fixed hypothetical UB in stringToDouble and stringToStrictDouble",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
         "opt<bool>(\"some_missing_key\") returns false now",
@@ -1647,13 +1646,13 @@ private:
     static const size_t MAX_UNREAD_COUNT;
 
     std::FILE *file;
+    std::string name;
+    int line;
+
     char *buffer;
     bool *isEof;
     int bufferPos;
     size_t bufferSize;
-
-    std::string name;
-    int line;
 
     bool refill() {
         if (NULL == file)
@@ -1780,6 +1779,7 @@ struct InStream {
     bool stdfile;
     bool strict;
 
+    int wordReserveSize;
     std::string _tmpReadToken;
 
     int readManyIteration;
@@ -2161,6 +2161,7 @@ private:
     bool _initialized;
     std::string _testset;
     std::string _group;
+
     std::string _testOverviewLogFileName;
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
     std::set<std::string> _features;
@@ -2432,11 +2433,11 @@ static std::string toString(const T &t) {
 InStream::InStream() {
     reader = NULL;
     lastLine = -1;
-    opened = false;
     name = "";
     mode = _input;
     strict = false;
     stdfile = false;
+    wordReserveSize = 4;
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
@@ -2448,7 +2449,6 @@ InStream::InStream(const InStream &baseStream, std::string content) {
     lastLine = -1;
     opened = true;
     strict = baseStream.strict;
-    stdfile = false;
     mode = baseStream.mode;
     name = "based on " + baseStream.name;
     readManyIteration = NO_INDEX;
@@ -2546,13 +2546,13 @@ static std::string __testlib_appendMessage(const std::string &message, const std
     for (size_t i = 0; i < message.length(); i++) {
         if (message[i] == InStream::OPEN_BRACKET) {
             if (openPos == -1)
-                openPos = i;
+                openPos = int(i);
             else
                 openPos = INT_MAX;
         }
         if (message[i] == InStream::CLOSE_BRACKET) {
             if (closePos == -1)
-                closePos = i;
+                closePos = int(i);
             else
                 closePos = INT_MAX;
         }
@@ -2577,13 +2577,13 @@ static std::string __testlib_toPrintableMessage(const std::string &message) {
     for (size_t i = 0; i < message.length(); i++) {
         if (message[i] == InStream::OPEN_BRACKET) {
             if (openPos == -1)
-                openPos = i;
+                openPos = int(i);
             else
                 openPos = INT_MAX;
         }
         if (message[i] == InStream::CLOSE_BRACKET) {
             if (closePos == -1)
-                closePos = i;
+                closePos = int(i);
             else
                 closePos = INT_MAX;
         }
@@ -2805,7 +2805,7 @@ void InStream::reset(std::FILE *file) {
     if (opened)
         close();
 
-    if (!stdfile)
+    if (!stdfile && NULL == file)
         if (NULL == (file = std::fopen(name.c_str(), "rb"))) {
             if (mode == _output)
                 quits(_pe, std::string("Output file not found: \"") + name + "\"");
@@ -3175,7 +3175,6 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
-    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3245,7 +3244,6 @@ stringToStrictDouble(InStream &in, const char *buffer, int minAfterPointDigitCou
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
-    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
