@@ -4758,6 +4758,23 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 }
 
 /* opts */
+
+/**
+ * A struct for a singular testlib opt, containing the raw string value,
+ * and a boolean value for marking whether the opt is used.
+ */
+struct TestlibOpt {
+    std::string value;
+    bool used;
+    
+    TestlibOpt(): value(), used(false) {}
+    TestlibOpt(const std::string& value_): value(value_), used(false) {}
+    
+    operator const std::string&() const {
+        return value;
+    }
+};
+
 /**
  * Get the type of opt based on the number of `-` at the begining and the
  * _validity_ of the key name.
@@ -4814,7 +4831,7 @@ size_t getOptType(char* s) {
  * Algorithm details: TODO. Please refer to the implementation to see how the
  * code handles the 3rd and 4th forms separately.
  */
-size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, std::string>& opts) {
+size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, TestlibOpt>& opts) {
     if (index >= argc)
         return 0;
 
@@ -4850,10 +4867,11 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, s
  * Global list containing all the arguments in the orderd given by the user.
  */
 std::vector<std::string> __testlib_argv;
+
 /**
  * Global dictionary containing all the parsed opts.
  */
-std::map<std::string, std::string> __testlib_opts;
+std::map<std::string, TestlibOpt> __testlib_opts;
 
 /**
  * Parse command line arguments into opts.
@@ -4863,7 +4881,7 @@ void prepareOpts(int argc, char* argv[]) {
     if (argc <= 0)
         __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
     size_t n = static_cast<size_t>(argc); // NOLINT(hicpp-use-auto,modernize-use-auto)
-    __testlib_opts = std::map<std::string, std::string>();
+    __testlib_opts = std::map<std::string, TestlibOpt>();
     for (size_t index = 1; index < n; index += parseOpt(n, argv, index, __testlib_opts));
     __testlib_argv = std::vector<std::string>(n);
     for (size_t index = 0; index < n; index++)
@@ -4885,9 +4903,11 @@ std::string __testlib_indexToArgv(int index) {
  * also print a readable message when no opts are found.
  */
 std::string __testlib_keyToOpts(const std::string& key) {
-    if (__testlib_opts.count(key) == 0)
+    std::map<std::string, TestlibOpt>::iterator it = __testlib_opts.find(key);
+    if (it == __testlib_opts.end())
         __testlib_fail("Opts: unknown key '" + compress(key) + "'");
-    return __testlib_opts[key];
+    it->second.used = true;
+    return it->second.value;
 }
 
 template<typename T>
@@ -5126,6 +5146,26 @@ std::string opt(int index) {
     return opt<std::string>(index);
 }
 
+/**
+ * Return the parsed argv by a given index. If the index is bigger than
+ * the number of argv, return the given default_value.
+ */
+template<typename T>
+T opt(int index, const T& default_value) {
+    if (index >= int(__testlib_argv.size())) {
+        return default_value;
+    }
+    return opt<T>(index);
+}
+
+/**
+ * Return the raw string value of an argv by a given index. If the index is
+ * bigger than the number of argv, return the given default_value.
+ */
+std::string opt(int index, const std::string& default_value) {
+    return opt<std::string>(index, default_value);
+}
+
 template<typename T>
 T opt(std::false_type, const std::string& key);
 
@@ -5180,5 +5220,45 @@ T opt(const std::string key) {
 std::string opt(const std::string key) {
     return opt<std::string>(key);
 }
+
+/**
+ * Return the parsed opt by a given key. If no opts with the given key are
+ * found, return the given default_value.
+ */
+template<typename T>
+T opt(const std::string& key, const T& default_value) {
+    if (!has_opt(key)) {
+        return default_value;
+    }
+    return opt<T>(key);
+}
+
+/**
+ * Return the raw string value of an opt by a given key. If no opts with the
+ * given key are found, return the given default_value.
+ */
+std::string opt(const std::string& key, const std::string& default_value) {
+    return opt<std::string>(key, default_value);
+}
+
+/**
+ * Check if all opts are used. If not, __testlib_fail is called.
+ * Should be used after calling all opt() function calls.
+ * 
+ * This function is useful when opt() with default_value for checking typos
+ * in the opt's key.
+ */
+void check_unused_opt() {
+    for (std::map<std::string, TestlibOpt>::iterator it =
+             __testlib_opts.begin();
+         it != __testlib_opts.end();
+         ++it
+    ) {
+        if (!it->second.used) {
+            __testlib_fail("Opts: unused key '" + compress(it->first) + "'");
+        }
+    }
+}
+
 #endif
 #endif
