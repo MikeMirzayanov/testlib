@@ -4758,6 +4758,19 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 }
 
 /* opts */
+/**
+ * Get the type of opt based on the number of `-` at the begining and the
+ * _validity_ of the key name.
+ * 
+ * A valid key name must start with an alphabetical character.
+ * 
+ * Returns: 1 if s has one `-` at the beginning, that is, "-keyName".
+ *          2 if s has two `-` at the beginning, that is, "--keyName".
+ *          0 otherwise. That is, if s has no `-` at the beginning, or has more
+ *          than 2 at the beginning ("---keyName", "----keyName", ...), or the
+ *          keyName is invalid (the first character is not an alphabetical
+ *          character).
+ */
 size_t getOptType(char* s) {
     if (!s || strlen(s) <= 1)
         return 0;
@@ -4772,6 +4785,35 @@ size_t getOptType(char* s) {
     return 0;
 }
 
+/**
+ * Parse the opt at a given index, and put it into the opts maps.
+ * 
+ * An opt can has the following form:
+ * 1) -keyName=value or --keyName=value     (ex. -n=10 --test-count=20)
+ * 2) -keyName value or --keyName value     (ex. -n 10 --test-count 20)
+ * 3) -kNumval       or --kNumval           (ex. -n10  --t20)
+ * 4) -boolProperty  or --boolProperty      (ex. -sorted --tree-only)
+ * 
+ * Only the second forms consumes 2 arguments. The other consumes only 1
+ * argument.
+ * 
+ * In the third form, the key is a single character, and after the key is the
+ * value. The value _should_ be a number.
+ * 
+ * In the forth form, the value is true.
+ * 
+ * Params:
+ * - argc and argv: the number of command line arguments and the command line
+ *   arguments themselves.
+ * - index: the starting index of the opts.
+ * - opts: the map containing the resulting opt.
+ *  
+ * Returns: the number of consumed arguments to parse the opt.
+ *          0 if there is no arguments to parse.
+ * 
+ * Algorithm details: TODO. Please refer to the implementation to see how the
+ * code handles the 3rd and 4th forms separately.
+ */
 size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, std::string>& opts) {
     if (index >= argc)
         return 0;
@@ -4804,9 +4846,19 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, s
     return inc;
 }
 
+/**
+ * Global list containing all the arguments in the orderd given by the user.
+ */
 std::vector<std::string> __testlib_argv;
+/**
+ * Global dictionary containing all the parsed opts.
+ */
 std::map<std::string, std::string> __testlib_opts;
 
+/**
+ * Parse command line arguments into opts.
+ * The results are stored into __testlib_argv and __testlib_opts.
+ */
 void prepareOpts(int argc, char* argv[]) {
     if (argc <= 0)
         __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
@@ -4818,12 +4870,20 @@ void prepareOpts(int argc, char* argv[]) {
         __testlib_argv[index] = argv[index];
 }
 
+/**
+ * An utility function to get the argument with a given index. This function
+ * also print a readable message when no arguments are found.
+ */
 std::string __testlib_indexToArgv(int index) {
     if (index < 0 || index >= int(__testlib_argv.size()))
         __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0," + toString(__testlib_argv.size()) + ")");
     return __testlib_argv[size_t(index)];
 }
 
+/**
+ * An utility function to get the opt with a given key . This function
+ * also print a readable message when no opts are found.
+ */
 std::string __testlib_keyToOpts(const std::string& key) {
     if (__testlib_opts.count(key) == 0)
         __testlib_fail("Opts: unknown key '" + compress(key) + "'");
@@ -4960,9 +5020,58 @@ long double optValueToLongDouble(const std::string& s_) {
     return value;
 }
 
+/**
+ * Return true if there is an opt with a given key.
+ */
 bool has_opt(const std::string key) {
     return __testlib_opts.count(key) != 0;
 }
+
+/* About the followings part for opt with 2 and 3 arguments.
+ * 
+ * To parse the argv/opts correctly for a give type (integer, floating point or
+ * string), some meta programming must be done to determined the type of the
+ * the type, and use the correct parsing function accordingly.
+ * 
+ * The pseudo algorithm for determining the type of T and parse it accordingly
+ * is as follows:
+ * 
+ * if (T is integral type) {
+ *   if (T is unsigned) {
+ *     parse the argv/opt as an **unsigned integer** of type T.
+ *   } else {
+ *     parse the argv/opt as an **signed integer** of type T.
+ * } else {
+ *   if (T is floating point type) {
+ *     parse the argv/opt as an **floating point** of type T.
+ *   } else {
+ *     // T should be std::string
+ *     just the raw content of the argv/opts.
+ *   }
+ * }
+ * 
+ * To help with meta programming, some `opt` function with 2 or 3 arguments are
+ * defined.
+ * 
+ * Opt with 3 arguments:    T opt(true/false type, true/false type, index/key)
+ * 
+ *   + The first argument is for determining whether the type T is an integral
+ *   type. That is, the result of std::is_integral<T>() should be passed to
+ *   this argument. When false, the type _should_ be either floating point or a
+ *   std::string.
+ *   
+ *   + The second argument is for determining whether the signness of the type
+ *   T (if it is unsigned or signed). That is, the result of
+ *   std::is_unsigned<T>() should be passed to this argument. This argument can
+ *   be ignore if the first one is false, because it only applies to integer.
+ *
+ * Opt with 2 arguments:    T opt(true/false type, index/key)
+ *   + The first argument is for determining whether the type T is an floating
+ *   point type. That is, the result of std::is_floating_point<T>() should be
+ *   passed to this argument. When false, the type _should_ be a std::string.
+ *   
+ * 
+ */
 
 template<typename T>
 T opt(std::false_type, int index);
@@ -5002,11 +5111,17 @@ bool opt(std::true_type, std::true_type, int index) {
     __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
 }
 
+/**
+ * Return the parsed argv by a given index.
+ */
 template<typename T>
 T opt(int index) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
 }
 
+/**
+ * Return the raw string value of an argv by a given index.
+ */
 std::string opt(int index) {
     return opt<std::string>(index);
 }
@@ -5051,11 +5166,17 @@ bool opt(std::true_type, std::true_type, const std::string& key) {
     __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
 }
 
+/**
+ * Return the parsed opt by a given key.
+ */
 template<typename T>
 T opt(const std::string key) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
 }
 
+/**
+ * Return the raw string value of an opt by a given key
+ */
 std::string opt(const std::string key) {
     return opt<std::string>(key);
 }
