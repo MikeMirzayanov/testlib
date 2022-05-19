@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2021
+ * Copyright (c) 2005-2022
  */
 
-#define VERSION "0.9.37-SNAPSHOT"
+#define VERSION "0.9.38-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
@@ -4010,7 +4011,7 @@ NORETURN void __testlib_help() {
     std::fprintf(stderr, "\n");
 
     std::fprintf(stderr, "Program must be run with the following arguments: \n");
-    std::fprintf(stderr, "    <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
+    std::fprintf(stderr, "    [--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
 
     std::exit(FAIL_EXIT_CODE);
 }
@@ -4184,18 +4185,72 @@ void feature(const std::string &feature) {
     validator.feature(feature);
 }
 
+class Checker {
+private:
+    bool _initialized;
+    std::string _testset;
+    std::string _group;
+
+public:
+    Checker() : _initialized(false), _testset("tests"), _group() {
+    }
+
+    void initialize() {
+        _initialized = true;
+    }
+
+    std::string testset() const {
+        if (!_initialized)
+            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.testset()");
+        return _testset;
+    }
+
+    std::string group() const {
+        if (!_initialized)
+            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.group()");
+        return _group;
+    }
+
+    void setTestset(const char *const testset) {
+        _testset = testset;
+    }
+
+    void setGroup(const char *const group) {
+        _group = group;
+    }
+} checker;
+
 void registerTestlibCmd(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
 
     testlibMode = _checker;
     __testlib_set_binary(stdin);
 
-    if (argc > 1 && !strcmp("--help", argv[1]))
+    std::vector<std::string> args(1, argv[0]);
+    checker.initialize();
+    
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp("--testset", argv[i])) {
+            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+                checker.setTestset(argv[++i]);
+            else
+                quit(_fail, std::string("Expected testset after --testset command line parameter"));
+        } else if (!strcmp("--group", argv[i])) {
+            if (i + 1 < argc)
+                checker.setGroup(argv[++i]);
+            else
+                quit(_fail, std::string("Expected group after --group command line parameter"));
+        } else
+            args.push_back(argv[i]);
+    }
+
+    argc = int(args.size());
+    if (argc > 1 && "--help" == args[1])
         __testlib_help();
 
     if (argc < 4 || argc > 6) {
         quit(_fail, std::string("Program must be run with the following arguments: ") +
-                    std::string("<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
+                    std::string("[--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
                     "\nUse \"--help\" to get help information");
     }
 
@@ -4205,23 +4260,23 @@ void registerTestlibCmd(int argc, char *argv[]) {
     }
 
     if (argc == 5) {
-        resultName = argv[4];
+        resultName = args[4];
         appesMode = false;
     }
 
     if (argc == 6) {
-        if (strcmp("-APPES", argv[5]) && strcmp("-appes", argv[5])) {
+        if ("-APPES" != args[5] && "-appes" != args[5]) {
             quit(_fail, std::string("Program must be run with the following arguments: ") +
                         "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
         } else {
-            resultName = argv[4];
+            resultName = args[4];
             appesMode = true;
         }
     }
 
-    inf.init(argv[1], _input);
-    ouf.init(argv[2], _output);
-    ans.init(argv[3], _answer);
+    inf.init(args[1], _input);
+    ouf.init(args[2], _output);
+    ans.init(args[3], _answer);
 }
 
 void registerTestlib(int argc, ...) {
