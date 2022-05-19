@@ -3187,6 +3187,7 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3263,6 +3264,7 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
