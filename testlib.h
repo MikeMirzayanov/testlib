@@ -445,32 +445,21 @@ inline double doubleDelta(double expected, double result) {
         return absolute;
 }
 
-#if !defined(_MSC_VER) || _MSC_VER < 1900
-#ifndef _fileno
-#define _fileno(_stream)  ((_stream)->_file)
-#endif
-#endif
-
-#ifndef O_BINARY
-static void __testlib_set_binary(
-#ifdef __GNUC__
-    __attribute__((unused)) 
-#endif
-    std::FILE* file
-)
-#else
-static void __testlib_set_binary(std::FILE *file)
-#endif
-{
-#ifdef O_BINARY
+static void __testlib_set_binary(std::FILE *file) {
     if (NULL != file) {
-#ifndef __BORLANDC__
+#ifdef O_BINARY
+#   ifdef _MSC_VER
         _setmode(_fileno(file), O_BINARY);
-#else
+#   elseif
         setmode(fileno(file), O_BINARY);
+#   endif
+#else
+    if (file == stdin)
+        freopen(NULL, "rb", file);
+    if (file == stdout || file == stderr)
+        freopen(NULL, "wb", file);
 #endif
     }
-#endif
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
@@ -2822,7 +2811,6 @@ void InStream::reset(std::FILE *file) {
 
     if (NULL != file) {
         opened = true;
-
         __testlib_set_binary(file);
 
         if (stdfile)
