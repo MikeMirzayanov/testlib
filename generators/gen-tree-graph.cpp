@@ -15,12 +15,9 @@ int main(int argc, char* argv[])
     for (int i = 1; i < n; i++)
         p[i] = rnd.wnext(i, t);
 
-    vector<int> perm(n);
-    for (int i = 0; i < n; i++)
-        perm[i] = i;
-    shuffle(perm.begin() + 1, perm.end());
-    vector<pair<int,int>> edges;
+    vector<int> perm = rnd.perm(n);
 
+    vector<pair<int,int>> edges;
     for (int i = 1; i < n; i++)
         if (rnd.next(2))
             edges.push_back(make_pair(perm[i], perm[p[i]]));

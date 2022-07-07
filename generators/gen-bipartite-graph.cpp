@@ -27,15 +27,8 @@ int main(int argc, char* argv[])
     vector<pair<int,int> > e(edges.begin(), edges.end());
     shuffle(e.begin(), e.end());
 
-    vector<int> pa(n);
-    for (int i = 0; i < n; i++)
-        pa[i] = i + 1;
-    shuffle(pa.begin(), pa.end());
-
-    vector<int> pb(m);
-    for (int i = 0; i < m; i++)
-        pb[i] = i + 1;
-    shuffle(pb.begin(), pb.end());
+    vector<int> pa = rnd.perm(n, 1);
+    vector<int> pb = rnd.perm(m, 1);
 
     println(n, m, e.size());
     for (auto [a, b] : e)
