@@ -10,7 +10,8 @@
  */
 
 #include "testlib.h"
-#include <iostream>
+
+#include <string>
 
 using namespace std;
 
