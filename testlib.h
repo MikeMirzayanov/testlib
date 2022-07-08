@@ -780,7 +780,7 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return int(n * p);
+            return __testlib_min(__testlib_max((int) (double(n) * p), 0), n - 1);
         }
     }
 
@@ -805,7 +805,7 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
             return __testlib_min(__testlib_max((long long) (double(n) * p), 0LL), n - 1LL);
         }
@@ -829,7 +829,7 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
             return p;
         }
@@ -856,7 +856,7 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
             return n * p;
         }
