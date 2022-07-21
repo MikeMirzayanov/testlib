@@ -962,8 +962,10 @@ public:
     /* Returns random permutation of the given size (values are between `first` and `first`+size-1)*/
     template<typename T, typename E>
     std::vector<E> perm(T size, E first) {
-        if (size <= 0)
-            __testlib_fail("random_t::perm(T size, E first = 0): size must be positive");
+        if (size < 0)
+            __testlib_fail("random_t::perm(T size, E first = 0): size must non-negative");
+        else if (size == 0)
+            return std::vector<E>();
         std::vector<E> p(size);
         E current = first;
         for (T i = 0; i < size; i++)
