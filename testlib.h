@@ -348,6 +348,18 @@ static inline T __testlib_max(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
+template<typename T>
+static inline T __testlib_crop(T value, T a, T b) {
+    return __testlib_min(__testlib_max(value, a), --b);
+}
+
+static inline double __testlib_crop(double value, double a, double b) {
+    value = __testlib_min(__testlib_max(value, a), b);
+    if (value >= b)
+        value = std::nexttoward(b, a);
+    return value;
+}
+
 static bool __testlib_prelimIsNaN(double r) {
     volatile double ra = r;
 #ifndef __BORLANDC__
@@ -708,18 +720,20 @@ public:
     double next() {
         long long left = ((long long) (nextBits(26)) << 27);
         long long right = nextBits(27);
-        return (double) (left + right) / (double) (1LL << 53);
+        return __testlib_crop((double) (left + right) / (double) (1LL << 53), 0.0, 1.0);
     }
 
     /* Random double value in range [0, n). */
     double next(double n) {
-        return n * next();
+        if (n <= 0.0)
+            __testlib_fail("random_t::next(double): n should be positive");
+        return __testlib_crop(n * next(), 0.0, n);
     }
 
     /* Random double value in range [from, to). */
     double next(double from, double to) {
-        if (from > to)
-            __testlib_fail("random_t::next(double from, double to): from can't not exceed to");
+        if (from >= to)
+            __testlib_fail("random_t::next(double from, double to): from should be strictly less than to");
         return next(to - from) + from;
     }
 
@@ -780,7 +794,7 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return int(n * p);
+            return __testlib_crop((int) (double(n) * p), 0, n);
         }
     }
 
@@ -805,37 +819,13 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return __testlib_min(__testlib_max((long long) (double(n) * p), 0LL), n - 1LL);
+            return __testlib_crop((long long) (double(n) * p), 0LL, n);
         }
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
-    double wnext(int type) {
-        if (abs(type) < random_t::lim) {
-            double result = next();
-
-            for (int i = 0; i < +type; i++)
-                result = __testlib_max(result, next());
-
-            for (int i = 0; i < -type; i++)
-                result = __testlib_min(result, next());
-
-            return result;
-        } else {
-            double p;
-
-            if (type > 0)
-                p = std::pow(next() + 0.0, 1.0 / (type + 1));
-            else
-                p = std::pow(next() + 0.0, -type + 1);
-
-            return p;
-        }
-    }
-
-    /* See wnext(int, int). It uses the same algorithms. */
+    /* Returns value in [0, n). See wnext(int, int). It uses the same algorithms. */
     double wnext(double n, int type) {
         if (n <= 0)
             __testlib_fail("random_t::wnext(double n, int type): n must be positive");
@@ -856,10 +846,15 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return n * p;
+            return __testlib_crop(n * p, 0.0, n);
         }
+    }
+
+    /* Returns value in [0, 1). See wnext(int, int). It uses the same algorithms. */
+    double wnext(int type) {
+        return wnext(1.0, type);
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
@@ -935,8 +930,8 @@ public:
 
     /* Returns weighted random double value in range [from, to). */
     double wnext(double from, double to, int type) {
-        if (from > to)
-            __testlib_fail("random_t::wnext(double from, double to, int type): from can't not exceed to");
+        if (from >= to)
+            __testlib_fail("random_t::wnext(double from, double to, int type): from should be strictly less than to");
         return wnext(to - from, type) + from;
     }
 
