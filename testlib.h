@@ -179,6 +179,10 @@ const char *latestFeatures[] = {
 #include <stdarg.h>
 #include <fcntl.h>
 
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+#   include <exception>
+#endif
+
 #if (_WIN32 || __WIN32__ || _WIN64 || __WIN64__ || __CYGWIN__)
 #   if !defined(_MSC_VER) || _MSC_VER > 1400
 #       define NOMINMAX 1
@@ -372,7 +376,10 @@ static bool __testlib_prelimIsNaN(double r) {
 static std::string removeDoubleTrailingZeroes(std::string value) {
     while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
         value = value.substr(0, value.length() - 1);
-    return value + '0';
+    if (!value.empty() && value[value.length() - 1] == '.')
+        return value + '0';
+    else
+        return value;
 }
 
 #ifdef __GNUC__
@@ -462,14 +469,18 @@ static void __testlib_set_binary(std::FILE *file) {
 #ifdef O_BINARY
 #   ifdef _MSC_VER
         _setmode(_fileno(file), O_BINARY);
-#   elseif
+#   else
         setmode(fileno(file), O_BINARY);
 #   endif
 #else
-    if (file == stdin)
-        freopen(NULL, "rb", file);
-    if (file == stdout || file == stderr)
-        freopen(NULL, "wb", file);
+    if (file == stdin) {
+        if (!freopen(NULL, "rb", file))
+            __testlib_fail("Unable to freopen stdin");
+    }
+    if (file == stdout || file == stderr) {
+        if (!freopen(NULL, "wb", file))
+            __testlib_fail("Unable to freopen stdout/stderr");
+    }
 #endif
     }
 }
@@ -740,7 +751,7 @@ public:
     /* Returns random element from container. */
     template<typename Container>
     typename Container::value_type any(const Container &c) {
-        size_t size = c.size();
+        int size = int(c.size());
         if (size <= 0)
             __testlib_fail("random_t::any(const Container& c): c.size() must be positive");
         return *(c.begin() + next(size));
@@ -2519,12 +2530,25 @@ void InStream::textColor(
 #endif
 }
 
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+class exit_exception: public std::exception {
+private:
+    int exitCode;
+public:
+    exit_exception(int exitCode): exitCode(exitCode) {}
+    int getExitCode() { return exitCode; }
+};
+#endif
+
 NORETURN void halt(int exitCode) {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
     std::fprintf(stderr, "Checker: \"%s\"\n", checkerName.c_str());
     std::fprintf(stderr, "Exit code: %d\n", exitCode);
     InStream::textColor(InStream::LightGray);
+#endif
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+    throw exit_exception(exitCode);    
 #endif
     std::exit(exitCode);
 }

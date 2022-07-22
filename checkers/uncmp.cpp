@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    setName("compare unordered sequences of signed int%lu numbers", 8 * sizeof(long long));
+    setName("compare unordered sequences of signed int%u numbers", int(8 * sizeof(long long)));
 
     registerTestlibCmd(argc, argv);
 
