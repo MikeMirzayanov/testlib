@@ -1,28 +1,6 @@
 #include "testlib.h"
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <ctime>
-#include <climits>
-#include <cassert>
-#include <vector>
-#include <queue>
-#include <stack>
-#include <deque>
 #include <set>
-#include <map>
-#include <bitset>
-#include <utility>
-#include <algorithm>
-
-#define forn(i, n) for (int i = 0; i < int(n); i++)
 
 using namespace std;
 
@@ -32,12 +10,12 @@ int main(int argc, char* argv[])
 
     int n = inf.readInt(1, 1000, "n");
     inf.readSpace();
-    int m = inf.readInt(0, 100000, "m");
+    int m = inf.readInt(0, 100'000, "m");
     inf.readEoln();
 
     set<pair<int,int> > edges;
 
-    forn(i, m)
+    for (int i = 0; i < m; i++)
     {
         int a = inf.readInt(1, n, "a_i");
         inf.readSpace();

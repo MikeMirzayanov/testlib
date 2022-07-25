@@ -24,7 +24,6 @@
  */
 
 #include "testlib.h"
-#include <iostream>
 
 using namespace std;
 
@@ -32,7 +31,7 @@ int main(int argc, char* argv[])
 {
     registerGen(argc, argv, 1);
 
-    cout << rnd.wnext(1, 1000000, opt<int>(1)) << endl;
+    println(rnd.wnext(1, 1000'000, opt<int>(1)));
 
     return 0;
 }

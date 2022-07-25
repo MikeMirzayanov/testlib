@@ -1,9 +1,8 @@
 /**
- * Validates that input depenging on testset and group.
+ * Validates input depending on testset and group.
  */
 
 #include "testlib.h"
-#include <iostream>
 
 using namespace std;
 

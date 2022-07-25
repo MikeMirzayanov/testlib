@@ -1,28 +1,7 @@
 #include "testlib.h"
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <ctime>
-#include <climits>
-#include <cassert>
 #include <vector>
-#include <queue>
-#include <stack>
-#include <deque>
 #include <set>
-#include <map>
-#include <bitset>
-#include <utility>
-#include <algorithm>
-
-#define forn(i, n) for (int i = 0; i < int(n); i++)
 
 using namespace std;
 
@@ -51,16 +30,16 @@ int main(int argc, char* argv[])
 {
     registerValidation(argc, argv);
 
-    int n = inf.readInt(2, 100000, "n");
+    int n = inf.readInt(2, 100'000, "n");
     inf.readEoln();
 
     vector<int> dsu(n);
-    forn(i, n)
+    for (int i = 0; i < n; i++)
         dsu[i] = i;
 
     set<pair<int,int> > edges;
 
-    forn(i, n - 1)
+    for (int i = 0; i < n - 1; i++)
     {
         int x = inf.readInt(1, n, "x_i");
         inf.readSpace();
