@@ -48,7 +48,7 @@ else
   eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
 fi
 
-rm -f *.o *.obj
+rm -f ./*.o ./*.obj
 
 if [ ! -f "$exe_file" ]; then
   echo "Compilation failed: file $exe_file not found"

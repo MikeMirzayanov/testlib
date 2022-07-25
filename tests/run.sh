@@ -36,7 +36,7 @@ for arg in "$@"; do
       ARGS_CPP_VERSIONS="$ARGS_CPP_VERSIONS${arg:1},"
     else
       if [[ -n "$ARGS_CPP" ]]; then
-        echo Expected just one non-version argument: g++, clang++ or msvc
+        echo Expected just one non-version argument: g++, clang++ or msvc, but found "$ARGS_CPP" and "$arg"
         exit 1
       fi
       if [[ ! "$arg" == "g++" && ! "$arg" == "clang++" && ! "$arg" == "msvc" ]]; then
