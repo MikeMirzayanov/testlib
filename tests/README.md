@@ -1,3 +1,21 @@
+# Tests
+
+Some features of the library are covered by tests. If you understand well how this or that functionality of the library works, then you can add a test for it.
+
+First of all, consider adding a test to `test-004_use-test.h` (carefully study the design of this test).
+
+Note the use of `test-ref` script in the tests, which checks that a process has exited with the expected exit code, standard output, and standard error.
+
+It is highly desirable to cover all new functionality with tests. If the functionality is such that it is not very difficult to write tests, then the presence of tests is required.
+
+## CI
+
+On each push and pull requests tests will run. Please make sure that your changes didn't break them.
+
+## How run tests locally
+
+Use `tests\run.sh`. Also you can use `t.sh` (or `t.bat`) to run shortcut of `run.sh g++ 11 v0 $*`.
+
 ### Parameters (use can use all combinations):
 
 * `g++`, `clang++`, `msvc` - to specify compiler(s)
