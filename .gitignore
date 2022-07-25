@@ -1,0 +1,5 @@
+.idea
+
+*.exe
+*.o
+*.obj
