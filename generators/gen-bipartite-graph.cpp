@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
     vector<int> pb = rnd.perm(m, 1);
 
     println(n, m, e.size());
-    for (auto [a, b] : e)
-        println(pa[a], pb[b]);
+    for (auto edge : e)
+        println(pa[edge.first], pb[edge.second]);
 
     return 0;
 }

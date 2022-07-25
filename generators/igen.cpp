@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 {
     registerGen(argc, argv, 1);
 
-    println(rnd.next(1, 1000'000));
+    println(rnd.next(1, 1000000));
 
     return 0;
 }

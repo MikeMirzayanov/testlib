@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     for (int testCase = 1; testCase <= testCaseCount; testCase++) {
         setTestCase(testCase);
-        int n = inf.readInt(1, 10'000, "n");
+        int n = inf.readInt(1, 10000, "n");
         inf.readEoln();
         inf.readInts(n, -1000, 1000, "a");
         inf.readEoln();

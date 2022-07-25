@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
     shuffle(edges.begin(), edges.end());
 
     println(n);
-    for (auto [a, b] : edges)
-        println(a + 1, b + 1);
+    for (auto edge : edges)
+        println(edge.first + 1, edge.second + 1);
 
     return 0;
 }
