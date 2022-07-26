@@ -50,36 +50,3 @@ int main(int argc, char** argv) {
     }
 }
 
-/*
-Tested on Linux with the following commands:
-
-./gen-array-with-opt > test.txt
-FAIL Opts: unknown key 'test-count'
-
-./gen-array-with-opt -test-count 3 > test.txt
-FAIL Opts: unknown key 'sum-n'
-
-./gen-array-with-opt -test-count 3 -sum-n 10 > test.txt
-<OK>
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-val 1 > test.txt
-FAIL Opts: unused key 'min-val'
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-value 10 > test.txt
-<OK>
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-value 10 -max-val 20 > test.txt
-FAIL Opts: unused key 'max-val'
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-value 10 -max-value 20 > test.txt
-<OK>
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-length 3 -min-value 10 -max-value 20 > test.txt
-FAIL Opts: unused key 'min-length'
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-n 3 -min-value 10 -max-value 20 -bias-value 3 > test.txt
-FAIL Opts: unused key 'bias-value'
-
-./gen-array-with-opt -test-count 3 -sum-n 10 -min-n 3 -min-value 10 -max-value 20 -value-bias 3 > test.txt
-<OK>
-*/
