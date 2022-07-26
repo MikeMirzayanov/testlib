@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2021
+ * Copyright (c) 2005-2022
  */
 
-#define VERSION "0.9.37-SNAPSHOT"
+#define VERSION "0.9.38-SNAPSHOT"
 
 /* 
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
         "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
@@ -177,6 +178,10 @@ const char *latestFeatures[] = {
 #include <limits>
 #include <stdarg.h>
 #include <fcntl.h>
+
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+#   include <exception>
+#endif
 
 #if (_WIN32 || __WIN32__ || _WIN64 || __WIN64__ || __CYGWIN__)
 #   if !defined(_MSC_VER) || _MSC_VER > 1400
@@ -347,6 +352,18 @@ static inline T __testlib_max(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
+template<typename T>
+static inline T __testlib_crop(T value, T a, T b) {
+    return __testlib_min(__testlib_max(value, a), --b);
+}
+
+static inline double __testlib_crop(double value, double a, double b) {
+    value = __testlib_min(__testlib_max(value, a), b);
+    if (value >= b)
+        value = std::nexttoward(b, a);
+    return value;
+}
+
 static bool __testlib_prelimIsNaN(double r) {
     volatile double ra = r;
 #ifndef __BORLANDC__
@@ -359,7 +376,10 @@ static bool __testlib_prelimIsNaN(double r) {
 static std::string removeDoubleTrailingZeroes(std::string value) {
     while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
         value = value.substr(0, value.length() - 1);
-    return value + '0';
+    if (!value.empty() && value[value.length() - 1] == '.')
+        return value + '0';
+    else
+        return value;
 }
 
 #ifdef __GNUC__
@@ -444,32 +464,25 @@ inline double doubleDelta(double expected, double result) {
         return absolute;
 }
 
-#if !defined(_MSC_VER) || _MSC_VER < 1900
-#ifndef _fileno
-#define _fileno(_stream)  ((_stream)->_file)
-#endif
-#endif
-
-#ifndef O_BINARY
-static void __testlib_set_binary(
-#ifdef __GNUC__
-    __attribute__((unused)) 
-#endif
-    std::FILE* file
-)
-#else
-static void __testlib_set_binary(std::FILE *file)
-#endif
-{
-#ifdef O_BINARY
+static void __testlib_set_binary(std::FILE *file) {
     if (NULL != file) {
-#ifndef __BORLANDC__
+#ifdef O_BINARY
+#   ifdef _MSC_VER
         _setmode(_fileno(file), O_BINARY);
-#else
+#   else
         setmode(fileno(file), O_BINARY);
-#endif
+#   endif
+#else
+    if (file == stdin) {
+        if (!freopen(NULL, "rb", file))
+            __testlib_fail("Unable to freopen stdin");
+    }
+    if (file == stdout || file == stderr) {
+        if (!freopen(NULL, "wb", file))
+            __testlib_fail("Unable to freopen stdout/stderr");
     }
 #endif
+    }
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
@@ -718,25 +731,27 @@ public:
     double next() {
         long long left = ((long long) (nextBits(26)) << 27);
         long long right = nextBits(27);
-        return (double) (left + right) / (double) (1LL << 53);
+        return __testlib_crop((double) (left + right) / (double) (1LL << 53), 0.0, 1.0);
     }
 
     /* Random double value in range [0, n). */
     double next(double n) {
-        return n * next();
+        if (n <= 0.0)
+            __testlib_fail("random_t::next(double): n should be positive");
+        return __testlib_crop(n * next(), 0.0, n);
     }
 
     /* Random double value in range [from, to). */
     double next(double from, double to) {
-        if (from > to)
-            __testlib_fail("random_t::next(double from, double to): from can't not exceed to");
+        if (from >= to)
+            __testlib_fail("random_t::next(double from, double to): from should be strictly less than to");
         return next(to - from) + from;
     }
 
     /* Returns random element from container. */
     template<typename Container>
     typename Container::value_type any(const Container &c) {
-        size_t size = c.size();
+        int size = int(c.size());
         if (size <= 0)
             __testlib_fail("random_t::any(const Container& c): c.size() must be positive");
         return *(c.begin() + next(size));
@@ -790,7 +805,7 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return int(n * p);
+            return __testlib_crop((int) (double(n) * p), 0, n);
         }
     }
 
@@ -815,37 +830,13 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return __testlib_min(__testlib_max((long long) (double(n) * p), 0LL), n - 1LL);
+            return __testlib_crop((long long) (double(n) * p), 0LL, n);
         }
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
-    double wnext(int type) {
-        if (abs(type) < random_t::lim) {
-            double result = next();
-
-            for (int i = 0; i < +type; i++)
-                result = __testlib_max(result, next());
-
-            for (int i = 0; i < -type; i++)
-                result = __testlib_min(result, next());
-
-            return result;
-        } else {
-            double p;
-
-            if (type > 0)
-                p = std::pow(next() + 0.0, 1.0 / (type + 1));
-            else
-                p = std::pow(next() + 0.0, -type + 1);
-
-            return p;
-        }
-    }
-
-    /* See wnext(int, int). It uses the same algorithms. */
+    /* Returns value in [0, n). See wnext(int, int). It uses the same algorithms. */
     double wnext(double n, int type) {
         if (n <= 0)
             __testlib_fail("random_t::wnext(double n, int type): n must be positive");
@@ -866,10 +857,15 @@ public:
             if (type > 0)
                 p = std::pow(next() + 0.0, 1.0 / (type + 1));
             else
-                p = std::pow(next() + 0.0, -type + 1);
+                p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return n * p;
+            return __testlib_crop(n * p, 0.0, n);
         }
+    }
+
+    /* Returns value in [0, 1). See wnext(int, int). It uses the same algorithms. */
+    double wnext(int type) {
+        return wnext(1.0, type);
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
@@ -945,8 +941,8 @@ public:
 
     /* Returns weighted random double value in range [from, to). */
     double wnext(double from, double to, int type) {
-        if (from > to)
-            __testlib_fail("random_t::wnext(double from, double to, int type): from can't not exceed to");
+        if (from >= to)
+            __testlib_fail("random_t::wnext(double from, double to, int type): from should be strictly less than to");
         return wnext(to - from, type) + from;
     }
 
@@ -972,8 +968,10 @@ public:
     /* Returns random permutation of the given size (values are between `first` and `first`+size-1)*/
     template<typename T, typename E>
     std::vector<E> perm(T size, E first) {
-        if (size <= 0)
-            __testlib_fail("random_t::perm(T size, E first = 0): size must be positive");
+        if (size < 0)
+            __testlib_fail("random_t::perm(T size, E first = 0): size must non-negative");
+        else if (size == 0)
+            return std::vector<E>();
         std::vector<E> p(size);
         E current = first;
         for (T i = 0; i < size; i++)
@@ -2532,12 +2530,25 @@ void InStream::textColor(
 #endif
 }
 
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+class exit_exception: public std::exception {
+private:
+    int exitCode;
+public:
+    exit_exception(int exitCode): exitCode(exitCode) {}
+    int getExitCode() { return exitCode; }
+};
+#endif
+
 NORETURN void halt(int exitCode) {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
     std::fprintf(stderr, "Checker: \"%s\"\n", checkerName.c_str());
     std::fprintf(stderr, "Exit code: %d\n", exitCode);
     InStream::textColor(InStream::LightGray);
+#endif
+#ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
+    throw exit_exception(exitCode);    
 #endif
     std::exit(exitCode);
 }
@@ -2821,7 +2832,6 @@ void InStream::reset(std::FILE *file) {
 
     if (NULL != file) {
         opened = true;
-
         __testlib_set_binary(file);
 
         if (stdfile)
@@ -3186,6 +3196,7 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -3262,6 +3273,7 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
         in.quit(_pe, ("Expected strict double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     char *suffix = new char[length + 1];
+    std::memset(suffix, 0, length + 1);
     int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
@@ -4010,7 +4022,7 @@ NORETURN void __testlib_help() {
     std::fprintf(stderr, "\n");
 
     std::fprintf(stderr, "Program must be run with the following arguments: \n");
-    std::fprintf(stderr, "    <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
+    std::fprintf(stderr, "    [--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
 
     std::exit(FAIL_EXIT_CODE);
 }
@@ -4184,18 +4196,72 @@ void feature(const std::string &feature) {
     validator.feature(feature);
 }
 
+class Checker {
+private:
+    bool _initialized;
+    std::string _testset;
+    std::string _group;
+
+public:
+    Checker() : _initialized(false), _testset("tests"), _group() {
+    }
+
+    void initialize() {
+        _initialized = true;
+    }
+
+    std::string testset() const {
+        if (!_initialized)
+            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.testset()");
+        return _testset;
+    }
+
+    std::string group() const {
+        if (!_initialized)
+            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.group()");
+        return _group;
+    }
+
+    void setTestset(const char *const testset) {
+        _testset = testset;
+    }
+
+    void setGroup(const char *const group) {
+        _group = group;
+    }
+} checker;
+
 void registerTestlibCmd(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
 
     testlibMode = _checker;
     __testlib_set_binary(stdin);
 
-    if (argc > 1 && !strcmp("--help", argv[1]))
+    std::vector<std::string> args(1, argv[0]);
+    checker.initialize();
+    
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp("--testset", argv[i])) {
+            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+                checker.setTestset(argv[++i]);
+            else
+                quit(_fail, std::string("Expected testset after --testset command line parameter"));
+        } else if (!strcmp("--group", argv[i])) {
+            if (i + 1 < argc)
+                checker.setGroup(argv[++i]);
+            else
+                quit(_fail, std::string("Expected group after --group command line parameter"));
+        } else
+            args.push_back(argv[i]);
+    }
+
+    argc = int(args.size());
+    if (argc > 1 && "--help" == args[1])
         __testlib_help();
 
     if (argc < 4 || argc > 6) {
         quit(_fail, std::string("Program must be run with the following arguments: ") +
-                    std::string("<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
+                    std::string("[--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
                     "\nUse \"--help\" to get help information");
     }
 
@@ -4205,23 +4271,23 @@ void registerTestlibCmd(int argc, char *argv[]) {
     }
 
     if (argc == 5) {
-        resultName = argv[4];
+        resultName = args[4];
         appesMode = false;
     }
 
     if (argc == 6) {
-        if (strcmp("-APPES", argv[5]) && strcmp("-appes", argv[5])) {
+        if ("-APPES" != args[5] && "-appes" != args[5]) {
             quit(_fail, std::string("Program must be run with the following arguments: ") +
                         "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
         } else {
-            resultName = argv[4];
+            resultName = args[4];
             appesMode = true;
         }
     }
 
-    inf.init(argv[1], _input);
-    ouf.init(argv[2], _output);
-    ans.init(argv[3], _answer);
+    inf.init(args[1], _input);
+    ouf.init(args[2], _output);
+    ans.init(args[3], _answer);
 }
 
 void registerTestlib(int argc, ...) {
