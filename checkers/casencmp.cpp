@@ -29,8 +29,6 @@ vector<long long> readStreamCase(InStream &in, int testCase, bool &prereadCase) 
 
     vector<long long> result;
     while (!in.seekEof()) {
-        string dummy;
-        in.readTokenTo(dummy);
         string token = in.readToken();
         if (token == "Case") {
             prereadCase = true;
