@@ -13,8 +13,7 @@
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
 
     println(rnd.next("[a-zA-Z0-9]{1,1000}"));
