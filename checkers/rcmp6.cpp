@@ -4,7 +4,7 @@ using namespace std;
 
 const double EPS = 1E-6;
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     setName("compare two sequences of doubles, max absolute or relative  error = %.7f", EPS);
     registerTestlibCmd(argc, argv);
 
@@ -17,7 +17,7 @@ int main(int argc, char * argv[]) {
         p = ouf.readDouble();
         if (!doubleCompare(j, p, EPS)) {
             quitf(_wa, "%d%s numbers differ - expected: '%.7f', found: '%.7f', error = '%.7f'",
-                n, englishEnding(n).c_str(), j, p, doubleDelta(j, p));
+                  n, englishEnding(n).c_str(), j, p, doubleDelta(j, p));
         }
     }
 

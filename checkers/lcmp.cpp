@@ -5,10 +5,10 @@
 
 using namespace std;
 
-bool compareWords(string a, string b) {
+bool compareWords(const string& a, const string& b) {
     vector<string> va, vb;
     stringstream sa;
-    
+
     sa << a;
     string cur;
     while (sa >> cur)
@@ -22,7 +22,7 @@ bool compareWords(string a, string b) {
     return (va == vb);
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     setName("compare files as sequence of tokens in lines");
     registerTestlibCmd(argc, argv);
 
@@ -32,20 +32,21 @@ int main(int argc, char * argv[]) {
     while (!ans.eof()) {
         std::string j = ans.readString();
 
-        if (j == "" && ans.eof())
-          break;
-        
+        if (j.empty() && ans.eof())
+            break;
+
         string p = ouf.readString();
         strAnswer = p;
 
         n++;
 
         if (!compareWords(j, p))
-            quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, englishEnding(n).c_str(), compress(j).c_str(), compress(p).c_str());
+            quitf(_wa, "%d%s lines differ - expected: '%s', found: '%s'", n, englishEnding(n).c_str(),
+                  compress(j).c_str(), compress(p).c_str());
     }
-    
+
     if (n == 1)
         quitf(_ok, "single line: '%s'", compress(strAnswer).c_str());
-    
+
     quitf(_ok, "%d lines", n);
 }

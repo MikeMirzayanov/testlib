@@ -6,7 +6,7 @@ using namespace std;
 const string YES = "YES";
 const string NO = "NO";
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     setName("%s", ("multiple " + YES + "/" + NO + " (case insensetive)").c_str());
     registerTestlibCmd(argc, argv);
 
@@ -19,7 +19,7 @@ int main(int argc, char * argv[]) {
 
         if (ja != YES && ja != NO)
             quitf(_fail, "%s or %s expected in answer, but %s found [%d%s token]",
-                YES.c_str(), NO.c_str(), compress(ja).c_str(), index, englishEnding(index).c_str());
+                  YES.c_str(), NO.c_str(), compress(ja).c_str(), index, englishEnding(index).c_str());
 
         if (pa == YES)
             yesCount++;
@@ -27,11 +27,11 @@ int main(int argc, char * argv[]) {
             noCount++;
         else
             quitf(_pe, "%s or %s expected, but %s found [%d%s token]",
-                YES.c_str(), NO.c_str(), compress(pa).c_str(), index, englishEnding(index).c_str());
+                  YES.c_str(), NO.c_str(), compress(pa).c_str(), index, englishEnding(index).c_str());
 
         if (ja != pa)
             quitf(_wa, "expected %s, found %s [%d%s token]",
-                compress(ja).c_str(), compress(pa).c_str(), index, englishEnding(index).c_str());
+                  compress(ja).c_str(), compress(pa).c_str(), index, englishEnding(index).c_str());
     }
 
     int extraInAnsCount = 0;
@@ -39,7 +39,7 @@ int main(int argc, char * argv[]) {
         ans.readToken();
         extraInAnsCount++;
     }
-    
+
     int extraInOufCount = 0;
     while (!ouf.seekEof()) {
         ouf.readToken();
@@ -47,10 +47,12 @@ int main(int argc, char * argv[]) {
     }
 
     if (extraInAnsCount > 0)
-        quitf(_wa, "Answer contains longer sequence [length = %d], but output contains %d elements", index + extraInAnsCount, index);
-    
+        quitf(_wa, "Answer contains longer sequence [length = %d], but output contains %d elements",
+              index + extraInAnsCount, index);
+
     if (extraInOufCount > 0)
-        quitf(_wa, "Output contains longer sequence [length = %d], but answer contains %d elements", index + extraInOufCount, index);
+        quitf(_wa, "Output contains longer sequence [length = %d], but answer contains %d elements",
+              index + extraInOufCount, index);
 
     if (index == 0)
         quitf(_ok, "Empty output");

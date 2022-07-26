@@ -14,9 +14,7 @@
 
 using namespace std;
 
-string token;
-
-vector<long long> readStreamCase(InStream& in, int testCase, bool& prereadCase) {
+vector<long long> readStreamCase(InStream &in, int testCase, bool &prereadCase) {
     if (!prereadCase) {
         string caseStr = in.readToken();
         if (caseStr != "Case")
@@ -26,12 +24,14 @@ vector<long long> readStreamCase(InStream& in, int testCase, bool& prereadCase) 
     string numExpStr = to_string(testCase) + ":";
     string numStr = in.readToken();
     if (numExpStr != numStr)
-        in.quitf(_pe, "Expected '%s' but found '%s' [test case %d]", compress(numExpStr).c_str(), compress(numStr).c_str(), testCase);
+        in.quitf(_pe, "Expected '%s' but found '%s' [test case %d]", compress(numExpStr).c_str(),
+                 compress(numStr).c_str(), testCase);
 
     vector<long long> result;
     while (!in.seekEof()) {
-        in.readTokenTo(token);
-		string token = in.readToken();
+        string dummy;
+        in.readTokenTo(dummy);
+        string token = in.readToken();
         if (token == "Case") {
             prereadCase = true;
             break;
@@ -43,16 +43,15 @@ vector<long long> readStreamCase(InStream& in, int testCase, bool& prereadCase) 
     return result;
 }
 
-string longLongsToString(const vector<long long>& a) {
+string longLongsToString(const vector<long long> &a) {
     if (a.empty())
         return "\"\" [size=0]";
-    
+
     string elems;
     if (a.size() <= 5) {
-        for (auto elem : a)
+        for (auto elem: a)
             elems += vtos(elem) + " ";
-    }
-    else {
+    } else {
         for (int i = 0; i < 3; i++)
             elems += vtos(a[i]) + " ";
         elems += "... ";
@@ -60,10 +59,10 @@ string longLongsToString(const vector<long long>& a) {
             elems += vtos(a[a.size() - 2 + i]) + " ";
     }
 
-    return format("\"%s\" [size=%u]", trim(elems).c_str(), (unsigned int)(a.size()));
+    return format("\"%s\" [size=%u]", trim(elems).c_str(), (unsigned int) (a.size()));
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     setName("Many int64s checker with testcase-support");
     registerTestlibCmd(argc, argv);
 
@@ -81,7 +80,8 @@ int main(int argc, char* argv[]) {
         if (ja != pa) {
             string js = longLongsToString(ja);
             string ps = longLongsToString(pa);
-            quitf(_wa, "Sequences differ: jury has %s, but participant has %s [test case %d]", js.c_str(), ps.c_str(), testCase);
+            quitf(_wa, "Sequences differ: jury has %s, but participant has %s [test case %d]", js.c_str(), ps.c_str(),
+                  testCase);
         }
     }
 

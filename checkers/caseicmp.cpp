@@ -14,8 +14,7 @@
 
 using namespace std;
 
-vector<long long> readStream(InStream& in)
-{
+vector<long long> readStream(InStream &in) {
     vector<long long> result;
 
     for (int testCase = 1; !in.seekEof(); testCase++) {
@@ -23,10 +22,11 @@ vector<long long> readStream(InStream& in)
         if (caseStr != "Case")
             in.quitf(_pe, "Expected 'Case' but found '%s' [test case %d]", compress(caseStr).c_str(), testCase);
 
-		string numExpStr = to_string(testCase) + ":";
+        string numExpStr = to_string(testCase) + ":";
         string numStr = in.readToken();
         if (numExpStr != numStr)
-            in.quitf(_pe, "Expected '%s' but found '%s' [test case %d]", compress(numExpStr).c_str(), compress(numStr).c_str(), testCase);
+            in.quitf(_pe, "Expected '%s' but found '%s' [test case %d]", compress(numExpStr).c_str(),
+                     compress(numStr).c_str(), testCase);
 
         result.push_back(in.readLong());
     }
@@ -34,7 +34,7 @@ vector<long long> readStream(InStream& in)
     return result;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     setName("Single int64 checker with testcase-support");
     registerTestlibCmd(argc, argv);
 
@@ -46,15 +46,13 @@ int main(int argc, char* argv[]) {
             quitf(_wa, "Expected %s found %s [test case %d]", vtos(ja[i]).c_str(), vtos(pa[i]).c_str(), i + 1);
 
     if (ja.size() != pa.size())
-        quitf(_pe, "Expected %u test case(s) but found %u", (unsigned int)(ja.size()), (unsigned int)(pa.size()));
+        quitf(_pe, "Expected %u test case(s) but found %u", (unsigned int) (ja.size()), (unsigned int) (pa.size()));
 
-    string message = format("%u case(s):", (unsigned int)(ja.size()));
+    string message = format("%u case(s):", (unsigned int) (ja.size()));
     if (ja.size() <= 5) {
-        for (auto elem : ja)
+        for (auto elem: ja)
             message += " " + vtos(elem);
-    }
-    else
-    {
+    } else {
         for (int i = 0; i < 3; i++)
             message += " " + vtos(ja[i]);
         message += " ...";

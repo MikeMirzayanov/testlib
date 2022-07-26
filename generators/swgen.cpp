@@ -16,11 +16,9 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     registerGen(argc, argv, 1);
 
     int length = rnd.wnext(1, 1000, opt<int>(1));
     println(rnd.next("[a-zA-Z0-9]{1,%d}", length));
-
-    return 0;
 }

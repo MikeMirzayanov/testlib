@@ -4,7 +4,7 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     registerGen(argc, argv, 1);
 
     int n = opt<int>(1);
@@ -24,9 +24,7 @@ int main(int argc, char* argv[]) {
     // pp[i] is the parent of (i+2)-nd vertex in 1-numeration after shuffling
     for (int i = 1; i < n; i++)
         pp[perm[i] - 1] = perm[p[i]] + 1;
-    
+
     println(n);
     println(pp);
-
-    return 0;
 }

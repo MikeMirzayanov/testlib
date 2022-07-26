@@ -4,7 +4,7 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     registerGen(argc, argv, 1);
 
     int n = opt<int>(1);
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
     vector<int> perm = rnd.perm(n);
 
-    vector<pair<int,int>> edges;
+    vector<pair<int, int>> edges;
     for (int i = 1; i < n; i++)
         if (rnd.next(2))
             edges.push_back(make_pair(perm[i], perm[p[i]]));
@@ -26,8 +26,6 @@ int main(int argc, char* argv[]) {
     shuffle(edges.begin(), edges.end());
 
     println(n);
-    for (auto edge : edges)
+    for (auto edge: edges)
         println(edge.first + 1, edge.second + 1);
-
-    return 0;
 }

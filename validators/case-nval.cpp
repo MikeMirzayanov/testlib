@@ -9,7 +9,7 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     registerValidation(argc, argv);
 
     int testCaseCount = inf.readInt(1, 10, "t");
@@ -22,6 +22,6 @@ int main(int argc, char* argv[]) {
         inf.readInts(n, -1000, 1000, "a");
         inf.readEoln();
     }
-    
+
     inf.readEof();
 }
