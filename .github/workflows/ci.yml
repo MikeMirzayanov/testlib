@@ -1,5 +1,19 @@
 name: CI
-on: [push, pull_request]
+
+on: 
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - 'LICENSE'
+      - 'read.me'
+      - 'README.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'LICENSE'
+      - 'read.me'
+      - 'README.md'
+
 env:
   TEST_REF_FORBID_GEN_REFS: true
 
