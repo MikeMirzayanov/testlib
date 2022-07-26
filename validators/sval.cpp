@@ -8,8 +8,7 @@
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
     
     inf.readToken("[a-z]{1,100}", "s");

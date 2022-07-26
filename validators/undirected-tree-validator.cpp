@@ -5,19 +5,16 @@
 
 using namespace std;
 
-int leader(vector<int>& dsu, int idx)
-{
+int leader(vector<int>& dsu, int idx) {
     return dsu[idx] == idx ? dsu[idx] : (dsu[idx] = leader(dsu, dsu[idx]));
 }
 
-bool merge(vector<int>& dsu, int a, int b)
-{
+bool merge(vector<int>& dsu, int a, int b) {
     a = leader(dsu, a);
     b = leader(dsu, b);
     if (a == b)
         return false;
-    else
-    {
+    else {
         if (rnd.next(2) == 0)
             dsu[a] = b;
         else
@@ -26,8 +23,7 @@ bool merge(vector<int>& dsu, int a, int b)
     }
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
     int n = inf.readInt(2, 100000, "n");
@@ -39,8 +35,7 @@ int main(int argc, char* argv[])
 
     set<pair<int,int> > edges;
 
-    for (int i = 0; i < n - 1; i++)
-    {
+    for (int i = 0; i < n - 1; i++) {
         int x = inf.readInt(1, n, "x_i");
         inf.readSpace();
         int y = inf.readInt(1, n, "y_i");
