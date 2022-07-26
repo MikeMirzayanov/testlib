@@ -44,6 +44,7 @@ if [[ "$CPP" == "cl.exe" ]]; then
   echo "Compiling $src_file, running:" "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
   "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file" &>/dev/null
 else
+  "$CPP" -v
   echo "Compiling $src_file, running:" "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
   eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
 fi
