@@ -5,8 +5,7 @@
 
 using namespace std;
 
-bool compareWords(string a, string b)
-{
+bool compareWords(string a, string b) {
     vector<string> va, vb;
     stringstream sa;
     
@@ -23,22 +22,20 @@ bool compareWords(string a, string b)
     return (va == vb);
 }
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("compare files as sequence of tokens in lines");
     registerTestlibCmd(argc, argv);
 
-    std::string strAnswer;
+    string strAnswer;
 
     int n = 0;
-    while (!ans.eof()) 
-    {
+    while (!ans.eof()) {
         std::string j = ans.readString();
 
         if (j == "" && ans.eof())
           break;
         
-        std::string p = ouf.readString();
+        string p = ouf.readString();
         strAnswer = p;
 
         n++;

@@ -1,18 +1,15 @@
 #include "testlib.h"
-
 #include <string>
 
 using namespace std;
 
 pattern pnum("0|-?[1-9][0-9]*");
 
-bool isNumeric(const string& p)
-{
+bool isNumeric(const string& p) {
     return pnum.matches(p);
 }
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("compare two signed huge integers");
     registerTestlibCmd(argc, argv);
     

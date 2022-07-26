@@ -6,8 +6,7 @@ using namespace std;
 const string YES = "YES";
 const string NO = "NO";
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("%s", (YES + " or " + NO + " (case insensetive)").c_str());
     registerTestlibCmd(argc, argv);
 

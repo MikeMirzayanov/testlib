@@ -1,12 +1,9 @@
 #include "testlib.h"
 #include <string>
-#include <vector>
-#include <sstream>
 
 using namespace std;
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("compare files as sequence of lines");
     registerTestlibCmd(argc, argv);
 

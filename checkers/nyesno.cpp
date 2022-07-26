@@ -6,17 +6,15 @@ using namespace std;
 const string YES = "YES";
 const string NO = "NO";
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     setName("%s", ("multiple " + YES + "/" + NO + " (case insensetive)").c_str());
     registerTestlibCmd(argc, argv);
 
     int index = 0, yesCount = 0, noCount = 0;
-    std::string pa;
-    while (!ans.seekEof() && !ouf.seekEof())
-    {
+    string pa;
+    while (!ans.seekEof() && !ouf.seekEof()) {
         index++;
-        std::string ja = upperCase(ans.readToken());
+        string ja = upperCase(ans.readToken());
         pa = upperCase(ouf.readToken());
 
         if (ja != YES && ja != NO)
@@ -37,15 +35,13 @@ int main(int argc, char * argv[])
     }
 
     int extraInAnsCount = 0;
-    while (!ans.seekEof())
-    {
+    while (!ans.seekEof()) {
         ans.readToken();
         extraInAnsCount++;
     }
     
     int extraInOufCount = 0;
-    while (!ouf.seekEof())
-    {
+    while (!ouf.seekEof()) {
         ouf.readToken();
         extraInOufCount++;
     }
