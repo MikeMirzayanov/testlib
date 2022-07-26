@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     int min_n = opt<int>("min-n", 1);
     
     int min_value = opt<int>("min-value", 1);
-    int max_value = opt<int>("max-value", 1'000'000'000);
+    int max_value = opt<int>("max-value", 1000 * 1000 * 1000);
     int value_bias = opt<int>("value-bias", 0);
     
     check_unused_opt();
