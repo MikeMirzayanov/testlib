@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
+SUCCESS_TXT="${GREEN}[SUCCESS]${NC}"
+
 src_file=$1
 exe_file=$(basename "${src_file%.*}")
 
@@ -55,7 +57,7 @@ if [ ! -f "$exe_file" ]; then
   exit 1
 fi
 
-echo "[SUCCESS] $src_file compiled"
+echo -e "${SUCCESS_TXT} $src_file compiled\n"
 
 if [[ "$2" == "--check-only" ]]; then
   rm -rf "$exe_file"
