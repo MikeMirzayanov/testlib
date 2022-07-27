@@ -1,60 +1,30 @@
 #include "testlib.h"
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <ctime>
-#include <climits>
-#include <cassert>
 #include <vector>
-#include <queue>
-#include <stack>
-#include <deque>
-#include <set>
-#include <map>
-#include <bitset>
-#include <utility>
-#include <algorithm>
-
-#define forn(i, n) for (int i = 0; i < int(n); i++)
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     registerGen(argc, argv, 1);
 
     int n = opt<int>(1);
     int t = opt<int>(2);
 
     vector<int> p(n);
-    forn(i, n)
-        if (i > 0)
-            p[i] = rnd.wnext(i, t);
+    // p[i] is the parent of i-th vertex in 0-numeration without shuffling
+    for (int i = 1; i < n; i++)
+        p[i] = rnd.wnext(i, t);
 
-    printf("%d\n", n);
     vector<int> perm(n);
-    forn(i, n)
+    for (int i = 0; i < n; i++)
         perm[i] = i;
     shuffle(perm.begin() + 1, perm.end());
 
-    vector<int> pp(n);
+    vector<int> pp(n - 1);
+    // pp[i] is the parent of (i+2)-nd vertex in 1-numeration after shuffling
     for (int i = 1; i < n; i++)
-        pp[perm[i]] = perm[p[i]];
+        pp[perm[i] - 1] = perm[p[i]] + 1;
 
-    for (int i = 1; i < n; i++)
-    {
-        printf("%d", pp[i] + 1);
-        if (i + 1 < n)
-            printf(" ");
-    }
-    printf("\n");
-
-    return 0;
+    println(n);
+    println(pp);
 }

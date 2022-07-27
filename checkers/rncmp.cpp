@@ -5,14 +5,12 @@ using namespace std;
 
 const double EPS = 1.5E-5;
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char *argv[]) {
     setName("compare two sequences of doubles, maximal absolute error = %.10f", EPS);
     registerTestlibCmd(argc, argv);
 
     int n = 0;
-    while (!ans.seekEof()) 
-    {
+    while (!ans.seekEof()) {
         n++;
         double j = ans.readDouble();
         double p = ouf.readDouble();

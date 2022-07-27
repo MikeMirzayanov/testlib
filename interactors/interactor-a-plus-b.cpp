@@ -3,15 +3,13 @@
 
 using namespace std;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     setName("Interactor A+B");
     registerInteraction(argc, argv);
-    
+
     // reads number of queries from test (input) file
     int n = inf.readInt();
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         // reads query from test (input) file
         int a = inf.readInt();
         int b = inf.readInt();
