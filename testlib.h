@@ -4832,17 +4832,13 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 struct TestlibOpt {
     std::string value;
     bool used;
-    
-    TestlibOpt(): value(), used(false) {}
-    TestlibOpt(const std::string& value_): value(value_), used(false) {}
-    
-    operator const std::string&() const {
-        return value;
-    }
+
+    TestlibOpt() : value(), used(false) {}
+    explicit TestlibOpt(const std::string &value_) : value(value_), used(false) {}
 };
 
 /**
- * Get the type of opt based on the number of `-` at the begining and the
+ * Get the type of opt based on the number of `-` at the beginning and the
  * _validity_ of the key name.
  * 
  * A valid key name must start with an alphabetical character.
@@ -4854,7 +4850,7 @@ struct TestlibOpt {
  *          keyName is invalid (the first character is not an alphabetical
  *          character).
  */
-size_t getOptType(char* s) {
+size_t getOptType(char *s) {
     if (!s || strlen(s) <= 1)
         return 0;
 
@@ -4877,7 +4873,7 @@ size_t getOptType(char* s) {
  * 3) -kNumval       or --kNumval           (ex. -n10  --t20)
  * 4) -boolProperty  or --boolProperty      (ex. -sorted --tree-only)
  * 
- * Only the second forms consumes 2 arguments. The other consumes only 1
+ * Only the second form consumes 2 arguments. The other consumes only 1
  * argument.
  * 
  * In the third form, the key is a single character, and after the key is the
@@ -4894,10 +4890,10 @@ size_t getOptType(char* s) {
  * Returns: the number of consumed arguments to parse the opt.
  *          0 if there is no arguments to parse.
  * 
- * Algorithm details: TODO. Please refer to the implementation to see how the
- * code handles the 3rd and 4th forms separately.
+ * Algorithm details:
+ * TODO. Please refer to the implementation to see how the code handles the 3rd and 4th forms separately.
  */
-size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, TestlibOpt>& opts) {
+size_t parseOpt(size_t argc, char *argv[], size_t index, std::map<std::string, TestlibOpt> &opts) {
     if (index >= argc)
         return 0;
 
@@ -4921,7 +4917,7 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, T
                 }
             }
         }
-        opts[key] = val;
+        opts[key].value = val;
     } else {
         return inc;
     }
@@ -4930,7 +4926,7 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, T
 }
 
 /**
- * Global list containing all the arguments in the orderd given by the user.
+ * Global list containing all the arguments in the order given in the command line.
  */
 std::vector<std::string> __testlib_argv;
 
@@ -4943,7 +4939,7 @@ std::map<std::string, TestlibOpt> __testlib_opts;
  * Parse command line arguments into opts.
  * The results are stored into __testlib_argv and __testlib_opts.
  */
-void prepareOpts(int argc, char* argv[]) {
+void prepareOpts(int argc, char *argv[]) {
     if (argc <= 0)
         __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
     size_t n = static_cast<size_t>(argc); // NOLINT(hicpp-use-auto,modernize-use-auto)
@@ -4960,7 +4956,8 @@ void prepareOpts(int argc, char* argv[]) {
  */
 std::string __testlib_indexToArgv(int index) {
     if (index < 0 || index >= int(__testlib_argv.size()))
-        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0," + toString(__testlib_argv.size()) + ")");
+        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0,"
+            + toString(__testlib_argv.size()) + ")");
     return __testlib_argv[size_t(index)];
 }
 
@@ -4968,8 +4965,8 @@ std::string __testlib_indexToArgv(int index) {
  * An utility function to get the opt with a given key . This function
  * also print a readable message when no opts are found.
  */
-std::string __testlib_keyToOpts(const std::string& key) {
-    std::map<std::string, TestlibOpt>::iterator it = __testlib_opts.find(key);
+std::string __testlib_keyToOpts(const std::string &key) {
+    auto it = __testlib_opts.find(key);
     if (it == __testlib_opts.end())
         __testlib_fail("Opts: unknown key '" + compress(key) + "'");
     it->second.used = true;
@@ -4977,11 +4974,11 @@ std::string __testlib_keyToOpts(const std::string& key) {
 }
 
 template<typename T>
-T optValueToIntegral(const std::string& s, bool nonnegative);
+T optValueToIntegral(const std::string &s, bool nonnegative);
 
-long double optValueToLongDouble(const std::string& s);
+long double optValueToLongDouble(const std::string &s);
 
-std::string parseExponentialOptValue(const std::string& s) {
+std::string parseExponentialOptValue(const std::string &s) {
     size_t pos = std::string::npos;
     for (size_t i = 0; i < s.length(); i++)
         if (s[i] == 'e' || s[i] == 'E') {
@@ -5044,7 +5041,7 @@ std::string parseExponentialOptValue(const std::string& s) {
 }
 
 template<typename T>
-T optValueToIntegral(const std::string& s_, bool nonnegative) {
+T optValueToIntegral(const std::string &s_, bool nonnegative) {
     std::string s(parseExponentialOptValue(s_));
     if (s.empty())
         __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
@@ -5071,7 +5068,7 @@ T optValueToIntegral(const std::string& s_, bool nonnegative) {
     return value;
 }
 
-long double optValueToLongDouble(const std::string& s_) {
+long double optValueToLongDouble(const std::string &s_) {
     std::string s(parseExponentialOptValue(s_));
     if (s.empty())
         __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
@@ -5109,14 +5106,14 @@ long double optValueToLongDouble(const std::string& s_) {
 /**
  * Return true if there is an opt with a given key.
  */
-bool has_opt(const std::string key) {
+bool has_opt(const std::string &key) {
     return __testlib_opts.count(key) != 0;
 }
 
 /* About the followings part for opt with 2 and 3 arguments.
  * 
  * To parse the argv/opts correctly for a give type (integer, floating point or
- * string), some meta programming must be done to determined the type of the
+ * string), some meta programming must be done to determine the type of
  * the type, and use the correct parsing function accordingly.
  * 
  * The pseudo algorithm for determining the type of T and parse it accordingly
@@ -5139,62 +5136,61 @@ bool has_opt(const std::string key) {
  * To help with meta programming, some `opt` function with 2 or 3 arguments are
  * defined.
  * 
- * Opt with 3 arguments:    T opt(true/false type, true/false type, index/key)
+ * Opt with 3 arguments:    T opt(true/false is_integral, true/false is_unsigned, index/key)
  * 
  *   + The first argument is for determining whether the type T is an integral
  *   type. That is, the result of std::is_integral<T>() should be passed to
  *   this argument. When false, the type _should_ be either floating point or a
  *   std::string.
  *   
- *   + The second argument is for determining whether the signness of the type
+ *   + The second argument is for determining whether the signedness of the type
  *   T (if it is unsigned or signed). That is, the result of
  *   std::is_unsigned<T>() should be passed to this argument. This argument can
- *   be ignore if the first one is false, because it only applies to integer.
+ *   be ignored if the first one is false, because it only applies to integer.
  *
- * Opt with 2 arguments:    T opt(true/false type, index/key)
- *   + The first argument is for determining whether the type T is an floating
+ * Opt with 2 arguments:    T opt(true/false is_floating_point, index/key)
+ *   + The first argument is for determining whether the type T is a floating
  *   point type. That is, the result of std::is_floating_point<T>() should be
  *   passed to this argument. When false, the type _should_ be a std::string.
- *   
- * 
  */
 
 template<typename T>
-T opt(std::false_type, int index);
+T opt(std::false_type is_floating_point, int index);
 
 template<>
-std::string opt(std::false_type, int index) {
+std::string opt(std::false_type is_floating_point, int index) {
     return __testlib_indexToArgv(index);
 }
 
 template<typename T>
-T opt(std::true_type, int index) {
+T opt(std::true_type is_floating_point, int index) {
     return T(optValueToLongDouble(__testlib_indexToArgv(index)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type, U, int index) {
+T opt(std::false_type is_integral, U is_unsigned, int index) {
     return opt<T>(std::is_floating_point<T>(), index);
 }
 
 template<typename T>
-T opt(std::true_type, std::false_type, int index) {
+T opt(std::true_type is_integral, std::false_type is_unsigned, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
 }
 
 template<typename T>
-T opt(std::true_type, std::true_type, int index) {
+T opt(std::true_type is_integral, std::true_type is_unsigned, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
 }
 
 template<>
-bool opt(std::true_type, std::true_type, int index) {
+bool opt(std::true_type is_integral, std::true_type is_unsigned, int index) {
     std::string value = __testlib_indexToArgv(index);
     if (value == "true" || value == "1")
         return true;
     if (value == "false" || value == "0")
         return false;
-    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '"
+            + compress(value) + "' found");
 }
 
 /**
@@ -5217,7 +5213,7 @@ std::string opt(int index) {
  * the number of argv, return the given default_value.
  */
 template<typename T>
-T opt(int index, const T& default_value) {
+T opt(int index, const T &default_value) {
     if (index >= int(__testlib_argv.size())) {
         return default_value;
     }
@@ -5228,40 +5224,40 @@ T opt(int index, const T& default_value) {
  * Return the raw string value of an argv by a given index. If the index is
  * bigger than the number of argv, return the given default_value.
  */
-std::string opt(int index, const std::string& default_value) {
+std::string opt(int index, const std::string &default_value) {
     return opt<std::string>(index, default_value);
 }
 
 template<typename T>
-T opt(std::false_type, const std::string& key);
+T opt(std::false_type is_floating_point, const std::string &key);
 
 template<>
-std::string opt(std::false_type, const std::string& key) {
+std::string opt(std::false_type is_floating_point, const std::string &key) {
     return __testlib_keyToOpts(key);
 }
 
 template<typename T>
-T opt(std::true_type, const std::string& key) {
+T opt(std::true_type is_integral, const std::string &key) {
     return T(optValueToLongDouble(__testlib_keyToOpts(key)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type, U, const std::string& key) {
+T opt(std::false_type is_integral, U, const std::string &key) {
     return opt<T>(std::is_floating_point<T>(), key);
 }
 
 template<typename T>
-T opt(std::true_type, std::false_type, const std::string& key) {
+T opt(std::true_type is_integral, std::false_type is_unsigned, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
 }
 
 template<typename T>
-T opt(std::true_type, std::true_type, const std::string& key) {
+T opt(std::true_type is_integral, std::true_type is_unsigned, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
 }
 
 template<>
-bool opt(std::true_type, std::true_type, const std::string& key) {
+bool opt(std::true_type is_integral, std::true_type is_unsigned, const std::string &key) {
     if (!has_opt(key))
         return false;
     std::string value = __testlib_keyToOpts(key);
@@ -5269,21 +5265,22 @@ bool opt(std::true_type, std::true_type, const std::string& key) {
         return true;
     if (value == "false" || value == "0")
         return false;
-    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '"
+        + compress(value) + "' found");
 }
 
 /**
  * Return the parsed opt by a given key.
  */
 template<typename T>
-T opt(const std::string key) {
+T opt(const std::string &key) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
 }
 
 /**
  * Return the raw string value of an opt by a given key
  */
-std::string opt(const std::string key) {
+std::string opt(const std::string &key) {
     return opt<std::string>(key);
 }
 
@@ -5292,7 +5289,7 @@ std::string opt(const std::string key) {
  * found, return the given default_value.
  */
 template<typename T>
-T opt(const std::string& key, const T& default_value) {
+T opt(const std::string &key, const T &default_value) {
     if (!has_opt(key)) {
         return default_value;
     }
@@ -5303,7 +5300,7 @@ T opt(const std::string& key, const T& default_value) {
  * Return the raw string value of an opt by a given key. If no opts with the
  * given key are found, return the given default_value.
  */
-std::string opt(const std::string& key, const std::string& default_value) {
+std::string opt(const std::string &key, const std::string &default_value) {
     return opt<std::string>(key, default_value);
 }
 
@@ -5315,13 +5312,9 @@ std::string opt(const std::string& key, const std::string& default_value) {
  * in the opt's key.
  */
 void check_unused_opt() {
-    for (std::map<std::string, TestlibOpt>::iterator it =
-             __testlib_opts.begin();
-         it != __testlib_opts.end();
-         ++it
-    ) {
-        if (!it->second.used) {
-            __testlib_fail("Opts: unused key '" + compress(it->first) + "'");
+    for (auto &opt: __testlib_opts) {
+        if (!opt.second.used) {
+            __testlib_fail("Opts: unused key '" + compress(opt.first) + "'");
         }
     }
 }
