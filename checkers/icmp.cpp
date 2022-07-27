@@ -1,16 +1,14 @@
 #include "testlib.h"
-#include <stdio.h>
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char *argv[]) {
     setName("compare two signed int%d's", 8 * int(sizeof(int)));
     registerTestlibCmd(argc, argv);
-    
+
     int ja = ans.readInt();
     int pa = ouf.readInt();
-    
+
     if (ja != pa)
         quitf(_wa, "expected %d, found %d", ja, pa);
-    
+
     quitf(_ok, "answer is %d", ja);
 }

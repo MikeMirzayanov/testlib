@@ -6,7 +6,7 @@ This project contains C++ implementation of the testlib. It is already being use
 
 The library C++ code is tested for compatibility with the standard C++11 and higher on different versions of `g++`, `clang++` and Microsoft Visual C++.
 
-This code used many times on Codeforces contests.
+This code was used many times on Codeforces contests.
 
 ## Samples
 
