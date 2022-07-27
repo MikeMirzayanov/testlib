@@ -34,8 +34,6 @@ int main(int argc, char** argv) {
     int max_value = opt<int>("max-value", 1000 * 1000 * 1000);
     int value_bias = opt<int>("value-bias", 0);
     
-    check_unused_opt();
-    
     vector<int> n_list = rnd.partition(test_count, sum_n, min_n);
     
     println(test_count);
