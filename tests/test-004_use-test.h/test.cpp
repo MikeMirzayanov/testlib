@@ -11,6 +11,7 @@ using namespace std;
 #include "tests/test-opts.cpp"
 #include "tests/test-instream.cpp"
 #include "tests/test-pattern.cpp"
+#include "tests/test-skip-bom.cpp"
 
 int main() {
     run_tests();
