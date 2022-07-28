@@ -1,5 +1,5 @@
 TEST(opts) {
-    supressEnsureNoUnusedOpts();
+    suppressEnsureNoUnusedOpts();
     {
         const char* args[] = {"test"};
         prepareOpts(sizeof(args) / sizeof(const char*), (char **)args);

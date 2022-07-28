@@ -1,6 +1,0 @@
-test-count = 3
-sum-n = 10
-min-n = 1
-min-value = 10
-max-value = 1000000000
-value-bias = 0

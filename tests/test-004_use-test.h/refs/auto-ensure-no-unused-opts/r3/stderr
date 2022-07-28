@@ -1,1 +1,0 @@
-FAIL Opts: unused key 'min-val'. Call supressEnsureNoUnusedOpts() at the beginning of main() to turn off ensurement for no unused opts.

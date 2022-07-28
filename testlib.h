@@ -2305,7 +2305,8 @@ struct TestlibFinalizeGuard {
 
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
-            
+
+            /* opts */
             autoEnsureNoUnusedOpts();
         }
 
@@ -2313,6 +2314,7 @@ struct TestlibFinalizeGuard {
     }
 
 private:
+    /* opts */
     void autoEnsureNoUnusedOpts();
 };
 
@@ -4839,7 +4841,6 @@ struct TestlibOpt {
     bool used;
 
     TestlibOpt() : value(), used(false) {}
-    explicit TestlibOpt(const std::string &value_) : value(value_), used(false) {}
 };
 
 /**
@@ -4944,16 +4945,16 @@ std::map<std::string, TestlibOpt> __testlib_opts;
  * Whether automatic no unused opts ensurement should be done. This flag will
  * be turned on when `has_opt` or `opt(key, default_value)` is called.
  * 
- * The automatic ensurement can be supressed when
- * __testlib_ensureNoUnusedOptsSupressed is true.
+ * The automatic ensurement can be suppressed when
+ * __testlib_ensureNoUnusedOptsSuppressed is true.
  */
 bool __testlib_ensureNoUnusedOptsFlag = false;
 
 /**
- * Supress no unused opts automatic ensurement. Can be set to true with
- * `supressEnsureNoUnusedOpts()`.
+ * Suppress no unused opts automatic ensurement. Can be set to true with
+ * `suppressEnsureNoUnusedOpts()`.
  */
-bool __testlib_ensureNoUnusedOptsSupressed = false;
+bool __testlib_ensureNoUnusedOptsSuppressed = false;
 
 /**
  * Parse command line arguments into opts.
@@ -5127,7 +5128,7 @@ long double optValueToLongDouble(const std::string &s_) {
  * Return true if there is an opt with a given key.
  * 
  * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
  * turn it off.
  */
 bool has_opt(const std::string &key) {
@@ -5183,32 +5184,32 @@ template<typename T>
 T opt(std::false_type is_floating_point, int index);
 
 template<>
-std::string opt(std::false_type is_floating_point, int index) {
+std::string opt(std::false_type /*is_floating_point*/, int index) {
     return __testlib_indexToArgv(index);
 }
 
 template<typename T>
-T opt(std::true_type is_floating_point, int index) {
+T opt(std::true_type /*is_floating_point*/, int index) {
     return T(optValueToLongDouble(__testlib_indexToArgv(index)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type is_integral, U is_unsigned, int index) {
+T opt(std::false_type /*is_integral*/, U /*is_unsigned*/, int index) {
     return opt<T>(std::is_floating_point<T>(), index);
 }
 
 template<typename T>
-T opt(std::true_type is_integral, std::false_type is_unsigned, int index) {
+T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
 }
 
 template<typename T>
-T opt(std::true_type is_integral, std::true_type is_unsigned, int index) {
+T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
 }
 
 template<>
-bool opt(std::true_type is_integral, std::true_type is_unsigned, int index) {
+bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     std::string value = __testlib_indexToArgv(index);
     if (value == "true" || value == "1")
         return true;
@@ -5257,32 +5258,32 @@ template<typename T>
 T opt(std::false_type is_floating_point, const std::string &key);
 
 template<>
-std::string opt(std::false_type is_floating_point, const std::string &key) {
+std::string opt(std::false_type /*is_floating_point*/, const std::string &key) {
     return __testlib_keyToOpts(key);
 }
 
 template<typename T>
-T opt(std::true_type is_integral, const std::string &key) {
+T opt(std::true_type /*is_integral*/, const std::string &key) {
     return T(optValueToLongDouble(__testlib_keyToOpts(key)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type is_integral, U, const std::string &key) {
+T opt(std::false_type /*is_integral*/, U, const std::string &key) {
     return opt<T>(std::is_floating_point<T>(), key);
 }
 
 template<typename T>
-T opt(std::true_type is_integral, std::false_type is_unsigned, const std::string &key) {
+T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
 }
 
 template<typename T>
-T opt(std::true_type is_integral, std::true_type is_unsigned, const std::string &key) {
+T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
 }
 
 template<>
-bool opt(std::true_type is_integral, std::true_type is_unsigned, const std::string &key) {
+bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     if (!has_opt(key))
         return false;
     std::string value = __testlib_keyToOpts(key);
@@ -5314,7 +5315,7 @@ std::string opt(const std::string &key) {
  * found, return the given default_value.
  * 
  * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
  * turn it off.
  */
 template<typename T>
@@ -5330,7 +5331,7 @@ T opt(const std::string &key, const T &default_value) {
  * given key are found, return the given default_value.
  * 
  * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
  * turn it off.
  */
 std::string opt(const std::string &key, const std::string &default_value) {
@@ -5344,27 +5345,21 @@ std::string opt(const std::string &key, const std::string &default_value) {
  * This function is useful when opt() with default_value for checking typos
  * in the opt's key.
  */
-void ensureNoUnusedOpts(bool with_supress_message = false) {
+void ensureNoUnusedOpts() {
     for (const auto &opt: __testlib_opts) {
         if (!opt.second.used) {
-            __testlib_fail(format(
-                "Opts: unused key '%s'%s", compress(opt.first).c_str(),
-                with_supress_message
-                    ? ". Call supressEnsureNoUnusedOpts() at the beginning of "
-                      "main() to turn off ensurement for no unused opts."
-                    : ""));
+            __testlib_fail(format("Opts: unused key '%s'", compress(opt.first).c_str()));
         }
     }
 }
 
-void supressEnsureNoUnusedOpts() {
-    __testlib_ensureNoUnusedOptsSupressed = true;
+void suppressEnsureNoUnusedOpts() {
+    __testlib_ensureNoUnusedOptsSuppressed = true;
 }
 
 void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
-    if (__testlib_ensureNoUnusedOptsFlag &&
-        !__testlib_ensureNoUnusedOptsSupressed) {
-        ensureNoUnusedOpts(true);
+    if (__testlib_ensureNoUnusedOptsFlag && !__testlib_ensureNoUnusedOptsSuppressed) {
+        ensureNoUnusedOpts();
     }
 }
 
