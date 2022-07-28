@@ -2123,10 +2123,10 @@ struct InStream {
 
     void xmlSafeWrite(std::FILE *file, const char *msg);
 
-private:
     /* Skips UTF-8 Byte Order Mark. */
     void skipBom();
 
+private:
     InStream(const InStream &);
 
     InStream &operator=(const InStream &);
@@ -2889,18 +2889,18 @@ void InStream::init(std::FILE *f, TMode mode) {
 }
 
 void InStream::skipBom() {
-  const std::string utf8Bom = "\xEF\xBB\xBF";
-  size_t index = 0;
-  while (index < utf8Bom.size() && curChar() == utf8Bom[index]) {
-    index++;
-    skipChar();
-  }
-  if (index < utf8Bom.size()) {
-    while (index != 0) {
-      unreadChar(utf8Bom[index - 1]);
-      index--;
+    const std::string utf8Bom = "\xEF\xBB\xBF";
+    size_t index = 0;
+    while (index < utf8Bom.size() && curChar() == utf8Bom[index]) {
+        index++;
+        skipChar();
     }
-  }
+    if (index < utf8Bom.size()) {
+        while (index != 0) {
+            unreadChar(utf8Bom[index - 1]);
+            index--;
+        }
+    }
 }
 
 char InStream::curChar() {
