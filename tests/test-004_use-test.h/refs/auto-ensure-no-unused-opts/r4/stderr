@@ -1,0 +1,1 @@
+FAIL Opts: unused key 'max-val'. Call supressEnsureNoUnusedOpts() at the beginning of main() to turn off ensurement for no unused opts.

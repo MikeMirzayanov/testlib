@@ -1,4 +1,5 @@
 TEST(opts) {
+    supressEnsureNoUnusedOpts();
     {
         const char* args[] = {"test"};
         prepareOpts(sizeof(args) / sizeof(const char*), (char **)args);
@@ -72,7 +73,7 @@ TEST(opts) {
                 res.max_value = opt<int>("max-value", 1000 * 1000 * 1000);
                 res.value_bias = opt<int>("value-bias", 0);
                 
-                check_unused_opt();
+                ensureNoUnusedOpts();
                 return res;
             }
         };

@@ -2305,14 +2305,19 @@ struct TestlibFinalizeGuard {
 
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
+            
+            autoEnsureNoUnusedOpts();
         }
 
         validator.writeTestOverviewLog();
     }
+
+private:
+    void autoEnsureNoUnusedOpts();
 };
 
 bool TestlibFinalizeGuard::alive = true;
-TestlibFinalizeGuard testlibFinalizeGuard;
+extern TestlibFinalizeGuard testlibFinalizeGuard;
 
 /*
  * Call it to disable checks on finalization.
@@ -4936,6 +4941,21 @@ std::vector<std::string> __testlib_argv;
 std::map<std::string, TestlibOpt> __testlib_opts;
 
 /**
+ * Whether automatic no unused opts ensurement should be done. This flag will
+ * be turned on when `has_opt` or `opt(key, default_value)` is called.
+ * 
+ * The automatic ensurement can be supressed when
+ * __testlib_ensureNoUnusedOptsSupressed is true.
+ */
+bool __testlib_ensureNoUnusedOptsFlag = false;
+
+/**
+ * Supress no unused opts automatic ensurement. Can be set to true with
+ * `supressEnsureNoUnusedOpts()`.
+ */
+bool __testlib_ensureNoUnusedOptsSupressed = false;
+
+/**
  * Parse command line arguments into opts.
  * The results are stored into __testlib_argv and __testlib_opts.
  */
@@ -5105,8 +5125,13 @@ long double optValueToLongDouble(const std::string &s_) {
 
 /**
  * Return true if there is an opt with a given key.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * turn it off.
  */
 bool has_opt(const std::string &key) {
+    __testlib_ensureNoUnusedOptsFlag = true;
     return __testlib_opts.count(key) != 0;
 }
 
@@ -5287,6 +5312,10 @@ std::string opt(const std::string &key) {
 /**
  * Return the parsed opt by a given key. If no opts with the given key are
  * found, return the given default_value.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * turn it off.
  */
 template<typename T>
 T opt(const std::string &key, const T &default_value) {
@@ -5299,6 +5328,10 @@ T opt(const std::string &key, const T &default_value) {
 /**
  * Return the raw string value of an opt by a given key. If no opts with the
  * given key are found, return the given default_value.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call supressEnsureNoUnusedOpts() to
+ * turn it off.
  */
 std::string opt(const std::string &key, const std::string &default_value) {
     return opt<std::string>(key, default_value);
@@ -5311,13 +5344,31 @@ std::string opt(const std::string &key, const std::string &default_value) {
  * This function is useful when opt() with default_value for checking typos
  * in the opt's key.
  */
-void check_unused_opt() {
-    for (auto &opt: __testlib_opts) {
+void ensureNoUnusedOpts(bool with_supress_message = false) {
+    for (const auto &opt: __testlib_opts) {
         if (!opt.second.used) {
-            __testlib_fail("Opts: unused key '" + compress(opt.first) + "'");
+            __testlib_fail(format(
+                "Opts: unused key '%s'%s", compress(opt.first).c_str(),
+                with_supress_message
+                    ? ". Call supressEnsureNoUnusedOpts() at the beginning of "
+                      "main() to turn off ensurement for no unused opts."
+                    : ""));
         }
     }
 }
+
+void supressEnsureNoUnusedOpts() {
+    __testlib_ensureNoUnusedOptsSupressed = true;
+}
+
+void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
+    if (__testlib_ensureNoUnusedOptsFlag &&
+        !__testlib_ensureNoUnusedOptsSupressed) {
+        ensureNoUnusedOpts(true);
+    }
+}
+
+TestlibFinalizeGuard testlibFinalizeGuard;
 
 #endif
 #endif
