@@ -13,5 +13,6 @@ using namespace std;
 #include "tests/test-pattern.cpp"
 
 int main() {
+    disableFinalizeGuard();
     run_tests();
 }

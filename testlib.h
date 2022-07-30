@@ -2292,6 +2292,8 @@ public:
 
 struct TestlibFinalizeGuard {
     static bool alive;
+    static bool registered;
+
     int quitCount, readEofCount;
 
     TestlibFinalizeGuard() : quitCount(0), readEofCount(0) {
@@ -2308,6 +2310,9 @@ struct TestlibFinalizeGuard {
 
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
+
+            if (!registered)
+                __testlib_fail("Call register-function in the first line of the main (registerTestlibCmd or other similar)");
         }
 
         validator.writeTestOverviewLog();
@@ -2315,6 +2320,8 @@ struct TestlibFinalizeGuard {
 };
 
 bool TestlibFinalizeGuard::alive = true;
+bool TestlibFinalizeGuard::registered = false;
+
 TestlibFinalizeGuard testlibFinalizeGuard;
 
 /*
@@ -4073,6 +4080,7 @@ void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
     random_t::version = randomGeneratorVersion;
 
     __testlib_ensuresPreconditions();
+    TestlibFinalizeGuard::registered = true;
 
     testlibMode = _generator;
     __testlib_set_binary(stdin);
@@ -4116,6 +4124,7 @@ void registerGen(int argc, char *argv[]) {
 
 void registerInteraction(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
+    TestlibFinalizeGuard::registered = true;
 
     testlibMode = _interactor;
     __testlib_set_binary(stdin);
@@ -4167,6 +4176,7 @@ void registerInteraction(int argc, char *argv[]) {
 
 void registerValidation() {
     __testlib_ensuresPreconditions();
+    TestlibFinalizeGuard::registered = true;
 
     testlibMode = _validator;
     __testlib_set_binary(stdin);
@@ -4178,6 +4188,7 @@ void registerValidation() {
 void registerValidation(int argc, char *argv[]) {
     registerValidation();
     validator.initialize();
+    TestlibFinalizeGuard::registered = true;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp("--testset", argv[i])) {
@@ -4253,6 +4264,7 @@ public:
 
 void registerTestlibCmd(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
+    TestlibFinalizeGuard::registered = true;
 
     testlibMode = _checker;
     __testlib_set_binary(stdin);
