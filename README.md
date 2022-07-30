@@ -85,9 +85,6 @@ This generator outputs into the standard output random token, containing Latin l
 
 ```c++
 #include "testlib.h"
-#include <iostream>
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
@@ -100,8 +97,6 @@ This generator outputs random permutation, the size equals to the first command 
 
 ```c++
 #include "testlib.h"
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
