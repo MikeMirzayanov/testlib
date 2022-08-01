@@ -4,11 +4,12 @@ set -eo pipefail
 TESTS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 export TESTS_DIR="$TESTS_DIR"
 
-CYAN='\033[1;36m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-GREEN='\033[1;32m'
-NC='\033[0m'
+export RED='\033[0;31m'
+export CYAN='\033[1;36m'
+export BLUE='\033[1;34m'
+export YELLOW='\033[1;33m'
+export GREEN='\033[1;32m'
+export NC='\033[0m'
 
 ARGS_CPP=""
 ARGS_VALID_CPP_STANDARDS=",11,14,17,20,23,"
@@ -231,7 +232,7 @@ if [[ "$machine" == "Windows" ]]; then
 fi
 
 if [[ -z "$done" ]]; then
-  echo "[ERROR] No compilers found"
+  echo -e "${RED}[ERROR]${NC} No compilers found\n"
   exit 1
 fi
 
