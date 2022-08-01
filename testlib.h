@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
         "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
@@ -2311,18 +2312,24 @@ struct TestlibFinalizeGuard {
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
 
+            /* opts */
+            autoEnsureNoUnusedOpts();
+
             if (!registered)
                 __testlib_fail("Call register-function in the first line of the main (registerTestlibCmd or other similar)");
         }
 
         validator.writeTestOverviewLog();
     }
+
+private:
+    /* opts */
+    void autoEnsureNoUnusedOpts();
 };
 
 bool TestlibFinalizeGuard::alive = true;
 bool TestlibFinalizeGuard::registered = false;
-
-TestlibFinalizeGuard testlibFinalizeGuard;
+extern TestlibFinalizeGuard testlibFinalizeGuard;
 
 /*
  * Call it to disable checks on finalization.
@@ -4856,7 +4863,32 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 }
 
 /* opts */
-size_t getOptType(char* s) {
+
+/**
+ * A struct for a singular testlib opt, containing the raw string value,
+ * and a boolean value for marking whether the opt is used.
+ */
+struct TestlibOpt {
+    std::string value;
+    bool used;
+
+    TestlibOpt() : value(), used(false) {}
+};
+
+/**
+ * Get the type of opt based on the number of `-` at the beginning and the
+ * _validity_ of the key name.
+ * 
+ * A valid key name must start with an alphabetical character.
+ * 
+ * Returns: 1 if s has one `-` at the beginning, that is, "-keyName".
+ *          2 if s has two `-` at the beginning, that is, "--keyName".
+ *          0 otherwise. That is, if s has no `-` at the beginning, or has more
+ *          than 2 at the beginning ("---keyName", "----keyName", ...), or the
+ *          keyName is invalid (the first character is not an alphabetical
+ *          character).
+ */
+size_t getOptType(char *s) {
     if (!s || strlen(s) <= 1)
         return 0;
 
@@ -4870,7 +4902,36 @@ size_t getOptType(char* s) {
     return 0;
 }
 
-size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, std::string>& opts) {
+/**
+ * Parse the opt at a given index, and put it into the opts maps.
+ * 
+ * An opt can has the following form:
+ * 1) -keyName=value or --keyName=value     (ex. -n=10 --test-count=20)
+ * 2) -keyName value or --keyName value     (ex. -n 10 --test-count 20)
+ * 3) -kNumval       or --kNumval           (ex. -n10  --t20)
+ * 4) -boolProperty  or --boolProperty      (ex. -sorted --tree-only)
+ * 
+ * Only the second form consumes 2 arguments. The other consumes only 1
+ * argument.
+ * 
+ * In the third form, the key is a single character, and after the key is the
+ * value. The value _should_ be a number.
+ * 
+ * In the forth form, the value is true.
+ * 
+ * Params:
+ * - argc and argv: the number of command line arguments and the command line
+ *   arguments themselves.
+ * - index: the starting index of the opts.
+ * - opts: the map containing the resulting opt.
+ *  
+ * Returns: the number of consumed arguments to parse the opt.
+ *          0 if there is no arguments to parse.
+ * 
+ * Algorithm details:
+ * TODO. Please refer to the implementation to see how the code handles the 3rd and 4th forms separately.
+ */
+size_t parseOpt(size_t argc, char *argv[], size_t index, std::map<std::string, TestlibOpt> &opts) {
     if (index >= argc)
         return 0;
 
@@ -4894,7 +4955,7 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, s
                 }
             }
         }
-        opts[key] = val;
+        opts[key].value = val;
     } else {
         return inc;
     }
@@ -4902,38 +4963,75 @@ size_t parseOpt(size_t argc, char* argv[], size_t index, std::map<std::string, s
     return inc;
 }
 
+/**
+ * Global list containing all the arguments in the order given in the command line.
+ */
 std::vector<std::string> __testlib_argv;
-std::map<std::string, std::string> __testlib_opts;
 
-void prepareOpts(int argc, char* argv[]) {
+/**
+ * Global dictionary containing all the parsed opts.
+ */
+std::map<std::string, TestlibOpt> __testlib_opts;
+
+/**
+ * Whether automatic no unused opts ensurement should be done. This flag will
+ * be turned on when `has_opt` or `opt(key, default_value)` is called.
+ * 
+ * The automatic ensurement can be suppressed when
+ * __testlib_ensureNoUnusedOptsSuppressed is true.
+ */
+bool __testlib_ensureNoUnusedOptsFlag = false;
+
+/**
+ * Suppress no unused opts automatic ensurement. Can be set to true with
+ * `suppressEnsureNoUnusedOpts()`.
+ */
+bool __testlib_ensureNoUnusedOptsSuppressed = false;
+
+/**
+ * Parse command line arguments into opts.
+ * The results are stored into __testlib_argv and __testlib_opts.
+ */
+void prepareOpts(int argc, char *argv[]) {
     if (argc <= 0)
         __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
     size_t n = static_cast<size_t>(argc); // NOLINT(hicpp-use-auto,modernize-use-auto)
-    __testlib_opts = std::map<std::string, std::string>();
+    __testlib_opts = std::map<std::string, TestlibOpt>();
     for (size_t index = 1; index < n; index += parseOpt(n, argv, index, __testlib_opts));
     __testlib_argv = std::vector<std::string>(n);
     for (size_t index = 0; index < n; index++)
         __testlib_argv[index] = argv[index];
 }
 
+/**
+ * An utility function to get the argument with a given index. This function
+ * also print a readable message when no arguments are found.
+ */
 std::string __testlib_indexToArgv(int index) {
     if (index < 0 || index >= int(__testlib_argv.size()))
-        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0," + toString(__testlib_argv.size()) + ")");
+        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0,"
+            + toString(__testlib_argv.size()) + ")");
     return __testlib_argv[size_t(index)];
 }
 
-std::string __testlib_keyToOpts(const std::string& key) {
-    if (__testlib_opts.count(key) == 0)
+/**
+ * An utility function to get the opt with a given key . This function
+ * also print a readable message when no opts are found.
+ */
+std::string __testlib_keyToOpts(const std::string &key) {
+    auto it = __testlib_opts.find(key);
+    if (it == __testlib_opts.end())
         __testlib_fail("Opts: unknown key '" + compress(key) + "'");
-    return __testlib_opts[key];
+    it->second.used = true;
+    return it->second.value;
 }
 
 template<typename T>
-T optValueToIntegral(const std::string& s, bool nonnegative);
+T optValueToIntegral(const std::string &s, bool nonnegative);
 
-long double optValueToLongDouble(const std::string& s);
+long double optValueToLongDouble(const std::string &s);
 
-std::string parseExponentialOptValue(const std::string& s) {
+std::string parseExponentialOptValue(const std::string &s) {
     size_t pos = std::string::npos;
     for (size_t i = 0; i < s.length(); i++)
         if (s[i] == 'e' || s[i] == 'E') {
@@ -4996,7 +5094,7 @@ std::string parseExponentialOptValue(const std::string& s) {
 }
 
 template<typename T>
-T optValueToIntegral(const std::string& s_, bool nonnegative) {
+T optValueToIntegral(const std::string &s_, bool nonnegative) {
     std::string s(parseExponentialOptValue(s_));
     if (s.empty())
         __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
@@ -5023,7 +5121,7 @@ T optValueToIntegral(const std::string& s_, bool nonnegative) {
     return value;
 }
 
-long double optValueToLongDouble(const std::string& s_) {
+long double optValueToLongDouble(const std::string &s_) {
     std::string s(parseExponentialOptValue(s_));
     if (s.empty())
         __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
@@ -5058,87 +5156,166 @@ long double optValueToLongDouble(const std::string& s_) {
     return value;
 }
 
-bool has_opt(const std::string key) {
+/**
+ * Return true if there is an opt with a given key.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
+ * turn it off.
+ */
+bool has_opt(const std::string &key) {
+    __testlib_ensureNoUnusedOptsFlag = true;
     return __testlib_opts.count(key) != 0;
 }
 
+/* About the followings part for opt with 2 and 3 arguments.
+ * 
+ * To parse the argv/opts correctly for a give type (integer, floating point or
+ * string), some meta programming must be done to determine the type of
+ * the type, and use the correct parsing function accordingly.
+ * 
+ * The pseudo algorithm for determining the type of T and parse it accordingly
+ * is as follows:
+ * 
+ * if (T is integral type) {
+ *   if (T is unsigned) {
+ *     parse the argv/opt as an **unsigned integer** of type T.
+ *   } else {
+ *     parse the argv/opt as an **signed integer** of type T.
+ * } else {
+ *   if (T is floating point type) {
+ *     parse the argv/opt as an **floating point** of type T.
+ *   } else {
+ *     // T should be std::string
+ *     just the raw content of the argv/opts.
+ *   }
+ * }
+ * 
+ * To help with meta programming, some `opt` function with 2 or 3 arguments are
+ * defined.
+ * 
+ * Opt with 3 arguments:    T opt(true/false is_integral, true/false is_unsigned, index/key)
+ * 
+ *   + The first argument is for determining whether the type T is an integral
+ *   type. That is, the result of std::is_integral<T>() should be passed to
+ *   this argument. When false, the type _should_ be either floating point or a
+ *   std::string.
+ *   
+ *   + The second argument is for determining whether the signedness of the type
+ *   T (if it is unsigned or signed). That is, the result of
+ *   std::is_unsigned<T>() should be passed to this argument. This argument can
+ *   be ignored if the first one is false, because it only applies to integer.
+ *
+ * Opt with 2 arguments:    T opt(true/false is_floating_point, index/key)
+ *   + The first argument is for determining whether the type T is a floating
+ *   point type. That is, the result of std::is_floating_point<T>() should be
+ *   passed to this argument. When false, the type _should_ be a std::string.
+ */
+
 template<typename T>
-T opt(std::false_type, int index);
+T opt(std::false_type is_floating_point, int index);
 
 template<>
-std::string opt(std::false_type, int index) {
+std::string opt(std::false_type /*is_floating_point*/, int index) {
     return __testlib_indexToArgv(index);
 }
 
 template<typename T>
-T opt(std::true_type, int index) {
+T opt(std::true_type /*is_floating_point*/, int index) {
     return T(optValueToLongDouble(__testlib_indexToArgv(index)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type, U, int index) {
+T opt(std::false_type /*is_integral*/, U /*is_unsigned*/, int index) {
     return opt<T>(std::is_floating_point<T>(), index);
 }
 
 template<typename T>
-T opt(std::true_type, std::false_type, int index) {
+T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
 }
 
 template<typename T>
-T opt(std::true_type, std::true_type, int index) {
+T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
 }
 
 template<>
-bool opt(std::true_type, std::true_type, int index) {
+bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     std::string value = __testlib_indexToArgv(index);
     if (value == "true" || value == "1")
         return true;
     if (value == "false" || value == "0")
         return false;
-    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '"
+            + compress(value) + "' found");
 }
 
+/**
+ * Return the parsed argv by a given index.
+ */
 template<typename T>
 T opt(int index) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
 }
 
+/**
+ * Return the raw string value of an argv by a given index.
+ */
 std::string opt(int index) {
     return opt<std::string>(index);
 }
 
+/**
+ * Return the parsed argv by a given index. If the index is bigger than
+ * the number of argv, return the given default_value.
+ */
 template<typename T>
-T opt(std::false_type, const std::string& key);
+T opt(int index, const T &default_value) {
+    if (index >= int(__testlib_argv.size())) {
+        return default_value;
+    }
+    return opt<T>(index);
+}
+
+/**
+ * Return the raw string value of an argv by a given index. If the index is
+ * bigger than the number of argv, return the given default_value.
+ */
+std::string opt(int index, const std::string &default_value) {
+    return opt<std::string>(index, default_value);
+}
+
+template<typename T>
+T opt(std::false_type is_floating_point, const std::string &key);
 
 template<>
-std::string opt(std::false_type, const std::string& key) {
+std::string opt(std::false_type /*is_floating_point*/, const std::string &key) {
     return __testlib_keyToOpts(key);
 }
 
 template<typename T>
-T opt(std::true_type, const std::string& key) {
+T opt(std::true_type /*is_integral*/, const std::string &key) {
     return T(optValueToLongDouble(__testlib_keyToOpts(key)));
 }
 
 template<typename T, typename U>
-T opt(std::false_type, U, const std::string& key) {
+T opt(std::false_type /*is_integral*/, U, const std::string &key) {
     return opt<T>(std::is_floating_point<T>(), key);
 }
 
 template<typename T>
-T opt(std::true_type, std::false_type, const std::string& key) {
+T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
 }
 
 template<typename T>
-T opt(std::true_type, std::true_type, const std::string& key) {
+T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
 }
 
 template<>
-bool opt(std::true_type, std::true_type, const std::string& key) {
+bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     if (!has_opt(key))
         return false;
     std::string value = __testlib_keyToOpts(key);
@@ -5146,16 +5323,79 @@ bool opt(std::true_type, std::true_type, const std::string& key) {
         return true;
     if (value == "false" || value == "0")
         return false;
-    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '" + compress(value) + "' found");
+    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '"
+        + compress(value) + "' found");
 }
 
+/**
+ * Return the parsed opt by a given key.
+ */
 template<typename T>
-T opt(const std::string key) {
+T opt(const std::string &key) {
     return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
 }
 
-std::string opt(const std::string key) {
+/**
+ * Return the raw string value of an opt by a given key
+ */
+std::string opt(const std::string &key) {
     return opt<std::string>(key);
 }
+
+/**
+ * Return the parsed opt by a given key. If no opts with the given key are
+ * found, return the given default_value.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
+ * turn it off.
+ */
+template<typename T>
+T opt(const std::string &key, const T &default_value) {
+    if (!has_opt(key)) {
+        return default_value;
+    }
+    return opt<T>(key);
+}
+
+/**
+ * Return the raw string value of an opt by a given key. If no opts with the
+ * given key are found, return the given default_value.
+ * 
+ * By calling this function, automatic ensurement for no unused opts will be
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
+ * turn it off.
+ */
+std::string opt(const std::string &key, const std::string &default_value) {
+    return opt<std::string>(key, default_value);
+}
+
+/**
+ * Check if all opts are used. If not, __testlib_fail is called.
+ * Should be used after calling all opt() function calls.
+ * 
+ * This function is useful when opt() with default_value for checking typos
+ * in the opt's key.
+ */
+void ensureNoUnusedOpts() {
+    for (const auto &opt: __testlib_opts) {
+        if (!opt.second.used) {
+            __testlib_fail(format("Opts: unused key '%s'", compress(opt.first).c_str()));
+        }
+    }
+}
+
+void suppressEnsureNoUnusedOpts() {
+    __testlib_ensureNoUnusedOptsSuppressed = true;
+}
+
+void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
+    if (__testlib_ensureNoUnusedOptsFlag && !__testlib_ensureNoUnusedOptsSuppressed) {
+        ensureNoUnusedOpts();
+    }
+}
+
+TestlibFinalizeGuard testlibFinalizeGuard;
+
 #endif
 #endif
