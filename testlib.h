@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
         "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
         "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
