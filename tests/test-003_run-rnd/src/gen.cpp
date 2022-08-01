@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
     println(rnd.distinct(0, 15, 100));
     println(rnd.partition(10, 100, 3));
     println(rnd.partition(0, 0, 10));
+    println(rnd.partition(1, 0, 0));
     println(rnd.wnext(1000, 2));
     println(rnd.wnext(1000LL, 2LL));
     println(rnd.wnext(1000, 20));
