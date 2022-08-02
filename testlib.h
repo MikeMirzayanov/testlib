@@ -473,15 +473,6 @@ static void __testlib_set_binary(std::FILE *file) {
 #   else
         setmode(fileno(file), O_BINARY);
 #   endif
-#else
-    if (file == stdin) {
-        if (!freopen(NULL, "rb", file))
-            __testlib_fail("Unable to freopen stdin");
-    }
-    if (file == stdout || file == stderr) {
-        if (!freopen(NULL, "wb", file))
-            __testlib_fail("Unable to freopen stdout/stderr");
-    }
 #endif
     }
 }
