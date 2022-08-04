@@ -20,12 +20,12 @@ for i in files/"$os"/case-nval/*; do
   echo "test-ref r-case-nval-$j ""$VALGRIND"" ./case-nval --testMarkupFileName stderr < files/$os/case-nval/input.$i"
   bash ../scripts/test-ref r-case-nval-$j "$VALGRIND" ./case-nval --testMarkupFileName stderr <$i
   for t in 1 2; do
-    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --testMarkupFileName stderr --dumpTestCase "${t}" < files/$os/case-nval/input.$i"
-    bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --testMarkupFileName stderr --dumpTestCase "${t}" <$i
+    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --testMarkupFileName stderr --testCase "${t}" < files/$os/case-nval/input.$i"
+    bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --testMarkupFileName stderr --testCase "${t}" <$i
   done
   for t in 3 4; do
-    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --dumpTestCase "${t}" < files/$os/case-nval/input.$i"
-    bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --dumpTestCase "${t}" <$i
+    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --testCase "${t}" < files/$os/case-nval/input.$i"
+    bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --testCase "${t}" <$i
   done
 done
 rm -f case-nval case-nval.exe
