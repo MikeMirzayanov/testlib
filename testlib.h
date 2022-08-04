@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Supported '--testMarkupFileName fn' and '--dumpTestCase tc' for validators",
+        "Supported '--testMarkupFileName fn' and '--testCase tc/--testCaseFileName fn' for validators",
         "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
         "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
@@ -323,6 +323,7 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count--;                                         \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
+const int __TESTLIB_MAX_TEST_CASE = 1073741823;
 
 int __testlib_exitCode;
 
@@ -1667,7 +1668,7 @@ public:
 
     void unreadChar(int c) {
         if (pos == 0)
-            __testlib_fail("FileFileInputStreamReader::unreadChar(int): pos == 0.");
+            __testlib_fail("StringInputStreamReader::unreadChar(int): pos == 0.");
         pos--;
         if (pos < s.length())
             s[pos] = char(c);
@@ -1743,8 +1744,8 @@ public:
     }
 
     void setTestCase(int testCase) {
-        if (testCase < 0 || testCase > 1073741823)
-            __testlib_fail(format("testCase expected fit in [1,1073741823], but %d doesn't", testCase));
+        if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
+            __testlib_fail(format("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
         readChars.push_back(testCase + 256);
     }
 
@@ -2346,7 +2347,8 @@ private:
 
     std::string _testOverviewLogFileName;
     std::string _testMarkupFileName;
-    int _dumpTestCase = -1;
+    int _testCase = -1;
+    std::string _testCaseFileName;
 
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
     std::set<std::string> _features;
@@ -2394,8 +2396,12 @@ public:
         return _testMarkupFileName;
     }
 
-    int dumpTestCase() const {
-        return _dumpTestCase;
+    int testCase() const {
+        return _testCase;
+    }
+
+    std::string testCaseFileName() const {
+        return _testCaseFileName;
     }
 
     void setTestset(const char *const testset) {
@@ -2414,8 +2420,12 @@ public:
         _testMarkupFileName = testMarkupFileName;
     }
 
-    void setDumpTestCase(int testCase) {
-        _dumpTestCase = testCase;
+    void setTestCase(int testCase) {
+        _testCase = testCase;
+    }
+
+    void setTestCaseFileName(const char *const testCaseFileName) {
+        _testCaseFileName = testCaseFileName;
     }
 
     void addBoundsHit(const std::string &variableName, ValidatorBoundsHit boundsHit) {
@@ -2499,8 +2509,8 @@ public:
         }
     }
 
-    void runDumpTestCase() {
-        if (_dumpTestCase > 0) {
+    void writeTestCase() {
+        if (_testCase > 0) {
             std::vector<int> readChars = inf.getReadChars();
             if (!readChars.empty()) {
                 std::string markup;
@@ -2517,7 +2527,7 @@ public:
                     }
                 }
 
-                std::string begin = TEST_CASE_OPEN_TAG + toString(_dumpTestCase) + TEST_CASE_CLOSE_TAG;
+                std::string begin = TEST_CASE_OPEN_TAG + toString(_testCase) + TEST_CASE_CLOSE_TAG;
                 std::string end = TEST_CASE_OPEN_TAG;
 
                 size_t begin_index = markup.find(begin);
@@ -2527,9 +2537,24 @@ public:
                     if (end_index == std::string::npos) {
                         end_index = markup.length();
                     }
-                    std::string testCaseMarkup = markup.substr(begin_index, end_index - begin_index);
-                    std::printf("%s", testCaseMarkup.c_str());
-                    std::fflush(stdout);
+                    std::string testCase = markup.substr(begin_index, end_index - begin_index);
+
+                    FILE* f;
+                    bool standard_file = false;
+                    if (_testCaseFileName.empty() || _testCaseFileName == "stdout")
+                        f = stdout, standard_file = true;
+                    else if (_testCaseFileName == "stderr")
+                        f = stderr, standard_file = true;
+                    else {
+                        f = fopen(_testCaseFileName.c_str(), "wb");
+                        if (NULL == f)
+                            __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
+                    }
+                    std::fprintf(f, "%s", testCase.c_str());
+                    std::fflush(f);
+                    if (!standard_file)
+                        if (std::fclose(f))
+                            __testlib_fail("Validator::writeTestCase: can't close test case file (" + _testCaseFileName + ")");
                 }
             }
         }
@@ -2555,8 +2580,8 @@ public:
     }
 } validator;
 
-const std::string Validator::TEST_CASE_OPEN_TAG = "\xEC\xEA\xEC\xEE";
-const std::string Validator::TEST_CASE_CLOSE_TAG = "\xEE\xEC\xEA\xEC";
+const std::string Validator::TEST_CASE_OPEN_TAG = "\xEC\xEA\xE5\xEE";
+const std::string Validator::TEST_CASE_CLOSE_TAG = "\xEE\xE5\xEA\xEC";
 
 struct TestlibFinalizeGuard {
     static bool alive;
@@ -2589,7 +2614,7 @@ struct TestlibFinalizeGuard {
         if (__testlib_exitCode == 0) {
             validator.writeTestOverviewLog();
             validator.writeTestMarkup();
-            validator.runDumpTestCase();
+            validator.writeTestCase();
         }
     }
 
@@ -4391,45 +4416,55 @@ void registerValidation(int argc, char *argv[]) {
     validator.initialize();
     TestlibFinalizeGuard::registered = true;
 
+    std::string comment = "Validator must be run with the following arguments:"
+                            " [--testset testset]"
+                            " [--group group]"
+                            " [--testOverviewLogFileName fileName]"
+                            " [--testMarkupFileName fileName]"
+                            " [--testCase testCase]"
+                            " [--testCaseFileName fileName]"
+                            ;
+
     for (int i = 1; i < argc; i++) {
         if (!strcmp("--testset", argv[i])) {
             if (i + 1 < argc && strlen(argv[i + 1]) > 0)
                 validator.setTestset(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName] [--testMarkupFileName fileName] [--dumpTestCase testCase]");
+                quit(_fail, comment);
         }
         if (!strcmp("--group", argv[i])) {
             if (i + 1 < argc)
                 validator.setGroup(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName] [--testMarkupFileName fileName] [--dumpTestCase testCase]");
+                quit(_fail, comment);
         }
         if (!strcmp("--testOverviewLogFileName", argv[i])) {
             if (i + 1 < argc)
                 validator.setTestOverviewLogFileName(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                        "[--testset testset] [--group group] [--testOverviewLogFileName fileName] [--testMarkupFileName fileName] [--dumpTestCase testCase]");
+                quit(_fail, comment);
         }
         if (!strcmp("--testMarkupFileName", argv[i])) {
             if (i + 1 < argc)
                 validator.setTestMarkupFileName(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                            "[--testset testset] [--group group] [--testOverviewLogFileName fileName] [--testMarkupFileName fileName] [--dumpTestCase testCase]");
+                quit(_fail, comment);
         }
-        if (!strcmp("--dumpTestCase", argv[i])) {
+        if (!strcmp("--testCase", argv[i])) {
             if (i + 1 < argc) {
                 long long testCase = stringToLongLong(inf, argv[++i]);
-                if (testCase < 1 || testCase >= 1073741823)
-                    quit(_fail, std::string("Argument testCase should be between 1 and 1073741823, but ")
+                if (testCase < 1 || testCase >= __TESTLIB_MAX_TEST_CASE)
+                    quit(_fail, format("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
                         + toString(testCase) + " found");
-                validator.setDumpTestCase(int(testCase));
+                validator.setTestCase(int(testCase));
             } else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                            "[--testset testset] [--group group] [--testOverviewLogFileName fileName] [--testMarkupFileName fileName] [--dumpTestCase testCase]");
+                quit(_fail, comment);
+        }
+        if (!strcmp("--testCaseFileName", argv[i])) {
+            if (i + 1 < argc) {
+                validator.setTestCaseFileName(argv[++i]);
+            } else
+                quit(_fail, comment);
         }
     }
 }
