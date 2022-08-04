@@ -170,9 +170,10 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
               echo call \""$vcvars_bat_file"\" >do-vcvars.bat
               echo "bash -c export > vcvars.env" >>do-vcvars.bat
-              ./do-vcvars.bat
-              source vcvars.env
-              rm -f do-vcvars.bat vcvars.env
+              cmd.exe /c do-vcvars.bat
+              cat vcvars.env | grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" > vcvars_filtered.env
+              source vcvars_filtered.env
+              rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
               for cpp_standard in "${MSVC_CPP_STANDARDS[@]}"; do
                 touch empty_file.cpp
                 cpp_output=$(cl.exe "$cpp_standard" empty_file.cpp 2>&1 || true)
@@ -197,6 +198,9 @@ fi
 # Find /c/Programs/*/bin/g++ in case of Windows and no ARGS_CPP
 if [[ "$MACHINE" == "Windows" && "$ARGS_CPP" == "" ]]; then
     for d in /c/Programs/*/ ; do
+        dir="${d}bin"
+        OLD_PATH="$PATH"
+        export PATH="$dir":$PATH
         gpp="${d}bin/g++.exe"
         gpp_output=$($gpp 2>&1 || true)
         if [[ $gpp_output == *"no input files"* ]]; then
@@ -213,6 +217,7 @@ if [[ "$MACHINE" == "Windows" && "$ARGS_CPP" == "" ]]; then
             rm -f empty_file.*
           done
         fi
+        export PATH="$OLD_PATH"
     done
 fi
 

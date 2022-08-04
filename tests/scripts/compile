@@ -44,18 +44,15 @@ fi
 
 if [[ "$CPP" == "cl.exe" ]]; then
   echo "Compiling $src_file, running:" "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
-  "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file" &>/dev/null
+  "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
 else
   "$CPP" -v
   echo "Compiling $src_file, running:" "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
   dir=$(dirname "$CPP")
-  OLD_PATH="$PATH"
   if [[ "$dir" == *"/bin" ]]; then
-    export PATH="$dir":$PATH
     EXTRA_ARGS="${EXTRA_ARGS} -static"
   fi
   eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
-  export PATH="$OLD_PATH"
 fi
 
 rm -f ./*.o ./*.obj
