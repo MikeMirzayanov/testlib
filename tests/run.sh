@@ -116,7 +116,7 @@ run_tests() {
   export CPP="$1"
   export CPP_STANDARD="$2"
 
-  echo -e Running tests \(${CYAN}"$CPP"@"$CPP_STANDARD"${NC}\)
+  echo -e Running tests \("${CYAN}""$CPP"@"$CPP_STANDARD""${NC}"\)
   echo ""
 
   for test_dir in "$TESTS_DIR"/*/; do
@@ -132,7 +132,7 @@ run_tests() {
         fi
         pushd "$test_dir" 1>/dev/null 2>&1
         bash "${test_dir}run.sh"
-        echo -e Done "${BLUE}$test${NC}" \(${CYAN}"$CPP"@"$CPP_STANDARD"${NC}\)
+        echo -e Done "${BLUE}$test${NC}" \("${CYAN}""$CPP"@"$CPP_STANDARD""${NC}"\)
         echo ""
         popd 1>&2 1>/dev/null 2>&1
       fi
@@ -140,7 +140,7 @@ run_tests() {
   done
 
   rm -rf "$TESTS_DIR"/tester-lcmp
-  echo -e Done all tests \(${CYAN}"$CPP"@"$CPP_STANDARD"${NC}\)
+  echo -e Done all tests \("${CYAN}""$CPP"@"$CPP_STANDARD""${NC}"\)
   echo ""
 }
 
@@ -192,6 +192,28 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
       done
     done
   done
+fi
+
+# Find /c/Programs/*/bin/g++ in case of Windows and no ARGS_CPP
+if [[ "$MACHINE" == "Windows" && "$ARGS_CPP" == "" ]]; then
+    for d in /c/Programs/*/ ; do
+        gpp="${d}bin/g++.exe"
+        gpp_output=$($gpp 2>&1 || true)
+        if [[ $gpp_output == *"no input files"* ]]; then
+          for gpp_standard in "${CPP_STANDARDS[@]}"; do
+            touch empty_file.cpp
+            gpp_output=$($gpp "$gpp_standard" empty_file.cpp 2>&1 || true)
+            if [[ ! $gpp_output == *"unrecognized"* && ! $gpp_output == *"standard"* ]]; then
+              run_tests "$gpp" "$gpp_standard"
+              if [[ ! "$done" == "" ]]; then
+                done="$done, "
+              fi
+              done="$done$gpp@$gpp_standard"
+            fi
+            rm -f empty_file.*
+          done
+        fi
+    done
 fi
 
 for compiler in "${COMPILERS[@]}"; do
