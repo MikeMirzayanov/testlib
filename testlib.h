@@ -185,7 +185,7 @@ const char *latestFeatures[] = {
 #   include <exception>
 #endif
 
-#if (_WIN32 || __WIN32__ || _WIN64 || __WIN64__ || __CYGWIN__)
+#if (_WIN32 || __WIN32__ || __WIN32 || _WIN64 || __WIN64__ || __WIN64 || WINNT || __WINNT || __WINNT__ || __CYGWIN__)
 #   if !defined(_MSC_VER) || _MSC_VER > 1400
 #       define NOMINMAX 1
 #       include <windows.h>
@@ -465,23 +465,49 @@ inline double doubleDelta(double expected, double result) {
         return absolute;
 }
 
+/** It does nothing on non-windows and files differ from stdin/stdout/stderr. */
 static void __testlib_set_binary(std::FILE *file) {
     if (NULL != file) {
-#ifdef O_BINARY
-#   ifdef _MSC_VER
-        _setmode(_fileno(file), O_BINARY);
-#   else
-        setmode(fileno(file), O_BINARY);
+#ifdef ON_WINDOWS
+#   ifdef _O_BINARY
+        if (stdin == file)
+#       ifdef STDIN_FILENO
+                return void(_setmode(STDIN_FILENO, _O_BINARY));
+#       else
+                return void(_setmode(_fileno(stdin), _O_BINARY));
+#       endif
+        if (stdout == file)
+#       ifdef STDOUT_FILENO
+                return void(_setmode(STDOUT_FILENO, _O_BINARY));
+#       else
+                return void(_setmode(_fileno(stdout), _O_BINARY));
+#       endif
+        if (stderr == file)
+#       ifdef STDERR_FILENO
+                return void(_setmode(STDERR_FILENO, _O_BINARY));
+#       else
+                return void(_setmode(_fileno(stderr), _O_BINARY));
+#       endif
+#   elif O_BINARY
+        if (stdin == file)
+#       ifdef STDIN_FILENO
+                return void(setmode(STDIN_FILENO, O_BINARY));
+#       else
+                return void(setmode(fileno(stdin), O_BINARY));
+#       endif
+        if (stdout == file)
+#       ifdef STDOUT_FILENO
+                return void(setmode(STDOUT_FILENO, O_BINARY));
+#       else
+                return void(setmode(fileno(stdout), O_BINARY));
+#       endif
+        if (stderr == file)
+#       ifdef STDERR_FILENO
+                return void(setmode(STDERR_FILENO, O_BINARY));
+#       else
+                return void(setmode(fileno(stderr), O_BINARY));
+#       endif
 #   endif
-#else
-    if (file == stdin) {
-        if (!freopen(NULL, "rb", file))
-            __testlib_fail("Unable to freopen stdin");
-    }
-    if (file == stdout || file == stderr) {
-        if (!freopen(NULL, "wb", file))
-            __testlib_fail("Unable to freopen stdout/stderr");
-    }
 #endif
     }
 }

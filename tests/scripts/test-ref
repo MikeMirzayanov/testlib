@@ -78,7 +78,7 @@ else
   tester_lcmp_exit_code=0
   "$TESTS_DIR"/tester-lcmp/tester-lcmp "$TESTS_DIR"/tester-lcmp/tester-lcmp."$INVOCATION_ID" "$refs"/exit_code.aux "$refs"/exit_code 2>tester-lcmp.out || tester_lcmp_exit_code=$?
   if [[ ! "$tester_lcmp_exit_code" == "0" ]]; then
-    echo -e "${FAILED_TXT} exit_code mismatched\n"
+    echo -e "${FAILED_TXT} exit_code mismatched: found $(cat < "$refs"/exit_code.aux) but expected $(cat "$refs"/exit_code)\n"
     cat tester-lcmp.out
     rm -f tester-lcmp.out
     rm -f "$refs"/*.aux
