@@ -17,15 +17,12 @@ rm -f sval sval.exe
 bash ../scripts/compile src/case-nval.cpp
 for i in files/"$os"/case-nval/*; do
   j=$(basename $i)
-  echo "test-ref r-case-nval-$j ""$VALGRIND"" ./case-nval --testMarkupFileName stderr < files/$os/case-nval/input.$i"
   bash ../scripts/test-ref r-case-nval-$j "$VALGRIND" ./case-nval --testMarkupFileName stderr <$i
   for t in 1 2; do
-    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --testMarkupFileName stderr --testCase "${t}" < files/$os/case-nval/input.$i"
     bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --testMarkupFileName stderr --testCase "${t}" <$i
   done
-  for t in 3 4; do
-    echo "test-ref r-case-nval-$j-$t ""$VALGRIND"" ./case-nval --testCase "${t}" < files/$os/case-nval/input.$i"
-    bash ../scripts/test-ref r-case-nval-$j-$t "$VALGRIND" ./case-nval --testCase "${t}" <$i
-  done
+  bash ../scripts/test-ref r-case-nval-$j-3 "$VALGRIND" ./case-nval --testCase "3" <$i
+  bash ../scripts/test-ref r-case-nval-$j-3-stderr "$VALGRIND" ./case-nval --testCase "3" --testCaseFileName stderr <$i
+  bash ../scripts/test-ref r-case-nval-$j-4 "$VALGRIND" ./case-nval --testCase "4" --testCaseFileName stderr <$i
 done
 rm -f case-nval case-nval.exe
