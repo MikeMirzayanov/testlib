@@ -2700,11 +2700,22 @@ std::vector<int> InStream::getReadChars() {
 }
 
 void setTestCase(int testCase) {
+    static bool first_run = true;
+    static bool zero_based = false;
+
+    if (first_run && testCase == 0)
+        zero_based = true;
+
+    if (zero_based)
+        testCase++;
+
     __testlib_hasTestCase = true;
     __testlib_testCase = testCase;
 
     if (testlibMode == _validator)
         inf.setTestCase(testCase);
+
+    first_run = false;
 }
 
 #ifdef __GNUC__
