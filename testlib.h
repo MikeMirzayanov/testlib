@@ -180,6 +180,7 @@ const char *latestFeatures[] = {
 #include <limits>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <functional>
 
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
 #   include <exception>
@@ -1570,7 +1571,7 @@ enum TResult {
 };
 
 enum TTestlibMode {
-    _unknown, _checker, _validator, _generator, _interactor
+    _unknown, _checker, _validator, _generator, _interactor, _scorer
 };
 
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
@@ -2878,6 +2879,9 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     if (result == _unexpected_eof)
         result = _pe;
 #endif
+
+    if (testlibMode == _scorer && result != _fail)
+        quits(_fail, "Scorer should return points only. Don't use a quit function.");
 
     if (mode != _output && result != _fail) {
         if (mode == _input && testlibMode == _validator && lastLine != -1)
@@ -4297,6 +4301,34 @@ static void __testlib_ensuresPreconditions() {
         quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
 }
 
+std::string __testlib_testset;
+
+std::string getTestset() {
+    return __testlib_testset;
+}
+
+std::string __testlib_group;
+
+std::string getGroup() {
+    return __testlib_group;
+}
+
+static void __testlib_set_testset_and_group(int argc, char* argv[]) {
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp("--testset", argv[i])) {
+            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+                __testlib_testset = argv[++i];
+            else
+                quit(_fail, std::string("Expected non-empty testset after --testset command line parameter"));
+        } else if (!strcmp("--group", argv[i])) {
+            if (i + 1 < argc)
+                __testlib_group = argv[++i];
+            else
+                quit(_fail, std::string("Expected group after --group command line parameter"));
+        }
+    }
+}
+
 void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
     if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
         quitf(_fail, "Random generator version is expected to be 0 or 1.");
@@ -4347,6 +4379,7 @@ void registerGen(int argc, char *argv[]) {
 
 void registerInteraction(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
+    __testlib_set_testset_and_group(argc, argv);
     TestlibFinalizeGuard::registered = true;
 
     testlibMode = _interactor;
@@ -4413,6 +4446,8 @@ void registerValidation() {
 
 void registerValidation(int argc, char *argv[]) {
     registerValidation();
+    __testlib_set_testset_and_group(argc, argv);
+
     validator.initialize();
     TestlibFinalizeGuard::registered = true;
 
@@ -4518,6 +4553,7 @@ public:
 
 void registerTestlibCmd(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
+    __testlib_set_testset_and_group(argc, argv);
     TestlibFinalizeGuard::registered = true;
 
     testlibMode = _checker;
@@ -5588,6 +5624,248 @@ T opt(const std::string &key) {
 std::string opt(const std::string &key) {
     return opt<std::string>(key);
 }
+
+/* Scorer started. */
+
+enum TestResultVerdict {
+    SKIPPED,
+    OK,
+    WRONG_ANSWER,
+    RUNTIME_ERROR,
+    TIME_LIMIT_EXCEEDED,
+    IDLENESS_LIMIT_EXCEEDED,
+    MEMORY_LIMIT_EXCEEDED,
+    COMPILATION_ERROR,
+    CRASHED,
+    FAILED
+};
+
+std::string serializeVerdict(TestResultVerdict verdict) {
+    switch (verdict) {
+        case SKIPPED: return "SKIPPED";
+        case OK: return "OK";
+        case WRONG_ANSWER: return "WRONG_ANSWER";
+        case RUNTIME_ERROR: return "RUNTIME_ERROR";
+        case TIME_LIMIT_EXCEEDED: return "TIME_LIMIT_EXCEEDED";
+        case IDLENESS_LIMIT_EXCEEDED: return "IDLENESS_LIMIT_EXCEEDED";
+        case MEMORY_LIMIT_EXCEEDED: return "MEMORY_LIMIT_EXCEEDED";
+        case COMPILATION_ERROR: return "COMPILATION_ERROR";
+        case CRASHED: return "CRASHED";
+        case FAILED: return "FAILED";
+    }
+    throw "Unexpected verdict";
+}
+
+TestResultVerdict deserializeTestResultVerdict(std::string s) {
+    if (s == "SKIPPED")
+        return SKIPPED;
+    else if (s == "OK")
+        return OK;
+    else if (s == "WRONG_ANSWER")
+        return WRONG_ANSWER;
+    else if (s == "RUNTIME_ERROR")
+        return RUNTIME_ERROR;
+    else if (s == "TIME_LIMIT_EXCEEDED")
+        return TIME_LIMIT_EXCEEDED;
+    else if (s == "IDLENESS_LIMIT_EXCEEDED")
+        return IDLENESS_LIMIT_EXCEEDED;
+    else if (s == "MEMORY_LIMIT_EXCEEDED")
+        return MEMORY_LIMIT_EXCEEDED;
+    else if (s == "COMPILATION_ERROR")
+        return COMPILATION_ERROR;
+    else if (s == "CRASHED")
+        return CRASHED;
+    else if (s == "FAILED")
+        return FAILED;
+    ensuref(false, "Unexpected serialized TestResultVerdict");
+    // No return actually.
+    return FAILED;
+}
+
+struct TestResult {
+    int testIndex;
+    std::string testset;
+    std::string group;
+    TestResultVerdict verdict;
+    double points;
+    long long timeConsumed;
+    long long memoryConsumed;
+    std::string input;
+    std::string output;
+    std::string answer;
+    int exitCode;
+    std::string checkerComment;
+};
+
+std::string serializePoints(double points) {
+    if (std::isnan(points))
+        return "";
+    else {
+        char c[64];
+        sprintf(c, "%.03lf", points);
+        return c;
+    }
+}
+
+double deserializePoints(std::string s) {
+    if (s.empty())
+        return std::numeric_limits<double>::quiet_NaN();
+    else {
+        double result;
+        ensuref(sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+        return result;
+    }                                              
+}
+
+std::string escapeTestResultString(std::string s) {
+    std::string result;
+    for (size_t i = 0; i < s.length(); i++) {
+        if (s[i] == '\r')
+            continue;
+        if (s[i] == '\n') {
+            result += "\\n";
+            continue;
+        }
+        if (s[i] == '\\' || s[i] == ';')
+            result += '\\';
+        result += s[i];
+    }
+    return result;
+}
+
+std::string unescapeTestResultString(std::string s) {
+    std::string result;
+    for (size_t i = 0; i < s.length(); i++) {
+        if (s[i] == '\\' && i + 1 < s.length()) {
+            if (s[i + 1] == 'n') {
+                result += '\n';
+                i++;
+                continue;
+            } else if (s[i + 1] == ';' || s[i + 1] == '\\') {
+                result += s[i + 1];
+                i++;
+                continue;
+            }
+        }
+        result += s[i];
+    }
+    return result;
+}
+
+std::string serializeTestResult(TestResult tr) {
+    std::string result;
+    result += std::to_string(tr.testIndex);
+    result += ";";
+    result += escapeTestResultString(tr.testset);
+    result += ";";
+    result += escapeTestResultString(tr.group);
+    result += ";";
+    result += serializeVerdict(tr.verdict);
+    result += ";";
+    result += serializePoints(tr.points);
+    result += ";";
+    result += std::to_string(tr.timeConsumed);
+    result += ";";
+    result += std::to_string(tr.memoryConsumed);
+    result += ";";
+    result += escapeTestResultString(tr.input);
+    result += ";";
+    result += escapeTestResultString(tr.output);
+    result += ";";
+    result += escapeTestResultString(tr.answer);
+    result += ";";
+    result += std::to_string(tr.exitCode);
+    result += ";";
+    result += escapeTestResultString(tr.checkerComment);
+    return result;
+}
+
+TestResult deserializeTestResult(std::string s) {
+    std::vector<std::string> items;
+    std::string t;
+    for (size_t i = 0; i < s.length(); i++) {
+        if (s[i] == '\\') {
+            t += s[i];
+            if (i + 1 < s.length())
+                t += s[i + 1];
+            i++;
+            continue;
+        } else {
+            if (s[i] == ';') {
+                items.push_back(t);
+                t = "";
+            } else
+                t += s[i];
+        }
+    }
+    items.push_back(t);
+
+    ensuref(items.size() == 12, "Invalid TestResult serialization: expected exactly 12 items");
+    
+    TestResult tr;
+    size_t pos = 0;
+    tr.testIndex = stoi(items[pos++]);
+    tr.testset = unescapeTestResultString(items[pos++]);
+    tr.group = unescapeTestResultString(items[pos++]);
+    tr.verdict = deserializeTestResultVerdict(items[pos++]);
+    tr.points = deserializePoints(items[pos++]);
+    tr.timeConsumed = stoll(items[pos++]);
+    tr.memoryConsumed = stoll(items[pos++]);
+    tr.input = unescapeTestResultString(items[pos++]);
+    tr.output = unescapeTestResultString(items[pos++]);
+    tr.answer = unescapeTestResultString(items[pos++]);
+    tr.exitCode = stoi(items[pos++]);
+    tr.checkerComment = unescapeTestResultString(items[pos++]);
+    
+    return tr;
+}
+
+std::vector<TestResult> readTestResults(std::string fileName) {
+    std::ifstream stream;
+    stream.open(fileName.c_str(), std::ios::in);
+    ensuref(stream.is_open(), "Can't read test results file '%s'", fileName.c_str());
+    std::vector<TestResult> result;
+    std::string line;
+    while (getline(stream, line))
+        if (!line.empty())
+            result.push_back(deserializeTestResult(line));
+    stream.close();
+    return result;
+}
+
+std::function<double(std::vector<TestResult>)> __testlib_scorer;
+
+struct TestlibScorerGuard {
+    ~TestlibScorerGuard() {
+        if (testlibMode == _scorer) {
+            std::vector<TestResult> testResults;
+            while (!inf.eof()) {
+                std::string line = inf.readLine();
+                if (!line.empty())
+                    testResults.push_back(deserializeTestResult(line));
+            }
+            inf.readEof();
+            printf("%.3f\n", __testlib_scorer(testResults));
+        }
+    }
+} __testlib_scorer_guard;
+
+void registerScorer(int argc, char *argv[], std::function<double(std::vector<TestResult>)> scorer) {
+    /* Supress unused. */
+    (void)(argc), (void)(argv);
+
+    __testlib_ensuresPreconditions();
+
+    testlibMode = _scorer;
+    __testlib_set_binary(stdin);
+
+    inf.init(stdin, _input);
+    inf.strict = false;
+
+    __testlib_scorer = scorer;
+}
+
+/* Scorer ended. */
 
 /**
  * Return the parsed opt by a given key. If no opts with the given key are
