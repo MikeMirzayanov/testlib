@@ -1,44 +1,20 @@
 #include "testlib.h"
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <ctime>
-#include <climits>
-#include <cassert>
 #include <vector>
-#include <queue>
-#include <stack>
-#include <deque>
 #include <set>
-#include <map>
-#include <bitset>
-#include <utility>
-#include <algorithm>
-
-#define forn(i, n) for (int i = 0; i < int(n); i++)
 
 using namespace std;
 
-int leader(vector<int>& dsu, int idx)
-{
+int leader(vector<int> &dsu, int idx) {
     return dsu[idx] == idx ? dsu[idx] : (dsu[idx] = leader(dsu, dsu[idx]));
 }
 
-bool merge(vector<int>& dsu, int a, int b)
-{
+bool merge(vector<int> &dsu, int a, int b) {
     a = leader(dsu, a);
     b = leader(dsu, b);
     if (a == b)
         return false;
-    else
-    {
+    else {
         if (rnd.next(2) == 0)
             dsu[a] = b;
         else
@@ -47,21 +23,19 @@ bool merge(vector<int>& dsu, int a, int b)
     }
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     registerValidation(argc, argv);
 
     int n = inf.readInt(2, 100000, "n");
     inf.readEoln();
 
     vector<int> dsu(n);
-    forn(i, n)
+    for (int i = 0; i < n; i++)
         dsu[i] = i;
 
-    set<pair<int,int> > edges;
+    set<pair<int, int>> edges;
 
-    forn(i, n - 1)
-    {
+    for (int i = 0; i < n - 1; i++) {
         int x = inf.readInt(1, n, "x_i");
         inf.readSpace();
         int y = inf.readInt(1, n, "y_i");
@@ -77,5 +51,4 @@ int main(int argc, char* argv[])
     }
 
     inf.readEof();
-    return 0;
 }

@@ -2,11 +2,11 @@
 
 ## Intro
 
-This project contains C++ implementation of the testlib. It is already being used on many programming contests in Russia (Russian National Olympiad in Informatics, different stages of ACM-ICPC). Join!
+This project contains C++ implementation of the testlib. It is already being used on many programming contests in Russia (Russian National Olympiad in Informatics, different stages of ICPC). Join!
 
-The library C++ code is tested for compatibility with Borland C++ (5.6), Microsoft Visual C++ (2003+), g++ (MinGW 4.0.2). Also we don't hear any issues about incorrect work with other compilers.
+The library C++ code is tested for compatibility with the standard C++11 and higher on different versions of `g++`, `clang++` and Microsoft Visual C++.
 
-This code used many times on Open Team Programming Collegiate Cup contests (http://opencup.ru/) running on Linux platform and compiled by g++ compiler.
+This code was used many times on Codeforces contests.
 
 ## Samples
 
@@ -85,14 +85,11 @@ This generator outputs into the standard output random token, containing Latin l
 
 ```c++
 #include "testlib.h"
-#include <iostream>
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
-    cout << rnd.next(1, 10) << endl; /* Random number in the range [1,10]. */
-    cout << rnd.next("[a-zA-Z0-9]{1,1000}") << endl;  /* Random word of length [1,1000]. */
+    println(rnd.next(1, 10)); /* Random number in the range [1,10]. */
+    println(rnd.next("[a-zA-Z0-9]{1,1000}")); /* Random word of length [1,1000]. */
 }
 ```
 
@@ -100,8 +97,6 @@ This generator outputs random permutation, the size equals to the first command 
 
 ```c++
 #include "testlib.h"
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);

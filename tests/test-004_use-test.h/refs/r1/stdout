@@ -1,0 +1,8 @@
+Running test 'join'                                                                                 OK
+Running test 'split'                                                                                OK
+Running test 'tokenize'                                                                             OK
+Running test 'opts'                                                                                 OK
+Running test 'instream'                                                                             OK
+Running test 'pattern'                                                                              OK
+
+SUCCESS 6 tests passed.
