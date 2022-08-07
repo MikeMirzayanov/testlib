@@ -1,0 +1,1 @@
+FAIL Integer element a[5] equals to 1001, violates the range [-1000, 1000] (test case 2, stdin, line 5)
