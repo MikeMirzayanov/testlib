@@ -6,14 +6,6 @@ if [[ "$MACHINE" == "Windows" ]]; then
   os="win"
 fi
 
-bash ../scripts/compile src/sval.cpp
-for i in files/"$os"/sval/*; do
-  j=$(basename $i)
-  echo "test-ref r-sval-$j ""$VALGRIND"" ./sval < files/$os/sval/input.$i"
-  bash ../scripts/test-ref r-sval-$j "$VALGRIND" ./sval <$i
-done
-rm -f sval sval.exe
-
 bash ../scripts/compile src/case-nval.cpp
 for i in files/"$os"/case-nval/*; do
   j=$(basename $i)
@@ -26,3 +18,11 @@ for i in files/"$os"/case-nval/*; do
   bash ../scripts/test-ref r-case-nval-$j-4 "$VALGRIND" ./case-nval --testCase "4" --testCaseFileName stderr <$i
 done
 rm -f case-nval case-nval.exe
+
+bash ../scripts/compile src/sval.cpp
+for i in files/"$os"/sval/*; do
+  j=$(basename $i)
+  echo "test-ref r-sval-$j ""$VALGRIND"" ./sval < files/$os/sval/input.$i"
+  bash ../scripts/test-ref r-sval-$j "$VALGRIND" ./sval <$i
+done
+rm -f sval sval.exe

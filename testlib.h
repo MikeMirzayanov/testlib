@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2022
  */
 
-#define VERSION "0.9.39-SNAPSHOT"
+#define VERSION "0.9.40-SNAPSHOT"
 
 /*
  * Mike Mirzayanov
@@ -2339,6 +2339,7 @@ const double ValidatorBoundsHit::EPS = 1E-12;
 
 class Validator {
 private:
+    const static std::string TEST_MARKUP_HEADER;
     const static std::string TEST_CASE_OPEN_TAG;
     const static std::string TEST_CASE_CLOSE_TAG;
 
@@ -2482,30 +2483,38 @@ public:
         if (!_testMarkupFileName.empty()) {
             std::vector<int> readChars = inf.getReadChars();
             if (!readChars.empty()) {
-                std::string fileName(_testMarkupFileName);
-                _testMarkupFileName = "";
-                FILE *testMarkupFile = fileName == "stderr" ? stderr : fopen(fileName.c_str(), "wb");
-                if (NULL == testMarkupFile)
-                    __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + fileName + ")");
-                std::string markup;
+                std::string markup(TEST_MARKUP_HEADER);
                 for (size_t i = 0; i < readChars.size(); i++) {
                     int c = readChars[i];
                     if (i + 1 == readChars.size() && c == -1)
                         continue;
-                    if (c <= 256)
-                        markup += char(c);
-                    else {
+                    if (c <= 256) {
+                        char cc = char(c);
+                        if (cc == '\\' || cc == '!')
+                            markup += '\\';
+                        markup += cc;
+                    } else {
                         markup += TEST_CASE_OPEN_TAG;
                         markup += toString(c - 256);
                         markup += TEST_CASE_CLOSE_TAG;
                     }
                 }
-                std::fprintf(testMarkupFile, "%s", markup.c_str());
-                std::fflush(testMarkupFile);
-                if (testMarkupFile != stderr)
-                    if (std::fclose(testMarkupFile))
-                        __testlib_fail(
-                            "Validator::writeTestMarkup: can't close test overview log file (" + fileName + ")");
+                FILE* f;
+                bool standard_file = false;
+                if (_testMarkupFileName == "stdout")
+                    f = stdout, standard_file = true;
+                else if (_testMarkupFileName == "stderr")
+                    f = stderr, standard_file = true;
+                else {
+                    f = fopen(_testMarkupFileName.c_str(), "wb");
+                    if (NULL == f)
+                        __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + _testMarkupFileName + ")");
+                }
+                std::fprintf(f, "%s", markup.c_str());
+                std::fflush(f);
+                if (!standard_file)
+                    if (std::fclose(f))
+                        __testlib_fail("Validator::writeTestMarkup: can't close test markup file (" + _testCaseFileName + ")");
             }
         }
     }
@@ -2514,32 +2523,29 @@ public:
         if (_testCase > 0) {
             std::vector<int> readChars = inf.getReadChars();
             if (!readChars.empty()) {
-                std::string markup;
+                std::string content, testCaseContent;
+                bool matchedTestCase = false;
                 for (size_t i = 0; i < readChars.size(); i++) {
                     int c = readChars[i];
                     if (i + 1 == readChars.size() && c == -1)
                         continue;
                     if (c <= 256)
-                        markup += char(c);
+                        content += char(c);
                     else {
-                        markup += TEST_CASE_OPEN_TAG;
-                        markup += toString(c - 256);
-                        markup += TEST_CASE_CLOSE_TAG;
+                        if (matchedTestCase) {
+                            testCaseContent = content;
+                            matchedTestCase = false;
+                        }
+                        content = "";
+                        int testCase = c - 256;
+                        if (testCase == _testCase)
+                            matchedTestCase = true;
                     }
                 }
+                if (matchedTestCase)
+                    testCaseContent = content;
 
-                std::string begin = TEST_CASE_OPEN_TAG + toString(_testCase) + TEST_CASE_CLOSE_TAG;
-                std::string end = TEST_CASE_OPEN_TAG;
-
-                size_t begin_index = markup.find(begin);
-                if (begin_index != std::string::npos) {
-                    begin_index += begin.length();
-                    size_t end_index = markup.find(end, begin_index);
-                    if (end_index == std::string::npos) {
-                        end_index = markup.length();
-                    }
-                    std::string testCase = markup.substr(begin_index, end_index - begin_index);
-
+                if (!testCaseContent.empty()) {
                     FILE* f;
                     bool standard_file = false;
                     if (_testCaseFileName.empty() || _testCaseFileName == "stdout")
@@ -2551,7 +2557,7 @@ public:
                         if (NULL == f)
                             __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
                     }
-                    std::fprintf(f, "%s", testCase.c_str());
+                    std::fprintf(f, "%s", testCaseContent.c_str());
                     std::fflush(f);
                     if (!standard_file)
                         if (std::fclose(f))
@@ -2581,8 +2587,9 @@ public:
     }
 } validator;
 
-const std::string Validator::TEST_CASE_OPEN_TAG = "\xEC\xEA\xE5\xEE";
-const std::string Validator::TEST_CASE_CLOSE_TAG = "\xEE\xE5\xEA\xEC";
+const std::string Validator::TEST_MARKUP_HEADER = "MU\xF3\x01";
+const std::string Validator::TEST_CASE_OPEN_TAG = "!c";
+const std::string Validator::TEST_CASE_CLOSE_TAG = ";";
 
 struct TestlibFinalizeGuard {
     static bool alive;
