@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2022
  */
 
-#define VERSION "0.9.39-SNAPSHOT"
+#define VERSION "0.9.40-SNAPSHOT"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Supported '--testMarkupFileName fn' and '--testCase tc/--testCaseFileName fn' for validators",
         "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
         "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
         "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
@@ -323,14 +324,14 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count--;                                         \
 
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
+const int __TESTLIB_MAX_TEST_CASE = 1073741823;
+
+int __testlib_exitCode;
 
 bool __testlib_hasTestCase;
 int __testlib_testCase = -1;
 
-void setTestCase(int testCase) {
-    __testlib_hasTestCase = true;
-    __testlib_testCase = testCase;
-}
+void setTestCase(int testCase);
 
 void unsetTestCase() {
     __testlib_hasTestCase = false;
@@ -511,6 +512,109 @@ static void __testlib_set_binary(std::FILE *file) {
 #   endif
 #endif
     }
+}
+
+#if __cplusplus > 199711L || defined(_MSC_VER)
+template<typename T>
+static std::string vtos(const T &t, std::true_type) {
+    if (t == 0)
+        return "0";
+    else {
+        T n(t);
+        bool negative = n < 0;
+        std::string s;
+        while (n != 0) {
+            T digit = n % 10;
+            if (digit < 0)
+                digit = -digit;
+            s += char('0' + digit);
+            n /= 10;
+        }
+        std::reverse(s.begin(), s.end());
+        return negative ? "-" + s : s;
+    }
+}
+
+template<typename T>
+static std::string vtos(const T &t, std::false_type) {
+    std::string s;
+    static std::stringstream ss;
+    ss.str(std::string());
+    ss.clear();
+    ss << t;
+    ss >> s;
+    return s;
+}
+
+template<typename T>
+static std::string vtos(const T &t) {
+    return vtos(t, std::is_integral<T>());
+}
+
+/* signed case. */
+template<typename T>
+static std::string toHumanReadableString(const T &n, std::false_type) {
+    if (n == 0)
+        return vtos(n);
+    int trailingZeroCount = 0;
+    T n_ = n;
+    while (n_ % 10 == 0)
+        n_ /= 10, trailingZeroCount++;
+    if (trailingZeroCount >= 7) {
+        if (n_ == 1)
+            return "10^" + vtos(trailingZeroCount);
+        else if (n_ == -1)
+            return "-10^" + vtos(trailingZeroCount);
+        else
+            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
+    } else
+        return vtos(n);
+}
+
+/* unsigned case. */
+template<typename T>
+static std::string toHumanReadableString(const T &n, std::true_type) {
+    if (n == 0)
+        return vtos(n);
+    int trailingZeroCount = 0;
+    T n_ = n;
+    while (n_ % 10 == 0)
+        n_ /= 10, trailingZeroCount++;
+    if (trailingZeroCount >= 7) {
+        if (n_ == 1)
+            return "10^" + vtos(trailingZeroCount);
+        else
+            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
+    } else
+        return vtos(n);
+}
+
+template<typename T>
+static std::string toHumanReadableString(const T &n) {
+    return toHumanReadableString(n, std::is_unsigned<T>());
+}
+#else
+template<typename T>
+static std::string vtos(const T& t)
+{
+    std::string s;
+    static std::stringstream ss;
+    ss.str(std::string());
+    ss.clear();
+    ss << t;
+    ss >> s;
+    return s;
+}
+
+template<typename T>
+static std::string toHumanReadableString(const T &n) {
+    return vtos(n);
+}
+#endif
+
+template<typename T>
+static std::string toString(const T &t) {
+    return vtos(t);
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
@@ -1499,6 +1603,10 @@ const std::string outcomes[] = {
 
 class InputStreamReader {
 public:
+    virtual void setTestCase(int testCase) = 0;
+
+    virtual std::vector<int> getReadChars() = 0;
+    
     virtual int curChar() = 0;
 
     virtual int nextChar() = 0;
@@ -1532,6 +1640,14 @@ public:
         // No operations.
     }
 
+    void setTestCase(int) {
+        __testlib_fail("setTestCase not implemented in StringInputStreamReader");
+    }
+
+    std::vector<int> getReadChars() {
+        __testlib_fail("getReadChars not implemented in StringInputStreamReader");
+    }
+    
     int curChar() {
         if (pos >= s.length())
             return EOFC;
@@ -1553,7 +1669,7 @@ public:
 
     void unreadChar(int c) {
         if (pos == 0)
-            __testlib_fail("FileFileInputStreamReader::unreadChar(int): pos == 0.");
+            __testlib_fail("StringInputStreamReader::unreadChar(int): pos == 0.");
         pos--;
         if (pos < s.length())
             s[pos] = char(c);
@@ -1582,6 +1698,8 @@ private:
     std::string name;
     int line;
     std::vector<int> undoChars;
+    std::vector<int> readChars;
+    std::vector<int> undoReadChars;
 
     inline int postprocessGetc(int getcResult) {
         if (getcResult != EOF)
@@ -1592,19 +1710,29 @@ private:
 
     int getc(FILE *file) {
         int c;
-        if (undoChars.empty())
-            c = ::getc(file);
-        else {
+        int rc;
+
+        if (undoChars.empty()) {
+            c = rc = ::getc(file);
+        } else {
             c = undoChars.back();
             undoChars.pop_back();
+            rc = undoReadChars.back();
+            undoReadChars.pop_back();
         }
 
         if (c == LF)
             line++;
+
+        readChars.push_back(rc);
         return c;
     }
 
     int ungetc(int c/*, FILE* file*/) {
+        if (!readChars.empty()) {
+            undoReadChars.push_back(readChars.back());
+            readChars.pop_back();
+        }
         if (c == LF)
             line--;
         undoChars.push_back(c);
@@ -1614,6 +1742,16 @@ private:
 public:
     FileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
         // No operations.
+    }
+
+    void setTestCase(int testCase) {
+        if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
+            __testlib_fail(format("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
+        readChars.push_back(testCase + 256);
+    }
+
+    std::vector<int> getReadChars() {
+        return readChars;
     }
 
     int curChar() {
@@ -1734,6 +1872,14 @@ public:
         }
     }
 
+    void setTestCase(int) {
+        __testlib_fail("setTestCase not implemented in BufferedFileInputStreamReader");
+    }
+
+    std::vector<int> getReadChars() {
+        __testlib_fail("getReadChars not implemented in BufferedFileInputStreamReader");
+    }
+    
     int curChar() {
         if (!refill())
             return EOFC;
@@ -1819,6 +1965,9 @@ struct InStream {
     void init(std::string fileName, TMode mode);
 
     void init(std::FILE *f, TMode mode);
+
+    void setTestCase(int testCase);
+    std::vector<int> getReadChars();
 
     /* Moves stream pointer to the first non-white-space character or EOF. */
     void skipBlanks();
@@ -2190,11 +2339,19 @@ const double ValidatorBoundsHit::EPS = 1E-12;
 
 class Validator {
 private:
+    const static std::string TEST_MARKUP_HEADER;
+    const static std::string TEST_CASE_OPEN_TAG;
+    const static std::string TEST_CASE_CLOSE_TAG;
+
     bool _initialized;
     std::string _testset;
     std::string _group;
 
     std::string _testOverviewLogFileName;
+    std::string _testMarkupFileName;
+    int _testCase = -1;
+    std::string _testCaseFileName;
+
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
     std::set<std::string> _features;
     std::set<std::string> _hitFeatures;
@@ -2237,6 +2394,18 @@ public:
         return _testOverviewLogFileName;
     }
 
+    std::string testMarkupFileName() const {
+        return _testMarkupFileName;
+    }
+
+    int testCase() const {
+        return _testCase;
+    }
+
+    std::string testCaseFileName() const {
+        return _testCaseFileName;
+    }
+
     void setTestset(const char *const testset) {
         _testset = testset;
     }
@@ -2247,6 +2416,18 @@ public:
 
     void setTestOverviewLogFileName(const char *const testOverviewLogFileName) {
         _testOverviewLogFileName = testOverviewLogFileName;
+    }
+
+    void setTestMarkupFileName(const char *const testMarkupFileName) {
+        _testMarkupFileName = testMarkupFileName;
+    }
+
+    void setTestCase(int testCase) {
+        _testCase = testCase;
+    }
+
+    void setTestCaseFileName(const char *const testCaseFileName) {
+        _testCaseFileName = testCaseFileName;
     }
 
     void addBoundsHit(const std::string &variableName, ValidatorBoundsHit boundsHit) {
@@ -2290,11 +2471,99 @@ public:
             _testOverviewLogFileName = "";
             FILE *testOverviewLogFile = fopen(fileName.c_str(), "w");
             if (NULL == testOverviewLogFile)
-                __testlib_fail("Validator::writeTestOverviewLog: can't test overview log to (" + fileName + ")");
+                __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
             fprintf(testOverviewLogFile, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
             if (fclose(testOverviewLogFile))
                 __testlib_fail(
                         "Validator::writeTestOverviewLog: can't close test overview log file (" + fileName + ")");
+        }
+    }
+
+    void writeTestMarkup() {
+        if (!_testMarkupFileName.empty()) {
+            std::vector<int> readChars = inf.getReadChars();
+            if (!readChars.empty()) {
+                std::string markup(TEST_MARKUP_HEADER);
+                for (size_t i = 0; i < readChars.size(); i++) {
+                    int c = readChars[i];
+                    if (i + 1 == readChars.size() && c == -1)
+                        continue;
+                    if (c <= 256) {
+                        char cc = char(c);
+                        if (cc == '\\' || cc == '!')
+                            markup += '\\';
+                        markup += cc;
+                    } else {
+                        markup += TEST_CASE_OPEN_TAG;
+                        markup += toString(c - 256);
+                        markup += TEST_CASE_CLOSE_TAG;
+                    }
+                }
+                FILE* f;
+                bool standard_file = false;
+                if (_testMarkupFileName == "stdout")
+                    f = stdout, standard_file = true;
+                else if (_testMarkupFileName == "stderr")
+                    f = stderr, standard_file = true;
+                else {
+                    f = fopen(_testMarkupFileName.c_str(), "wb");
+                    if (NULL == f)
+                        __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + _testMarkupFileName + ")");
+                }
+                std::fprintf(f, "%s", markup.c_str());
+                std::fflush(f);
+                if (!standard_file)
+                    if (std::fclose(f))
+                        __testlib_fail("Validator::writeTestMarkup: can't close test markup file (" + _testCaseFileName + ")");
+            }
+        }
+    }
+
+    void writeTestCase() {
+        if (_testCase > 0) {
+            std::vector<int> readChars = inf.getReadChars();
+            if (!readChars.empty()) {
+                std::string content, testCaseContent;
+                bool matchedTestCase = false;
+                for (size_t i = 0; i < readChars.size(); i++) {
+                    int c = readChars[i];
+                    if (i + 1 == readChars.size() && c == -1)
+                        continue;
+                    if (c <= 256)
+                        content += char(c);
+                    else {
+                        if (matchedTestCase) {
+                            testCaseContent = content;
+                            matchedTestCase = false;
+                        }
+                        content = "";
+                        int testCase = c - 256;
+                        if (testCase == _testCase)
+                            matchedTestCase = true;
+                    }
+                }
+                if (matchedTestCase)
+                    testCaseContent = content;
+
+                if (!testCaseContent.empty()) {
+                    FILE* f;
+                    bool standard_file = false;
+                    if (_testCaseFileName.empty() || _testCaseFileName == "stdout")
+                        f = stdout, standard_file = true;
+                    else if (_testCaseFileName == "stderr")
+                        f = stderr, standard_file = true;
+                    else {
+                        f = fopen(_testCaseFileName.c_str(), "wb");
+                        if (NULL == f)
+                            __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
+                    }
+                    std::fprintf(f, "%s", testCaseContent.c_str());
+                    std::fflush(f);
+                    if (!standard_file)
+                        if (std::fclose(f))
+                            __testlib_fail("Validator::writeTestCase: can't close test case file (" + _testCaseFileName + ")");
+                }
+            }
         }
     }
 
@@ -2317,6 +2586,10 @@ public:
         _hitFeatures.insert(feature);
     }
 } validator;
+
+const std::string Validator::TEST_MARKUP_HEADER = "MU\xF3\x01";
+const std::string Validator::TEST_CASE_OPEN_TAG = "!c";
+const std::string Validator::TEST_CASE_CLOSE_TAG = ";";
 
 struct TestlibFinalizeGuard {
     static bool alive;
@@ -2346,7 +2619,11 @@ struct TestlibFinalizeGuard {
                 __testlib_fail("Call register-function in the first line of the main (registerTestlibCmd or other similar)");
         }
 
-        validator.writeTestOverviewLog();
+        if (__testlib_exitCode == 0) {
+            validator.writeTestOverviewLog();
+            validator.writeTestMarkup();
+            validator.writeTestCase();
+        }
     }
 
 private:
@@ -2371,109 +2648,6 @@ std::fstream tout;
 
 /* implementation
  */
-
-#if __cplusplus > 199711L || defined(_MSC_VER)
-template<typename T>
-static std::string vtos(const T &t, std::true_type) {
-    if (t == 0)
-        return "0";
-    else {
-        T n(t);
-        bool negative = n < 0;
-        std::string s;
-        while (n != 0) {
-            T digit = n % 10;
-            if (digit < 0)
-                digit = -digit;
-            s += char('0' + digit);
-            n /= 10;
-        }
-        std::reverse(s.begin(), s.end());
-        return negative ? "-" + s : s;
-    }
-}
-
-template<typename T>
-static std::string vtos(const T &t, std::false_type) {
-    std::string s;
-    static std::stringstream ss;
-    ss.str(std::string());
-    ss.clear();
-    ss << t;
-    ss >> s;
-    return s;
-}
-
-template<typename T>
-static std::string vtos(const T &t) {
-    return vtos(t, std::is_integral<T>());
-}
-
-/* signed case. */
-template<typename T>
-static std::string toHumanReadableString(const T &n, std::false_type) {
-    if (n == 0)
-        return vtos(n);
-    int trailingZeroCount = 0;
-    T n_ = n;
-    while (n_ % 10 == 0)
-        n_ /= 10, trailingZeroCount++;
-    if (trailingZeroCount >= 7) {
-        if (n_ == 1)
-            return "10^" + vtos(trailingZeroCount);
-        else if (n_ == -1)
-            return "-10^" + vtos(trailingZeroCount);
-        else
-            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
-    } else
-        return vtos(n);
-}
-
-/* unsigned case. */
-template<typename T>
-static std::string toHumanReadableString(const T &n, std::true_type) {
-    if (n == 0)
-        return vtos(n);
-    int trailingZeroCount = 0;
-    T n_ = n;
-    while (n_ % 10 == 0)
-        n_ /= 10, trailingZeroCount++;
-    if (trailingZeroCount >= 7) {
-        if (n_ == 1)
-            return "10^" + vtos(trailingZeroCount);
-        else
-            return vtos(n_) + "*10^" + vtos(trailingZeroCount);
-    } else
-        return vtos(n);
-}
-
-template<typename T>
-static std::string toHumanReadableString(const T &n) {
-    return toHumanReadableString(n, std::is_unsigned<T>());
-}
-#else
-template<typename T>
-static std::string vtos(const T& t)
-{
-    std::string s;
-    static std::stringstream ss;
-    ss.str(std::string());
-    ss.clear();
-    ss << t;
-    ss >> s;
-    return s;
-}
-
-template<typename T>
-static std::string toHumanReadableString(const T &n) {
-    return vtos(n);
-}
-#endif
-
-template<typename T>
-static std::string toString(const T &t) {
-    return vtos(t);
-}
 
 InStream::InStream() {
     reader = NULL;
@@ -2510,6 +2684,38 @@ InStream::~InStream() {
         delete reader;
         reader = NULL;
     }
+}
+
+void InStream::setTestCase(int testCase) {
+    if (testlibMode != _validator || mode != _input || !stdfile || this != &inf)
+        __testlib_fail("InStream::setTestCase can be used only for inf in validator-mode."
+            " Actually, prefer setTestCase function instead of InStream member");
+    reader->setTestCase(testCase);
+}
+
+std::vector<int> InStream::getReadChars() {
+    if (testlibMode != _validator || mode != _input || !stdfile || this != &inf)
+        __testlib_fail("InStream::getReadChars can be used only for inf in validator-mode.");
+    return reader == NULL ? std::vector<int>() : reader->getReadChars();
+}
+
+void setTestCase(int testCase) {
+    static bool first_run = true;
+    static bool zero_based = false;
+
+    if (first_run && testCase == 0)
+        zero_based = true;
+
+    if (zero_based)
+        testCase++;
+
+    __testlib_hasTestCase = true;
+    __testlib_testCase = testCase;
+
+    if (testlibMode == _validator)
+        inf.setTestCase(testCase);
+
+    first_run = false;
 }
 
 #ifdef __GNUC__
@@ -2591,6 +2797,7 @@ NORETURN void halt(int exitCode) {
     std::fprintf(stderr, "Exit code: %d\n", exitCode);
     InStream::textColor(InStream::LightGray);
 #endif
+    __testlib_exitCode = exitCode;
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
     throw exit_exception(exitCode);
 #endif
@@ -4088,6 +4295,7 @@ NORETURN void __testlib_help() {
     std::fprintf(stderr, "Program must be run with the following arguments: \n");
     std::fprintf(stderr, "    [--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
 
+    __testlib_exitCode = FAIL_EXIT_CODE;
     std::exit(FAIL_EXIT_CODE);
 }
 
@@ -4245,7 +4453,10 @@ void registerValidation() {
     TestlibFinalizeGuard::registered = true;
 
     testlibMode = _validator;
+
     __testlib_set_binary(stdin);
+    __testlib_set_binary(stdout);
+    __testlib_set_binary(stderr);
 
     inf.init(stdin, _input);
     inf.strict = true;
@@ -4258,27 +4469,55 @@ void registerValidation(int argc, char *argv[]) {
     validator.initialize();
     TestlibFinalizeGuard::registered = true;
 
+    std::string comment = "Validator must be run with the following arguments:"
+                            " [--testset testset]"
+                            " [--group group]"
+                            " [--testOverviewLogFileName fileName]"
+                            " [--testMarkupFileName fileName]"
+                            " [--testCase testCase]"
+                            " [--testCaseFileName fileName]"
+                            ;
+
     for (int i = 1; i < argc; i++) {
         if (!strcmp("--testset", argv[i])) {
             if (i + 1 < argc && strlen(argv[i + 1]) > 0)
                 validator.setTestset(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                            "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
+                quit(_fail, comment);
         }
         if (!strcmp("--group", argv[i])) {
             if (i + 1 < argc)
                 validator.setGroup(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                            "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
+                quit(_fail, comment);
         }
         if (!strcmp("--testOverviewLogFileName", argv[i])) {
             if (i + 1 < argc)
                 validator.setTestOverviewLogFileName(argv[++i]);
             else
-                quit(_fail, std::string("Validator must be run with the following arguments: ") +
-                            "[--testset testset] [--group group] [--testOverviewLogFileName fileName]");
+                quit(_fail, comment);
+        }
+        if (!strcmp("--testMarkupFileName", argv[i])) {
+            if (i + 1 < argc)
+                validator.setTestMarkupFileName(argv[++i]);
+            else
+                quit(_fail, comment);
+        }
+        if (!strcmp("--testCase", argv[i])) {
+            if (i + 1 < argc) {
+                long long testCase = stringToLongLong(inf, argv[++i]);
+                if (testCase < 1 || testCase >= __TESTLIB_MAX_TEST_CASE)
+                    quit(_fail, format("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
+                        + toString(testCase) + " found");
+                validator.setTestCase(int(testCase));
+            } else
+                quit(_fail, comment);
+        }
+        if (!strcmp("--testCaseFileName", argv[i])) {
+            if (i + 1 < argc) {
+                validator.setTestCaseFileName(argv[++i]);
+            } else
+                quit(_fail, comment);
         }
     }
 }
