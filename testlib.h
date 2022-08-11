@@ -3136,7 +3136,6 @@ void InStream::init(std::FILE *f, TMode mode) {
         name = "stderr", stdfile = true;
 
     reset(f);
-    skipBom();
 }
 
 void InStream::skipBom() {
