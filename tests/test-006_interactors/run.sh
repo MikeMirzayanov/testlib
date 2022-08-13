@@ -10,4 +10,12 @@ bash ../scripts/compile src/interactor-a-plus-b.cpp
 bash ../scripts/test-ref r-interactor-a-plus-b-1-1 "$VALGRIND" ./interactor-a-plus-b files/"$os"/input.01 output.01 < files/"$os"/participant.01
 tr -d '\r' < output.01 > output.01.nix
 bash ../scripts/test-ref r-interactor-a-plus-b-1-2 cat output.01.nix
-rm -f interactor-a-plus-b interactor-a-plus-b.exe output.01 output.01.nix
+rm -f output.01 output.01.nix
+
+bash ../scripts/compile src/interactive-a-plus-b.cpp
+python src/interactive_runner.py ./interactor-a-plus-b files/"$os"/input.01 output.02 -- ./interactive-a-plus-b &
+sleep 1
+kill $! 2>/dev/null
+tr -d '\r' < output.02 > output.02.nix
+bash ../scripts/test-ref r-interactor-a-plus-b-2-1 cat output.02.nix
+rm -f output.02 output.02.nix interactive-a-plus-b interactive-a-plus-b.exe interactor-a-plus-b interactor-a-plus-b.exe
