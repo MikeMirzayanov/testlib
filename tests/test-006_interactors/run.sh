@@ -14,7 +14,7 @@ rm -f output.01 output.01.nix
 
 bash ../scripts/compile src/interactive-a-plus-b.cpp
 python src/interactive_runner.py ./interactor-a-plus-b files/"$os"/input.01 output.02 -- ./interactive-a-plus-b &
-sleep 3
+sleep 1
 kill $! 2>/dev/null
 tr -d '\r' < output.02 > output.02.nix
 bash ../scripts/test-ref r-interactor-a-plus-b-2-1 cat output.02.nix
