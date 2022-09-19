@@ -7,7 +7,7 @@ const string YES = "YES";
 const string NO = "NO";
 
 int main(int argc, char *argv[]) {
-    setName("%s", ("multiple " + YES + "/" + NO + " (case insensetive)").c_str());
+    setName("%s", ("multiple " + YES + "/" + NO + " (case insensitive)").c_str());
     registerTestlibCmd(argc, argv);
 
     int index = 0, yesCount = 0, noCount = 0;
