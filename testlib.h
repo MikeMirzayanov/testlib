@@ -2965,7 +2965,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
             quit(_fail, "Can not write to the result file");
         }
         if (appesMode) {
-            std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
+            std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             if (isPartial)
                 std::fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">",
                              outcomes[(int) _partially].c_str(), pctype);
