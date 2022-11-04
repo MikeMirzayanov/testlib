@@ -684,7 +684,7 @@ private:
 };
 
 /*
- * Use random_t instances to generate random values. It is preffered
+ * Use random_t instances to generate random values. It is preferred
  * way to use randoms instead of rand() function or self-written
  * randoms.
  *
@@ -2021,7 +2021,7 @@ struct InStream {
      */
     std::string readWord();
 
-    /* The same as "readWord()", it is preffered to use "readToken()". */
+    /* The same as "readWord()", it is preferred to use "readToken()". */
     std::string readToken();
 
     /* The same as "readWord()", but ensures that token matches to given pattern. */
