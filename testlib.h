@@ -4577,7 +4577,7 @@ void registerTestlibCmd(int argc, char *argv[]) {
     testlibMode = _checker;
     __testlib_set_binary(stdin);
 
-    std::vector<std::string> args(1, argv[0]);
+    std::vector<std::string> args(1, "");
     checker.initialize();
 
     for (int i = 1; i < argc; i++) {
