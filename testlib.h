@@ -5720,7 +5720,7 @@ std::string serializePoints(double points) {
         return "";
     else {
         char c[64];
-        sprintf(c, "%.03lf", points);
+        snprintf(c, 64, "%.03lf", points);
         return c;
     }
 }
