@@ -3,6 +3,5 @@
 pwd
 ls
 echo Before CMD
-chmod +x testme.bat
-cmd.exe /c testme.bat
+python runner.py
 echo End CMD
