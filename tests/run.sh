@@ -180,7 +180,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               ls
               
               echo "Before CMD"
-              "cmd.exe" "/C" "dovcvars.bat" 2>&1
+              cmd.exe /C 'dovcvars.bat 2>&1'
               echo "After CMD"
               
               sleep 1
