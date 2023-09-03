@@ -181,6 +181,7 @@ const char *latestFeatures[] = {
 #include <stdarg.h>
 #include <fcntl.h>
 #include <functional>
+#include <cstdint>
 
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
 #   include <exception>
