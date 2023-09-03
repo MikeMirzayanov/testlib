@@ -168,29 +168,13 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
             vcvars_bat_file="$vs_dir\\vcvars$bits.bat"
             if [[ -f $vcvars_bat_file ]]; then
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
-              echo "echo d1" >dovcvars.bat
-              echo call \""$vcvars_bat_file"\" >>dovcvars.bat
-              echo "echo d2" >>dovcvars.bat
-              echo "bash -c export > vcvars.env" >>dovcvars.bat
-              echo "echo d3" >>dovcvars.bat
-
-              echo "File dovcvars.bat:"
-              cat dovcvars.bat
-              echo "Done dovcvars.bat"
-              ls
-              
-              echo "Before CMD"
-              python runner.py dovcvars.bat
-              echo "After CMD"
-              
-              sleep 1
-              echo "After sleep"
-              ls
+              echo call \""$vcvars_bat_file"\" >>do-vcvars.bat
+              echo "bash -c export > vcvars.env" >>do-vcvars.bat
+              python runner.py do-vcvars.bat
               cat vcvars.env
-
               cat vcvars.env | grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" > vcvars_filtered.env
               source vcvars_filtered.env
-              rm -f dovcvars.bat vcvars.env vcvars_filtered.env
+              rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
               for cpp_standard in "${MSVC_CPP_STANDARDS[@]}"; do
                 touch empty_file.cpp
                 cpp_output=$(cl.exe "$cpp_standard" empty_file.cpp 2>&1 || true)
