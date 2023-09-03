@@ -9,7 +9,7 @@
  * sample generator sources for clarification.
  *
  * Please read the documentation for class "random_t" and use "rnd" instance in
- * generators. Probably, these sample calls will be usefull for you:
+ * generators. Probably, these sample calls will be useful for you:
  *              rnd.next(); rnd.next(100); rnd.next(1, 2);
  *              rnd.next(3.14); rnd.next("[a-z]{1,100}").
  *
@@ -96,7 +96,7 @@ const char *latestFeatures[] = {
         "Introduced space-separated read functions: readWords/readTokens, multilines read functions: readStrings/readLines",
         "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
         "Introduced split/tokenize functions to separate string by given char",
-        "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long paramerters",
+        "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long parameters",
         "Supported --testOverviewLogFileName for validator: bounds hits + features",
         "Fixed UB (sequence points) in random_t",
         "POINTS_EXIT_CODE returned back to 7 (instead of 0)",
@@ -181,6 +181,7 @@ const char *latestFeatures[] = {
 #include <stdarg.h>
 #include <fcntl.h>
 #include <functional>
+#include <cstdint>
 
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
 #   include <exception>
@@ -684,7 +685,7 @@ private:
 };
 
 /*
- * Use random_t instances to generate random values. It is preffered
+ * Use random_t instances to generate random values. It is preferred
  * way to use randoms instead of rand() function or self-written
  * randoms.
  *
@@ -2021,7 +2022,7 @@ struct InStream {
      */
     std::string readWord();
 
-    /* The same as "readWord()", it is preffered to use "readToken()". */
+    /* The same as "readWord()", it is preferred to use "readToken()". */
     std::string readToken();
 
     /* The same as "readWord()", but ensures that token matches to given pattern. */
@@ -2270,7 +2271,7 @@ struct InStream {
     NORETURN void quits(TResult result, std::string msg);
 
     /*
-     * Checks condition and aborts a program if codition is false.
+     * Checks condition and aborts a program if condition is false.
      * Returns _wa for ouf and _fail on any other streams.
      */
 #ifdef __GNUC__
@@ -3120,6 +3121,7 @@ void InStream::init(std::string fileName, TMode mode) {
     }
 
     reset();
+    skipBom();
 }
 
 void InStream::init(std::FILE *f, TMode mode) {
@@ -3135,6 +3137,7 @@ void InStream::init(std::FILE *f, TMode mode) {
         name = "stderr", stdfile = true;
 
     reset(f);
+    skipBom();
 }
 
 void InStream::skipBom() {
@@ -4625,7 +4628,6 @@ void registerTestlibCmd(int argc, char *argv[]) {
 
     inf.init(args[1], _input);
     ouf.init(args[2], _output);
-    ouf.skipBom();
     ans.init(args[3], _answer);
 }
 
@@ -4818,7 +4820,7 @@ std::string join(const _Collection &collection) {
 
 /**
  * Splits string s by character separator returning exactly k+1 items,
- * where k is the number of separator occurences.
+ * where k is the number of separator occurrences.
  */
 std::vector<std::string> split(const std::string &s, char separator) {
     std::vector<std::string> result;
@@ -4835,7 +4837,7 @@ std::vector<std::string> split(const std::string &s, char separator) {
 
 /**
  * Splits string s by character separators returning exactly k+1 items,
- * where k is the number of separator occurences.
+ * where k is the number of separator occurrences.
  */
 std::vector<std::string> split(const std::string &s, const std::string &separators) {
     if (separators.empty())
@@ -5468,7 +5470,7 @@ bool has_opt(const std::string &key) {
     return __testlib_opts.count(key) != 0;
 }
 
-/* About the followings part for opt with 2 and 3 arguments.
+/* About the following part for opt with 2 and 3 arguments.
  * 
  * To parse the argv/opts correctly for a give type (integer, floating point or
  * string), some meta programming must be done to determine the type of
@@ -5719,7 +5721,7 @@ std::string serializePoints(double points) {
         return "";
     else {
         char c[64];
-        sprintf(c, "%.03lf", points);
+        snprintf(c, 64, "%.03lf", points);
         return c;
     }
 }
@@ -5868,7 +5870,7 @@ struct TestlibScorerGuard {
 } __testlib_scorer_guard;
 
 void registerScorer(int argc, char *argv[], std::function<double(std::vector<TestResult>)> scorer) {
-    /* Supress unused. */
+    /* Suppress unused. */
     (void)(argc), (void)(argv);
 
     __testlib_ensuresPreconditions();
