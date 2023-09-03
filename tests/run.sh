@@ -171,7 +171,6 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               echo call \""$vcvars_bat_file"\" >>do-vcvars.bat
               echo "bash -c export > vcvars.env" >>do-vcvars.bat
               python runner.py do-vcvars.bat
-              cat vcvars.env
               cat vcvars.env | grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" > vcvars_filtered.env
               source vcvars_filtered.env
               rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
