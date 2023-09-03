@@ -169,10 +169,10 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
             if [[ -f $vcvars_bat_file ]]; then
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
               echo "echo d1" >dovcvars.bat
-              echo call \""$vcvars_bat_file"\" >>dovcvars.bat
-              echo "echo d2" >>dovcvars.bat
-              echo "bash -c export > vcvars.env" >>dovcvars.bat
-              echo "echo d3" >>dovcvars.bat
+              #echo call \""$vcvars_bat_file"\" >>dovcvars.bat
+              #echo "echo d2" >>dovcvars.bat
+              #echo "bash -c export > vcvars.env" >>dovcvars.bat
+              #echo "echo d3" >>dovcvars.bat
 
               echo "File dovcvars.bat:"
               cat dovcvars.bat
@@ -180,7 +180,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               ls
               
               echo "Before CMD"
-              cmd.exe /C dovcvars.bat 2>&1
+              "cmd.exe" "/C" "dovcvars.bat" 2>&1
               echo "After CMD"
               
               sleep 1
