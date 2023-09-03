@@ -168,15 +168,18 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
             vcvars_bat_file="$vs_dir\\vcvars$bits.bat"
             if [[ -f $vcvars_bat_file ]]; then
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
-              echo call \""$vcvars_bat_file"\" >do-vcvars.bat
+              echo "echo d1" >do-vcvars.bat
+              echo call \""$vcvars_bat_file"\" >>do-vcvars.bat
+              echo "echo d2" >do-vcvars.bat
               echo "bash -c export > vcvars.env" >>do-vcvars.bat
+              echo "echo d3" >do-vcvars.bat
 
               echo "File do-vcvars.bat:"
               cat do-vcvars.bat
               echo "Done do-vcvars.bat"
               ls
               
-              cmd.exe /c do-vcvars.bat
+              cmd.exe /c do-vcvars.bat 2>&1
               
               sleep 1
               echo "After sleep"
