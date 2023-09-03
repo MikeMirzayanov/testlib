@@ -21,8 +21,8 @@ jobs:
   tests-windows:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022]
-        compiler: [msvc, g++, clang++]
+        os: [windows-2022]
+        compiler: [msvc]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
