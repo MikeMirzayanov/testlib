@@ -181,7 +181,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               
               echo "Before CMD"
               #cmd.exe /C 'D:\a\testlib\testlib\tests\dovcvars.bat 2>&1'
-              cmd.exe /C testme.bat
+              C:/Windows/System32/cmd.exe /C testme.bat
               echo "After CMD"
               
               sleep 1
