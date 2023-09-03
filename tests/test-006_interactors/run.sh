@@ -14,7 +14,9 @@ rm -f output.01 output.01.nix
 
 bash ../scripts/compile src/interactive-a-plus-b.cpp
 python src/interactive_runner.py ./interactor-a-plus-b files/"$os"/input.01 output.02 -- ./interactive-a-plus-b 1>interactive_runner.out 2>interactive_runner.err &
-sleep 1
+echo `/bin/date "+%Y%m%d %T"`
+sleep 5
+echo `/bin/date "+%Y%m%d %T"`
 kill $! 2>/dev/null
 cat interactive_runner.out
 cat interactive_runner.err
