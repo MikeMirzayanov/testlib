@@ -179,7 +179,9 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               echo "Done dovcvars.bat"
               ls
               
+              echo "Before CMD"
               cmd.exe /C dovcvars.bat 2>&1
+              echo "After CMD"
               
               sleep 1
               echo "After sleep"
