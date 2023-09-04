@@ -19,6 +19,7 @@ env:
 
 jobs:
   tests-ubuntu1804-gpp:
+    if: false # Disabled job
     strategy:
       matrix:
         os: [ubuntu-18.04]
@@ -34,6 +35,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-ubuntu1804-clang:
+    if: false # Disabled job
     strategy:
       matrix:
         os: [ubuntu-18.04]
@@ -79,6 +81,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-ubuntu1804-gpp-32:
+    if: false # Disabled job
     strategy:
       matrix:
         os: [ubuntu-18.04]
@@ -95,6 +98,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
   tests-ubuntu1804-clang-32:
+    if: false # Disabled job
     strategy:
       matrix:
         os: [ubuntu-18.04]
