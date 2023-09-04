@@ -17,7 +17,7 @@ python src/interactive_runner.py ./interactor-a-plus-b files/"$os"/input.01 outp
 echo `/bin/date "+%Y%m%d %T"`
 sleep 5
 echo `/bin/date "+%Y%m%d %T"`
-kill $! 2>/dev/null
+pkill python
 cat interactive_runner.out
 cat interactive_runner.err
 tr -d '\r' < output.02 > output.02.nix
