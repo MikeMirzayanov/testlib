@@ -18,6 +18,130 @@ env:
   TEST_REF_FORBID_GEN_REFS: true
 
 jobs:
+  tests-ubuntu1804-gpp:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        compiler: [g++]
+        version: [7, 9, 10]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-ubuntu1804-clang:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        compiler: [clang++]
+        version: [9]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-ubuntu2204-gpp:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [g++]
+        version: [9, 10, 11]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-ubuntu2204-clang:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [clang++]
+        version: [12, 13, 14]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-ubuntu1804-gpp-32:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        compiler: [g++]
+        version: [7, 9, 10]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+
+  tests-ubuntu1804-clang-32:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        compiler: [clang++]
+        version: [9]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          sudo apt-get install gcc-multilib g++-multilib
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+
+  tests-ubuntu2204-gpp-32:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [g++]
+        version: [9, 10, 11]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+
+  tests-ubuntu2204-clang-32:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [clang++]
+        version: [12, 13, 14]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          sudo apt-get install gcc-multilib g++-multilib
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+
   tests-macos11-gpp:
     strategy:
       matrix:
@@ -31,7 +155,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-macos11-clang:
     strategy:
@@ -45,7 +169,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }}
 
   tests-macos12-gpp:
     strategy:
@@ -59,7 +183,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }}
 
   tests-macos12-clang:
     strategy:
@@ -74,7 +198,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }}
 
   tests-windows-2019:
     strategy:
@@ -88,7 +212,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }}
 
   tests-windows-2022:
     strategy:
@@ -102,4 +226,4 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
+          bash ./run.sh ${{ matrix.compiler }}
