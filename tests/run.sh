@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -e -o pipefail
 
 TESTS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 export TESTS_DIR="$TESTS_DIR"
