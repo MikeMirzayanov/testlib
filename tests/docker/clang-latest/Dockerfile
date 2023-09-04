@@ -1,6 +1,6 @@
 FROM silkeh/clang:latest
 RUN apt-get update
-RUN apt-get install -y git
+RUN apt-get install -y git default-jre
 COPY startup.sh /
 WORKDIR /
 RUN chmod +x /startup.sh

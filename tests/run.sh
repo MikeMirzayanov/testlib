@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e -o pipefail
 
+echo "Checking installed Java"
+java -version
+
 TESTS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 export TESTS_DIR="$TESTS_DIR"
 
