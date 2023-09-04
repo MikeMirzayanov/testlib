@@ -18,11 +18,25 @@ env:
   TEST_REF_FORBID_GEN_REFS: true
 
 jobs:
-  tests-windows:
+  tests-windows-2019:
     strategy:
       matrix:
         os: [windows-2019]
         compiler: [msvc, g++, clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
+
+  tests-windows-2022:
+    strategy:
+      matrix:
+        os: [windows-2022]
+        compiler: [msvc, g++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
