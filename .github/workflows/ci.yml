@@ -31,7 +31,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} test-006_interactors
 
   tests-macos11-clang:
     strategy:
@@ -45,7 +45,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
 
   tests-macos12-gpp:
     strategy:
@@ -59,7 +59,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
 
   tests-macos12-clang:
     strategy:
@@ -74,7 +74,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
 
   tests-windows-2019:
     strategy:
@@ -88,7 +88,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
 
   tests-windows-2022:
     strategy:
@@ -102,4 +102,4 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} test-006_interactors
