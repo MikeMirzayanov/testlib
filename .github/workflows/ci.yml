@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-2019]
-        compiler: [clang++]
+        compiler: [msvc, g++, clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
