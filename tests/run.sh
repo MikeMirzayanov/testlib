@@ -174,7 +174,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
               echo call \""$vcvars_bat_file"\" >do-vcvars.bat
               echo "bash -c export > vcvars.env" >>do-vcvars.bat
-              python runner.py do-vcvars.bat
+              python file-runner.py do-vcvars.bat
               grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" <vcvars.env >vcvars_filtered.env
               source vcvars_filtered.env
               rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
