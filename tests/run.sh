@@ -17,6 +17,10 @@ ARGS_CPP_STANDARDS=","
 ARGS_CPP_VERSIONS=","
 ARGS_TESTS=","
 ARGS_CPP_BITS=""
+
+MSVC_INCLUDE_YEAR="2022"
+WINKIT_INCLUDE_VERSION="10.0.19041.0"
+
 for arg in "$@"; do
   if [[ "$arg" == test-* ]]; then
     ARGS_TESTS="${ARGS_TESTS}${arg},"
@@ -104,12 +108,12 @@ MSYS*) machine=Windows ;;
 esac
 export MACHINE="$machine"
 
-if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]; then
-  for f in msvc-2022-include windows-kit-10.0.19041.0-include; do
-    rm -rf "${TESTS_DIR:?}"/lib/$f && mkdir -p "$TESTS_DIR"/lib/$f
-    7z x -o"${TESTS_DIR:?}"/lib/$f "$TESTS_DIR"/lib/$f.7z
-  done
-fi
+#if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "clang++") ]]; then
+#  for f in msvc-${MSVC_INCLUDE_YEAR}-include windows-kit-${WINKIT_INCLUDE_VERSION}-include; do
+#    rm -rf "${TESTS_DIR:?}"/lib/$f && mkdir -p "$TESTS_DIR"/lib/$f
+#    7z x -o"${TESTS_DIR:?}"/lib/$f "$TESTS_DIR"/lib/$f.7z
+#  done
+#fi
 
 run_tests() {
   export INVOCATION_ID=$RANDOM
@@ -170,8 +174,8 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               echo "Compiler Visual Studio $version ($vs_release-$bits) has been found"
               echo call \""$vcvars_bat_file"\" >do-vcvars.bat
               echo "bash -c export > vcvars.env" >>do-vcvars.bat
-              cmd.exe /c do-vcvars.bat
-              cat vcvars.env | grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" > vcvars_filtered.env
+              python runner.py do-vcvars.bat
+              grep -v -E "(\(.*=)|(\!.*=)|([A-Z]\-[A-Z].*=)" <vcvars.env >vcvars_filtered.env
               source vcvars_filtered.env
               rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
               for cpp_standard in "${MSVC_CPP_STANDARDS[@]}"; do
@@ -197,28 +201,28 @@ fi
 
 # Find /c/Programs/*/bin/g++ in case of Windows and no ARGS_CPP
 if [[ "$MACHINE" == "Windows" && "$ARGS_CPP" == "" ]]; then
-    for d in /c/Programs/*/ ; do
-        dir="${d}bin"
-        OLD_PATH="$PATH"
-        export PATH="$dir":$PATH
-        gpp="${d}bin/g++.exe"
-        gpp_output=$($gpp 2>&1 || true)
-        if [[ $gpp_output == *"no input files"* ]]; then
-          for gpp_standard in "${CPP_STANDARDS[@]}"; do
-            touch empty_file.cpp
-            gpp_output=$($gpp "$gpp_standard" empty_file.cpp 2>&1 || true)
-            if [[ ! $gpp_output == *"unrecognized"* && ! $gpp_output == *"standard"* ]]; then
-              run_tests "$gpp" "$gpp_standard"
-              if [[ ! "$done" == "" ]]; then
-                done="$done, "
-              fi
-              done="$done$gpp@$gpp_standard"
-            fi
-            rm -f empty_file.*
-          done
+  for d in /c/Programs/*/; do
+    dir="${d}bin"
+    OLD_PATH="$PATH"
+    export PATH="$dir":$PATH
+    gpp="${d}bin/g++.exe"
+    gpp_output=$($gpp 2>&1 || true)
+    if [[ $gpp_output == *"no input files"* ]]; then
+      for gpp_standard in "${CPP_STANDARDS[@]}"; do
+        touch empty_file.cpp
+        gpp_output=$($gpp "$gpp_standard" empty_file.cpp 2>&1 || true)
+        if [[ ! $gpp_output == *"unrecognized"* && ! $gpp_output == *"standard"* ]]; then
+          run_tests "$gpp" "$gpp_standard"
+          if [[ ! "$done" == "" ]]; then
+            done="$done, "
+          fi
+          done="$done$gpp@$gpp_standard"
         fi
-        export PATH="$OLD_PATH"
-    done
+        rm -f empty_file.*
+      done
+    fi
+    export PATH="$OLD_PATH"
+  done
 fi
 
 for compiler in "${COMPILERS[@]}"; do
@@ -252,11 +256,11 @@ for compiler in "${COMPILERS[@]}"; do
   done
 done
 
-if [[ "$machine" == "Windows" ]]; then
-  for f in msvc-2022-include windows-kit-10.0.19041.0-include; do
-    rm -rf "${TESTS_DIR:?}"/lib/$f
-  done
-fi
+#if [[ "$machine" == "Windows" ]]; then
+#  for f in msvc-${MSVC_INCLUDE_YEAR}-include windows-kit-${WINKIT_INCLUDE_VERSION}-include; do
+#    rm -rf "${TESTS_DIR:?}"/lib/$f
+#  done
+#fi
 
 if [[ -z "$done" ]]; then
   echo -e "${RED}[ERROR]${NC} No compilers found\n"
