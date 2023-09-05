@@ -887,7 +887,10 @@ public:
         int size = int(c.size());
         if (size <= 0)
             __testlib_fail("random_t::any(const Container& c): c.size() must be positive");
-        return *(c.begin() + next(size));
+        //return *(c.begin() + next(size));
+        typename Container::const_iterator it = c.begin();
+        std::advance(it, next(size));
+        return *it;
     }
 
     /* Returns random element from iterator range. */
@@ -896,7 +899,10 @@ public:
         int size = int(end - begin);
         if (size <= 0)
             __testlib_fail("random_t::any(const Iter& begin, const Iter& end): range must have positive length");
-        return *(begin + next(size));
+        // return *(begin + next(size));
+        Iter it = begin;
+        std::advance(it, next(size));
+        return *it;
     }
 
     /* Random string value by given pattern (see pattern documentation). */
