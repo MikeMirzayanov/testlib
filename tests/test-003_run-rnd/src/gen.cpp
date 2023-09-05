@@ -102,4 +102,29 @@ int main(int argc, char* argv[])
     println(rnd.wnext(1000LL, 20LL));
     println(rnd.wnext(100000, 200));
     println(rnd.wnext(100000LL, 200LL));
+
+    std::cout << std::fixed << std::setprecision(4) << rnd.next((float) 42.0, (float) 2011.1109) << std::endl;
+    std::cout << std::fixed << std::setprecision(4) << rnd.next((double) 42.0, (double) 2011.1109) << std::endl;
+    std::cout << std::fixed << std::setprecision(4) << rnd.wnext((float) 42.0, (float) 2011.1109, 5) << std::endl;
+    std::cout << std::fixed << std::setprecision(4) << rnd.wnext((double) 42.0, (double) 2011.1109, 5) << std::endl;
+    std::cout << std::fixed << std::setprecision(4) << rnd.wnext((float) 42.0, (float) 2011.1109, -7) << std::endl;
+    std::cout << std::fixed << std::setprecision(4) << rnd.wnext((double) 42.0, (double) 2011.1109, -7) << std::endl;
+
+    std::cout << rnd.next((unsigned long long) 42, (unsigned long long) 2011) << std::endl;
+    std::cout << rnd.next((unsigned int) 42, (unsigned int) 2011) << std::endl;
+    std::cout << rnd.next((unsigned short) 42, (unsigned short) 2011) << std::endl;
+
+    std::cout << rnd.wnext((unsigned long long) 42, (unsigned long long) 2011, -3) << std::endl;
+    std::cout << rnd.wnext((unsigned int) 42, (unsigned int) 2011, -3) << std::endl;
+    std::cout << rnd.wnext((unsigned short) 42, (unsigned short) 2011, -3) << std::endl;
+    std::cout << rnd.wnext((unsigned long long) 42, (unsigned long long) 2011, 3) << std::endl;
+    std::cout << rnd.wnext((unsigned int) 42, (unsigned int) 2011, 3) << std::endl;
+    std::cout << rnd.wnext((unsigned short) 42, (unsigned short) 2011, 3) << std::endl;
+
+    std::cout << rnd.wnext((signed long long) 42, (signed long long) 2011, -5) << std::endl;
+    std::cout << rnd.wnext((signed int) 42, (signed int) 2011, -5) << std::endl;
+    std::cout << rnd.wnext((signed short) 42, (signed short) 2011, -5) << std::endl;
+    std::cout << rnd.wnext((signed long long) 42, (signed long long) 2011, 4) << std::endl;
+    std::cout << rnd.wnext((signed int) 42, (signed int) 2011, 4) << std::endl;
+    std::cout << rnd.wnext((signed short) 42, (signed short) 2011, 4) << std::endl;
 }

@@ -746,8 +746,8 @@ public:
 
     /* Sets seed by given value. */
     void setSeed(long long _seed) {
-        _seed = (_seed ^ multiplier) & mask;
-        seed = _seed;
+        seed = (unsigned long long) _seed;
+        seed = (seed ^ multiplier) & mask;
     }
 
 #ifndef __BORLANDC__
@@ -3121,7 +3121,6 @@ void InStream::init(std::string fileName, TMode mode) {
     }
 
     reset();
-    skipBom();
 }
 
 void InStream::init(std::FILE *f, TMode mode) {
@@ -3137,7 +3136,6 @@ void InStream::init(std::FILE *f, TMode mode) {
         name = "stderr", stdfile = true;
 
     reset(f);
-    skipBom();
 }
 
 void InStream::skipBom() {
@@ -4628,6 +4626,7 @@ void registerTestlibCmd(int argc, char *argv[]) {
 
     inf.init(args[1], _input);
     ouf.init(args[2], _output);
+    ouf.skipBom();
     ans.init(args[3], _answer);
 }
 
