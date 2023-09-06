@@ -1091,7 +1091,10 @@ public:
         size_t size = c.size();
         if (size <= 0)
             __testlib_fail("random_t::wany(const Container& c, int type): c.size() must be positive");
-        return *(c.begin() + wnext(size, type));
+        // return *(c.begin() + wnext(size, type));
+        typename Container::const_iterator it = c.begin();
+        std::advance(it, wnext(size, type));
+        return *it;
     }
 
     /* Returns weighted random element from iterator range. */
@@ -1101,7 +1104,10 @@ public:
         if (size <= 0)
             __testlib_fail(
                     "random_t::any(const Iter& begin, const Iter& end, int type): range must have positive length");
-        return *(begin + wnext(size, type));
+        // return *(begin + wnext(size, type));
+        Iter it = begin;
+        std::advance(it, wnext(size, type));
+        return *it;
     }
 
     /* Returns random permutation of the given size (values are between `first` and `first`+size-1)*/
