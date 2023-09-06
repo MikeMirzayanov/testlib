@@ -3578,12 +3578,11 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
 
     bool minus = false;
     size_t length = strlen(buffer);
+    if (length == 0 || length > 20)
+        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     if (length > 1 && buffer[0] == '-')
         minus = true;
-
-    if (length > 20)
-        in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     long long retval = 0LL;
 
@@ -5418,7 +5417,7 @@ T optValueToIntegral(const std::string &s_, bool nonnegative) {
     for (size_t i = pos; i < s.length(); i++) {
         if (s[i] < '0' || s[i] > '9')
             __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
-        value = value * 10 + s[i] - '0';
+        value = T(value * 10 + s[i] - '0');
         about = about * 10 + s[i] - '0';
     }
     value *= sign;
