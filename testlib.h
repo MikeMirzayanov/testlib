@@ -3582,7 +3582,7 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
     if (length > 1 && buffer[0] == '-')
         minus = true;
 
-    if (length > 20)
+    if (length == 0 || length > 20)
         in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
     long long retval = 0LL;
