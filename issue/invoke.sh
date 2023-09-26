@@ -3,7 +3,7 @@ set -eo pipefail
 
 exit_code=0
 echo "running $* 1>out 2>err"
-$* 1>out 2>err || exit_code=$?
+$* <i 1>out 2>err || exit_code=$?
 
 echo exit_code="$exit_code"
 echo -- out --
