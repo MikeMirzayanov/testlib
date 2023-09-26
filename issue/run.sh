@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Determine platform
 PLATFORM="unknown"
@@ -16,52 +17,36 @@ if [[ "$PLATFORM" == "windows" ]]; then
     EXE_EXT=".exe"
 fi
 
-echo "gcc case"
-clang++ --version
-clang++ -O2 -o ab-clang$EXE_EXT ab.cpp
-./ab-clang$EXE_EXT < input.txt > output.clang
-echo -
-echo $?
-echo -
-cat output.clang
-echo -
-
 echo "clang case"
-g++ --version
-g++ --std=c++11 -Wpedantic -Werror -O2 -o ab-gcc$EXE_EXT ab.cpp
-./ab-gcc$EXE_EXT < input.txt > output.gcc
-echo -
-echo $?
-echo -
-cat output.gcc
-echo -
-
-echo "case-nval gcc case"
 clang++ --version
-clang++ -O2 -o case-nval-clang$EXE_EXT case-nval.cpp
-./case-nval-clang$EXE_EXT --testMarkupFileName a < input.01 1>out 2>err
-echo -
-echo $?
-echo -
-cat out
-echo -
-cat err
-echo -
-cat a
-echo -
+rm -f ab-clang$EXE_EXT
+clang++ -O2 -o ab-clang$EXE_EXT ab.cpp
+./invoke.sh ./ab-clang < input.txt
+rm -f ab-clang$EXE_EXT
+
+echo "gcc case"
+g++ --version
+rm -f ab-gcc$EXE_EXT
+eval g++ --std=c++11 -Wpedantic -Werror -O2 -o ab-gcc$EXE_EXT ab.cpp
+./invoke.sh ./ab-gcc < input.txt
+rm -f ab-gcc$EXE_EXT
 
 echo "case-nval clang case"
-g++ --version
-g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
-./case-nval-gcc$EXE_EXT --testMarkupFileName a < input.01 1>out 2>err
-echo -
-echo $?
-echo -
-cat out
-echo -
-cat err
-echo -
+clang++ --version
+rm -f case-nval-clang$EXE_EXT
+clang++ -O2 -o case-nval-clang$EXE_EXT case-nval.cpp
+./invoke.sh ./case-nval-clang --testMarkupFileName a < input.01
 cat a
 echo -
+rm -f case-nval-clang$EXE_EXT
+
+echo "case-nval gcc case"
+g++ --version
+rm -f case-nval-gcc$EXE_EXT
+eval g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
+./invoke.sh ./case-nval-gcc --testMarkupFileName a < input.01
+cat a
+echo -
+rm -f case-nval-gcc$EXE_EXT
 
 echo "end"
