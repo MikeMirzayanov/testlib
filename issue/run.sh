@@ -28,7 +28,7 @@ echo -
 
 echo "clang case"
 g++ --version
-g++ -O2 -o ab-gcc$EXE_EXT ab.cpp
+g++ --std=c++11 -Wpedantic -Werror -O2 -o ab-gcc$EXE_EXT ab.cpp
 ./ab-gcc$EXE_EXT < input.txt > output.gcc
 echo -
 echo $?
@@ -52,7 +52,7 @@ echo -
 
 echo "case-nval clang case"
 g++ --version
-g++ -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
+g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
 ./case-nval-gcc$EXE_EXT --testMarkupFileName a < input.01 1>out 2>err
 echo -
 echo $?
