@@ -74,6 +74,14 @@ else
   $* 1>"$refs"/stdout.aux 2>"$refs"/stderr.aux || exit_code=$?
   echo $exit_code >"$refs"/exit_code.aux
 
+  echo ---
+  cat "$refs"/stdout.aux
+  echo ---
+  cat "$refs"/stderr.aux
+  echo ---
+  cat "$refs"/exit_code.aux
+  echo ---
+
   # Check exit code is the same
   tester_lcmp_exit_code=0
   "$TESTS_DIR"/tester-lcmp/tester-lcmp "$TESTS_DIR"/tester-lcmp/tester-lcmp."$INVOCATION_ID" "$refs"/exit_code.aux "$refs"/exit_code 2>tester-lcmp.out || tester_lcmp_exit_code=$?
