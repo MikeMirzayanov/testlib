@@ -242,4 +242,4 @@ jobs:
       - name: Try issue
         run: |
           cd issue
-          run.bat
+          cmd.exe /c run.bat
