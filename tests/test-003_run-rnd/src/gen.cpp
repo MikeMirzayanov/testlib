@@ -127,4 +127,11 @@ int main(int argc, char* argv[])
     std::cout << rnd.wnext((signed long long) 42, (signed long long) 2011, 4) << std::endl;
     std::cout << rnd.wnext((signed int) 42, (signed int) 2011, 4) << std::endl;
     std::cout << rnd.wnext((signed short) 42, (signed short) 2011, 4) << std::endl;
+    
+    println(rnd.wany(a, 1));
+    println(rnd.wany(a, -1));
+    
+    set<string> b;
+    b.insert("a"); b.insert("b"); b.insert("c"); b.insert("d"); b.insert("e"); b.insert("f"); b.insert("g");
+    println(rnd.any(b));
 }
