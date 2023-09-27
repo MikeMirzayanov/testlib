@@ -51,8 +51,8 @@ else
   if [[ "$dir" == *"/bin" ]] || [[ "$MACHINE" == "Windows" ]]; then
     EXTRA_ARGS="${EXTRA_ARGS} -static"
   fi
-  echo "Compiling $src_file, running:" "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -static -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
-  eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -static -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
+  echo "Compiling $src_file, running:" "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
+  eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
 fi
 
 rm -f ./*.o ./*.obj
