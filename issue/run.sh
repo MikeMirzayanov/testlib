@@ -48,7 +48,7 @@ echo "case-nval gcc case"
 g++ --version
 rm -f case-nval-gcc$EXE_EXT
 #eval g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
-eval g++ -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
+eval g++ --std=c++11 -O1 -o case-nval-gcc$EXE_EXT case-nval.cpp
 cp -f input.01 i
 ./invoke.sh ./case-nval-gcc --testMarkupFileName a
 cat a
