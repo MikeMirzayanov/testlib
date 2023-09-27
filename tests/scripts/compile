@@ -47,11 +47,11 @@ if [[ "$CPP" == "cl.exe" ]]; then
   "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
 else
   "$CPP" -v
+  dir=$(dirname "$CPP")
+  if [[ "$dir" == *"/bin" ]] || [[ "$MACHINE" == "Windows" ]]; then
+    EXTRA_ARGS="${EXTRA_ARGS} -static"
+  fi
   echo "Compiling $src_file, running:" "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -static -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
-#  dir=$(dirname "$CPP")
-#  if [[ "$dir" == *"/bin" ]]; then
-#    EXTRA_ARGS="${EXTRA_ARGS} -static"
-#  fi
   eval "$CPP" "$CPP_OPTS" "$CPP_STANDARD" -static -Wpedantic -Werror -I"${CPP_INCLUDE_DIR}""$EXTRA_ARGS" -o"$exe_file" -O2 "$src_file"
 fi
 
