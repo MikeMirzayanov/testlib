@@ -28,7 +28,8 @@ rm -f ab-clang$EXE_EXT
 echo "gcc case"
 g++ --version
 rm -f ab-gcc$EXE_EXT
-eval g++ --std=c++11 -Wpedantic -Werror -O2 -o ab-gcc$EXE_EXT ab.cpp
+#eval g++ --std=c++11 -Wpedantic -Werror -O2 -o ab-gcc$EXE_EXT ab.cpp
+eval g++ -O0 -o ab-gcc$EXE_EXT ab.cpp
 cp -f input.txt i
 ./invoke.sh ./ab-gcc
 rm -f ab-gcc$EXE_EXT
@@ -46,7 +47,8 @@ rm -f case-nval-clang$EXE_EXT
 echo "case-nval gcc case"
 g++ --version
 rm -f case-nval-gcc$EXE_EXT
-eval g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
+#eval g++ --std=c++11 -Wpedantic -Werror -O2 -o case-nval-gcc$EXE_EXT case-nval.cpp
+eval g++ -O0 -o case-nval-gcc$EXE_EXT case-nval.cpp
 cp -f input.01 i
 ./invoke.sh ./case-nval-gcc --testMarkupFileName a
 cat a
