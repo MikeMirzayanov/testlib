@@ -3454,7 +3454,7 @@ static inline bool equals(unsigned long long integer, const char *s) {
 }
 
 static inline double stringToDouble(InStream &in, const char *buffer) {
-    double retval;
+    double result;
 
     size_t length = strlen(buffer);
 
@@ -3488,14 +3488,14 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
+    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
     if (scanned == 1 || (scanned == 2 && empty)) {
-        if (__testlib_isNaN(retval))
+        if (__testlib_isNaN(result))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
-        return retval;
+        return result;
     } else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
@@ -3516,7 +3516,7 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
         in.quit(_fail,
                 "stringToStrictDouble: minAfterPointDigitCount should be less or equal to maxAfterPointDigitCount.");
 
-    double retval;
+    double result;
 
     size_t length = strlen(buffer);
 
@@ -3565,16 +3565,16 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &retval, suffix);
+    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
     if (scanned == 1 || (scanned == 2 && empty)) {
-        if (__testlib_isNaN(retval) || __testlib_isInfinite(retval))
+        if (__testlib_isNaN(result) || __testlib_isInfinite(result))
             in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
-        if (buffer[0] == '-' && retval >= 0)
+        if (buffer[0] == '-' && result >= 0)
             in.quit(_pe, ("Redundant minus in \"" + __testlib_part(buffer) + "\" found").c_str());
-        return retval;
+        return result;
     } else
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
@@ -3606,19 +3606,19 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
             in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     }
 
-    long long int retval;
+    long long int result;
     try {
-        retval = std::stoll(buffer);
-    } catch (const std::out_of_range& ignored) {
+        result = std::stoll(buffer);
+    } catch (const std::exception&) {
         in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
-    } catch (const std::invalid_argument& ignored) {
+    } catch (...) {
         in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     }
 
-    if ((zeroes > 0 && (retval != 0 || has_minus)) || zeroes > 1)
+    if ((zeroes > 0 && (result != 0 || has_minus)) || zeroes > 1)
         in.quit(_pe, ("Expected integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
 
-    return retval;
+    return result;
 }
 
 static inline long long stringToLongLong(InStream &in, const std::string& buffer) {
@@ -3641,16 +3641,16 @@ static inline unsigned long long stringToUnsignedLongLong(InStream &in, const ch
             in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     }
 
-    unsigned long long retval;
+    unsigned long long result;
     try {
-        retval = std::stoull(buffer);
-    } catch (const std::out_of_range& ignored) {
+        result = std::stoull(buffer);
+    } catch (const std::exception&) {
         in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
-    } catch (const std::invalid_argument& ignored) {
+    } catch (...) {
         in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     }
 
-    return retval;
+    return result;
 }
 
 static inline long long stringToUnsignedLongLong(InStream &in, const std::string& buffer) {
