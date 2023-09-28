@@ -61,7 +61,7 @@ TEST(opts) {
                 for (size_t i = 0; i < parts.size(); ++i) {
                     opts[i + 1] = parts[i].c_str();
                 }
-                prepareOpts(opts.size(), (char**)opts.data());
+                prepareOpts(int(opts.size()), (char**)opts.data());
             }
             {
                 GenArrayOpts res;

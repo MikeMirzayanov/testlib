@@ -54,7 +54,7 @@ shift 1
 # Check if we don't have invocation reference files
 if [ ! -d "$refs" ]; then
   if [[ "$TEST_REF_FORBID_GEN_REFS" == "true" ]]; then
-    echo "You forgot to run push ref files for invocation: "$*""
+    echo "You forgot to run push ref files for invocation: ""$*"""
     echo "Run test locally, it will produce ref files and push it into the repo"
     exit 1
   fi
@@ -72,6 +72,7 @@ else
   exit_code=0
   # shellcheck disable=SC2048
   $* 1>"$refs"/stdout.aux 2>"$refs"/stderr.aux || exit_code=$?
+  echo "Program exit code: $exit_code, stdout size: $(stat -c %s "$refs"/stdout.aux) bytes, stderr size: $(stat -c %s "$refs"/stderr.aux) bytes"
   echo $exit_code >"$refs"/exit_code.aux
 
   # Check exit code is the same
