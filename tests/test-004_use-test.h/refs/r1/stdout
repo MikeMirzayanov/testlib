@@ -4,5 +4,7 @@ Running test 'tokenize'                                                         
 Running test 'opts'                                                                                 OK
 Running test 'instream'                                                                             OK
 Running test 'pattern'                                                                              OK
+Running test 'stringToLongLong'                                                                     OK
+Running test 'stringToUnsignedLongLong'                                                             OK
 
-SUCCESS 6 tests passed.
+SUCCESS 8 tests passed.
