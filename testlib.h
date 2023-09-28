@@ -386,6 +386,20 @@ static std::string removeDoubleTrailingZeroes(std::string value) {
         return value;
 }
 
+inline std::string upperCase(std::string s) {
+    for (size_t i = 0; i < s.length(); i++)
+        if ('a' <= s[i] && s[i] <= 'z')
+            s[i] = char(s[i] - 'a' + 'A');
+    return s;
+}
+
+inline std::string lowerCase(std::string s) {
+    for (size_t i = 0; i < s.length(); i++)
+        if ('A' <= s[i] && s[i] <= 'Z')
+            s[i] = char(s[i] - 'A' + 'a');
+    return s;
+}
+
 #ifdef __GNUC__
 __attribute__ ((format (printf, 1, 2)))
 #endif
@@ -2320,6 +2334,7 @@ InStream inf;
 InStream ouf;
 InStream ans;
 bool appesMode;
+std::string appesModeEncoding = "windows-1251";
 std::string resultName;
 std::string checkerName = "untitled checker";
 random_t rnd;
@@ -2972,7 +2987,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
             quit(_fail, "Can not write to the result file");
         }
         if (appesMode) {
-            std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"windows-1251\"?>");
+            std::fprintf(resultFile, "<?xml version=\"1.0\" encoding=\"%s\"?>", appesModeEncoding.c_str());
             if (isPartial)
                 std::fprintf(resultFile, "<result outcome = \"%s\" pctype = \"%d\">",
                              outcomes[(int) _partially].c_str(), pctype);
@@ -3627,7 +3642,7 @@ static inline long long stringToLongLong(InStream &in, const std::string& buffer
 static inline unsigned long long stringToUnsignedLongLong(InStream &in, const char *buffer) {
     size_t length = strlen(buffer);
 
-    if (length > 20)
+    if (length == 0 || length > 20)
         in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
     if (length > 1 && buffer[0] == '0')
         in.quit(_pe, ("Expected unsigned integer, but \"" + __testlib_part(buffer) + "\" found").c_str());
@@ -4399,6 +4414,30 @@ void registerGen(int argc, char *argv[]) {
 }
 #endif
 
+static void setAppesModeEncoding(std::string appesModeEncoding) {
+    static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
+"iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
+"iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
+"windows-1256", "windows-1257", "windows-1258", "gb2312", "gbk", "gb18030", "big5", "shift-jis", "euc-jp", "euc-kr", 
+"euc-cn", "euc-tw", "koi8-r", "koi8-u", "tis-620", "ibm437", "ibm850", "ibm852", "ibm855", "ibm857", 
+"ibm860", "ibm861", "ibm862", "ibm863", "ibm865", "ibm866", "ibm869", "macroman", "maccentraleurope", "maciceland", 
+"maccroatian", "macromania", "maccyrillic", "macukraine", "macgreek", "macturkish", "machebrew", "macarabic", "macthai", "hz-gb-2312", 
+"iso-2022-jp", "iso-2022-kr", "iso-2022-cn", "armscii-8", "tscii", "iscii", "viscii", "geostd8", "cp949", "cp874", 
+"cp1006", "cp775", "cp858", "cp737", "cp853", "cp856", "cp922", "cp1046", "cp1125", "cp1131", 
+"ptcp154", "koi8-t", "koi8-ru", "mulelao-1", "cp1133", "iso-ir-166", "tcvn", "iso-ir-14", "iso-ir-87", "iso-ir-159"};
+    
+    appesModeEncoding = lowerCase(appesModeEncoding);
+    bool valid = false;
+    for (size_t i = 0; i < sizeof(ENCODINGS) / sizeof(ENCODINGS[0]); i++)
+        if (appesModeEncoding == ENCODINGS[i]) {
+            valid = true;
+            break;
+        }
+    if (!valid)
+        quit(_fail, "Unexpected encoding for setAppesModeEncoding(encoding)");
+    ::appesModeEncoding = appesModeEncoding;
+}
+
 void registerInteraction(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
     __testlib_set_testset_and_group(argc, argv);
@@ -4760,20 +4799,6 @@ void startTest(int test) {
     const std::string testFileName = vtos(test);
     if (NULL == freopen(testFileName.c_str(), "wt", stdout))
         __testlib_fail("Unable to write file '" + testFileName + "'");
-}
-
-inline std::string upperCase(std::string s) {
-    for (size_t i = 0; i < s.length(); i++)
-        if ('a' <= s[i] && s[i] <= 'z')
-            s[i] = char(s[i] - 'a' + 'A');
-    return s;
-}
-
-inline std::string lowerCase(std::string s) {
-    for (size_t i = 0; i < s.length(); i++)
-        if ('A' <= s[i] && s[i] <= 'Z')
-            s[i] = char(s[i] - 'A' + 'a');
-    return s;
 }
 
 inline std::string compress(const std::string &s) {
