@@ -1101,7 +1101,7 @@ public:
     /* Returns weighted random element from container. */
     template<typename Container>
     typename Container::value_type wany(const Container &c, int type) {
-        size_t size = c.size();
+        int size = int(c.size());
         if (size <= 0)
             __testlib_fail("random_t::wany(const Container& c, int type): c.size() must be positive");
         typename Container::const_iterator it = c.begin();
@@ -4404,7 +4404,7 @@ void registerGen(int argc, char *argv[]) {
 }
 #endif
 
-static void setAppesModeEncoding(std::string appesModeEncoding) {
+void setAppesModeEncoding(std::string appesModeEncoding) {
     static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
 "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
 "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
