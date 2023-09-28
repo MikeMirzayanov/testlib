@@ -46,7 +46,7 @@ if [[ "$CPP" == "cl.exe" ]]; then
   echo "Compiling $src_file, running:" "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
   "$CPP" "$CPP_STANDARD" "-F268435456" "-EHsc" "-O2" -I"${CPP_INCLUDE_DIR}" -Fe"$exe_file" "$src_file"
 else
-  "$CPP" -v
+  "$CPP" --version
   dir=$(dirname "$CPP")
   if [[ "$dir" == *"/bin" ]] || [[ "$MACHINE" == "Windows" ]]; then
     EXTRA_ARGS="${EXTRA_ARGS} -static"

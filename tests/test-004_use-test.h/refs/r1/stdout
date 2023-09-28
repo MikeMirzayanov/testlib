@@ -5,5 +5,6 @@ Running test 'opts'                                                             
 Running test 'instream'                                                                             OK
 Running test 'pattern'                                                                              OK
 Running test 'stringToLongLong'                                                                     OK
+Running test 'stringToUnsignedLongLong'                                                             OK
 
-SUCCESS 7 tests passed.
+SUCCESS 8 tests passed.

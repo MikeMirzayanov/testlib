@@ -12,6 +12,7 @@ using namespace std;
 #include "tests/test-instream.cpp"
 #include "tests/test-pattern.cpp"
 #include "tests/test-stringToLongLong.cpp"
+#include "tests/test-stringToUnsignedLongLong.cpp"
 
 int main() {
     disableFinalizeGuard();
