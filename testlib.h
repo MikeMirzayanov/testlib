@@ -2352,10 +2352,10 @@ struct ValidatorBoundsHit {
     ValidatorBoundsHit(bool minHit = false, bool maxHit = false) : minHit(minHit), maxHit(maxHit) {
     };
 
-    ValidatorBoundsHit merge(const ValidatorBoundsHit &validatorBoundsHit) {
+    ValidatorBoundsHit merge(const ValidatorBoundsHit &validatorBoundsHit, bool ignoreMinBound, bool ignoreMaxBound) {
         return ValidatorBoundsHit(
-                __testlib_max(minHit, validatorBoundsHit.minHit),
-                __testlib_max(maxHit, validatorBoundsHit.maxHit)
+                __testlib_max(minHit, validatorBoundsHit.minHit) || ignoreMinBound,
+                __testlib_max(maxHit, validatorBoundsHit.maxHit) || ignoreMaxBound
         );
     }
 };
@@ -2455,10 +2455,31 @@ public:
         _testCaseFileName = testCaseFileName;
     }
 
+    std::string prepVariableName(const std::string &variableName) {
+        if (variableName.length() >= 2 && variableName != "~~") {
+            if (variableName[0] == '~' && variableName.back() != '~')
+                return variableName.substr(1);
+            if (variableName[0] != '~' && variableName.back() == '~')
+                return variableName.substr(0, variableName.length() - 1);
+            if (variableName[0] == '~' && variableName.back() == '~')
+                return variableName.substr(1, variableName.length() - 2);
+        }
+        return variableName;
+    }
+
+    bool ignoreMinBound(const std::string &variableName) {
+        return variableName.length() >= 2 && variableName != "~~" && variableName[0] == '~';
+    }
+
+    bool ignoreMaxBound(const std::string &variableName) {
+        return variableName.length() >= 2 && variableName != "~~" && variableName.back() == '~';
+    }
+
     void addBoundsHit(const std::string &variableName, ValidatorBoundsHit boundsHit) {
         if (isVariableNameBoundsAnalyzable(variableName)) {
-            _boundsHitByVariableName[variableName]
-                    = boundsHit.merge(_boundsHitByVariableName[variableName]);
+            std::string preparedVariableName = prepVariableName(variableName);
+            _boundsHitByVariableName[preparedVariableName] = boundsHit.merge(_boundsHitByVariableName[preparedVariableName],
+                ignoreMinBound(variableName), ignoreMaxBound(variableName));
         }
     }
 
