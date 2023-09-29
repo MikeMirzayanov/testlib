@@ -127,11 +127,45 @@ int main(int argc, char* argv[])
     std::cout << rnd.wnext((signed long long) 42, (signed long long) 2011, 4) << std::endl;
     std::cout << rnd.wnext((signed int) 42, (signed int) 2011, 4) << std::endl;
     std::cout << rnd.wnext((signed short) 42, (signed short) 2011, 4) << std::endl;
-    
+
     println(rnd.wany(a, 1));
     println(rnd.wany(a, -1));
-    
+
     set<string> b;
     b.insert("a"); b.insert("b"); b.insert("c"); b.insert("d"); b.insert("e"); b.insert("f"); b.insert("g");
     println(rnd.any(b));
+
+    {
+        std::set<std::string> string_set;
+        string_set.insert("a");
+        string_set.insert("b");
+        string_set.insert("c");
+        string_set.insert("d");
+        string_set.insert("e");
+        string_set.insert("f");
+
+        std::cout << rnd.any(string_set) << std::endl;
+        std::cout << rnd.any(string_set.begin(), string_set.end()) << std::endl;
+        std::cout << rnd.wany(string_set, 1) << std::endl;
+        std::cout << rnd.wany(string_set.begin(), string_set.end(), 1) << std::endl;
+        std::cout << rnd.wany(string_set, -1) << std::endl;
+        std::cout << rnd.wany(string_set.begin(), string_set.end(), -1) << std::endl;
+    }
+
+    {
+        std::multiset<std::string> string_multiset;
+        string_multiset.insert("a");
+        string_multiset.insert("b"); string_multiset.insert("b");
+        string_multiset.insert("c"); string_multiset.insert("c"); string_multiset.insert("c");
+        string_multiset.insert("d");
+        string_multiset.insert("e"); string_multiset.insert("e"); string_multiset.insert("e");
+        string_multiset.insert("f"); string_multiset.insert("f"); string_multiset.insert("f"); string_multiset.insert("f");
+
+        std::cout << rnd.any(string_multiset) << std::endl;
+        std::cout << rnd.any(string_multiset.begin(), string_multiset.end()) << std::endl;
+        std::cout << rnd.wany(string_multiset, 2) << std::endl;
+        std::cout << rnd.wany(string_multiset.begin(), string_multiset.end(), 1) << std::endl;
+        std::cout << rnd.wany(string_multiset, -1) << std::endl;
+        std::cout << rnd.wany(string_multiset.begin(), string_multiset.end(), -2) << std::endl;
+    }
 }
