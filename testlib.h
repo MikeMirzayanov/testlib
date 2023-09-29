@@ -2515,13 +2515,23 @@ public:
         if (!_testOverviewLogFileName.empty()) {
             std::string fileName(_testOverviewLogFileName);
             _testOverviewLogFileName = "";
-            FILE *testOverviewLogFile = fopen(fileName.c_str(), "w");
-            if (NULL == testOverviewLogFile)
-                __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
-            fprintf(testOverviewLogFile, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
-            if (fclose(testOverviewLogFile))
-                __testlib_fail(
-                        "Validator::writeTestOverviewLog: can't close test overview log file (" + fileName + ")");
+
+            FILE* f;
+            bool standard_file = false;
+            if (fileName == "stdout")
+                f = stdout, standard_file = true;
+            else if (fileName == "stderr")
+                f = stderr, standard_file = true;
+            else {
+                f = fopen(fileName.c_str(), "wb");
+                if (NULL == f)
+                    __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
+            }
+            fprintf(f, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
+            std::fflush(f);
+            if (!standard_file)
+                if (std::fclose(f))
+                    __testlib_fail("Validator::writeTestOverviewLog: can't close test overview log file (" + fileName + ")");
         }
     }
 
