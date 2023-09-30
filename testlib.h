@@ -4674,6 +4674,7 @@ void registerTestlibCmd(int argc, char *argv[]) {
         appesMode = false;
     }
 
+#ifndef EJUDGE
     if (argc == 5) {
         resultName = args[4];
         appesMode = false;
@@ -4688,6 +4689,7 @@ void registerTestlibCmd(int argc, char *argv[]) {
             appesMode = true;
         }
     }
+#endif
 
     inf.init(args[1], _input);
     ouf.init(args[2], _output);
