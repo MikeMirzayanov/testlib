@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2022
+ * Copyright (c) 2005-2023
  */
 
-#define VERSION "0.9.40-SNAPSHOT"
+#define VERSION "0.9.41"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,10 @@
  */
 
 const char *latestFeatures[] = {
+        "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
+        "rnd.any/wany use distance/advance instead of -/+: now they support sets/multisets",
+        "Use syntax `int t = inf.readInt(1, 3, \"~t\");` to skip the lower bound check. Tildes can be used on either side or both: ~t, t~, ~t~",
+        "Supported EJUDGE support in registerTestlibCmd",
         "Supported '--testMarkupFileName fn' and '--testCase tc/--testCaseFileName fn' for validators",
         "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
         "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
@@ -343,25 +347,40 @@ void unsetTestCase() {
 NORETURN static void __testlib_fail(const std::string &message);
 
 template<typename T>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static inline T __testlib_abs(const T &x) {
     return x > 0 ? x : -x;
 }
 
 template<typename T>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static inline T __testlib_min(const T &a, const T &b) {
     return a < b ? a : b;
 }
 
 template<typename T>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static inline T __testlib_max(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
 template<typename T>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static inline T __testlib_crop(T value, T a, T b) {
     return __testlib_min(__testlib_max(value, a), --b);
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static inline double __testlib_crop(double value, double a, double b) {
     value = __testlib_min(__testlib_max(value, a), b);
     if (value >= b)
@@ -378,6 +397,9 @@ static bool __testlib_prelimIsNaN(double r) {
 #endif
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static std::string removeDoubleTrailingZeroes(std::string value) {
     while (!value.empty() && value[value.length() - 1] == '0' && value.find('.') != std::string::npos)
         value = value.substr(0, value.length() - 1);
@@ -387,6 +409,9 @@ static std::string removeDoubleTrailingZeroes(std::string value) {
         return value;
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 inline std::string upperCase(std::string s) {
     for (size_t i = 0; i < s.length(); i++)
         if ('a' <= s[i] && s[i] <= 'z')
@@ -394,6 +419,9 @@ inline std::string upperCase(std::string s) {
     return s;
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 inline std::string lowerCase(std::string s) {
     for (size_t i = 0; i < s.length(); i++)
         if ('A' <= s[i] && s[i] <= 'Z')
@@ -414,6 +442,9 @@ std::string format(const std::string fmt, ...) {
     return result;
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static std::string __testlib_part(const std::string &s);
 
 static bool __testlib_isNaN(double r) {
@@ -532,6 +563,9 @@ static void __testlib_set_binary(std::FILE *file) {
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
 template<typename T>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static std::string vtos(const T &t, std::true_type) {
     if (t == 0)
         return "0";
@@ -3297,6 +3331,9 @@ void InStream::readTokenTo(std::string &result) {
     readWordTo(result);
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 static std::string __testlib_part(const std::string &s) {
     std::string t;
     for (size_t i = 0; i < s.length(); i++)
@@ -4824,10 +4861,16 @@ void startTest(int test) {
         __testlib_fail("Unable to write file '" + testFileName + "'");
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 inline std::string compress(const std::string &s) {
     return __testlib_part(s);
 }
 
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 inline std::string englishEnding(int x) {
     x %= 100;
     if (x / 10 == 1)
@@ -4842,6 +4885,9 @@ inline std::string englishEnding(int x) {
 }
 
 template<typename _ForwardIterator, typename _Separator>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::string join(_ForwardIterator first, _ForwardIterator last, _Separator separator) {
     std::stringstream ss;
     bool repeated = false;
@@ -4856,16 +4902,25 @@ std::string join(_ForwardIterator first, _ForwardIterator last, _Separator separ
 }
 
 template<typename _ForwardIterator>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::string join(_ForwardIterator first, _ForwardIterator last) {
     return join(first, last, ' ');
 }
 
 template<typename _Collection, typename _Separator>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::string join(const _Collection &collection, _Separator separator) {
     return join(collection.begin(), collection.end(), separator);
 }
 
 template<typename _Collection>
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::string join(const _Collection &collection) {
     return join(collection, ' ');
 }
@@ -4874,6 +4929,9 @@ std::string join(const _Collection &collection) {
  * Splits string s by character separator returning exactly k+1 items,
  * where k is the number of separator occurrences.
  */
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::vector<std::string> split(const std::string &s, char separator) {
     std::vector<std::string> result;
     std::string item;
@@ -4891,6 +4949,9 @@ std::vector<std::string> split(const std::string &s, char separator) {
  * Splits string s by character separators returning exactly k+1 items,
  * where k is the number of separator occurrences.
  */
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::vector<std::string> split(const std::string &s, const std::string &separators) {
     if (separators.empty())
         return std::vector<std::string>(1, s);
@@ -4914,6 +4975,9 @@ std::vector<std::string> split(const std::string &s, const std::string &separato
 /**
  * Splits string s by character separator returning non-empty items.
  */
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::vector<std::string> tokenize(const std::string &s, char separator) {
     std::vector<std::string> result;
     std::string item;
@@ -4932,6 +4996,9 @@ std::vector<std::string> tokenize(const std::string &s, char separator) {
 /**
  * Splits string s by character separators returning non-empty items.
  */
+#ifdef __GNUC__
+__attribute__((const))
+#endif
 std::vector<std::string> tokenize(const std::string &s, const std::string &separators) {
     if (separators.empty())
         return std::vector<std::string>(1, s);
