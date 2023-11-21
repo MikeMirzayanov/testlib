@@ -5995,6 +5995,7 @@ void registerScorer(int argc, char *argv[], std::function<double(std::vector<Tes
     __testlib_ensuresPreconditions();
 
     testlibMode = _scorer;
+    TestlibFinalizeGuard::registered = true;
     __testlib_set_binary(stdin);
 
     inf.init(stdin, _input);
