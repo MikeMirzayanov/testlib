@@ -12,13 +12,14 @@ int main(){
         tmp>>num;
         // 拼接生成第i个输入数据与对应的输出数据的指令
         #if _WIN32 //windowns平台
-            run1="gen.exe "+num+" >data/"+num+".in";
-            run2="std.exe <data/"+num+".in >data/"+num+".out";
+            run1="gen.exe ";
+            run2="std.exe <data/";
         #elif __linux__ //linux平台
-            run1="./gen.exe "+num+" >data/"+num+".in";
-            run2="./std.exe <data/"+num+".in >data/"+num+".out";
+            run1="./gen.exe ";
+            run2="./std.exe <data/";
         #endif // __linux__
-
+        run1=run1+num+" >data/"+num+".in";//生成输入文件
+        run2=run2+num+".in >data/"+num+".out";//生成输出文件
         system(run1.c_str());//执行生成.in文件指令
         system(run2.c_str());//执行生成.out文件指令
     }
