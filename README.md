@@ -34,10 +34,63 @@ Testlib 是一套历史悠久的出题辅助工具库。它可以用于书写数
 
 ## 生成随机排列
 
+可以使用 STL 中的 std::shuffle 函数，形如 std::shuffle(a, a + n, rng)，这里 rng 是一个随机数生成器,rng可用默认的不添加。
 
+example
+
+```cpp
+for(int i=1;i<=n;i++){
+    a[i]=i;
+}
+shuffle(a+1,a+n+1);
+//随机打乱数列
+for(int i=1;i<=n;i++){
+    cout<<a[i]<<" ";
+}
+```
 
 ## 生成随机区间
+
+在$[0,n]$中生成一个随机数$x$,若$x=0$,再在$[1,n]$中生成一个随机数$y$，区间为$[y,y]$，否则则在$[1,n]$中随机生成两个树，取较小的作为左端点，较大的作为右端点。
 
 ## 生成随机树
 
 [Tree-Generator工具](https://github.com/ouuan/Tree-Generator)
+
+该工具已集成到`treegenerator.h`中，在数据生成器中添加`treegenerator.h`头文件，使用命名空间`tree_generator_by_ouuan`。
+
+example
+
+```cpp
+#include "testlib.h"
+#include "treegenerator.h"
+//#include <bits/stdc++.h>
+using namespace std;
+using namespace tree_generator_by_ouuan;
+typedef long long ll;
+const int N=2e5+5;
+int a[N];
+int main(int argc, char *argv[]){
+	registerGen(argc, argv, 1);
+    /*****************************/
+	int k=opt<int>(1);
+	int L=1,R=1000;
+	if(k>=1&&k<=5){
+		L=1;R=10;
+	}else{
+		L=10;R=100;
+	}
+    int n=rnd.next(L,R);
+    int x=rnd.next(2,10);
+    Tree t;
+
+    t.complete(n,x,0);////生成n个节点的x-1叉随机树 ，1为根
+    cout<<n<<" "<<x-1<<endl;
+    cout<<t;
+	return 0;
+}
+
+```
+
+
+
