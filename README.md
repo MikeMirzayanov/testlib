@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
     int x=rnd.next(2,10);
     Tree t;
 
-    t.complete(n,x,0);////生成n个节点的x-1叉随机树 ，1为根
+    t.complete(n,x,0);////生成n+1个节点的x-1叉随机树 ，1为根
     cout<<n<<" "<<x-1<<endl;
     cout<<t;
 	return 0;
