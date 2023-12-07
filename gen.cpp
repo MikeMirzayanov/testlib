@@ -7,6 +7,7 @@ int x[N];
 int s[N];
 int main(int argc, char *argv[]){
 	registerGen(argc, argv, 1);
+    /*****************************/
 	int k=opt<int>(1);
 	int L=1,R=1000;
 	if(k>=1&&k<=5){
