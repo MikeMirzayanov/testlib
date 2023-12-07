@@ -32,3 +32,12 @@ Testlib 是一套历史悠久的出题辅助工具库。它可以用于书写数
 | rnd.wnext(i,t)      | 不均匀随机数生成器（具体定义比较长，下面会给出）。`rnd.wnext(4,2)` 相当于 `max(rnd.next(4),rnd.next(4))`；`rnd.wnext(4,-2) 相当于 min(rnd.next(4),rnd.next(4))`；`rnd.wnext(4,0) `相当于 `rnd.next(4)`。 |
 | rnd.next("a\|b\|c") | 等概率返回 `a`，`b`，`c` 这三个字符串中的一个。              |
 
+## 生成随机排列
+
+
+
+## 生成随机区间
+
+## 生成随机树
+
+[Tree-Generator工具](https://github.com/ouuan/Tree-Generator)
