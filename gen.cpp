@@ -7,76 +7,36 @@ typedef long long ll;
 const int N=5e4+5;
 bool vis[205][205];
 /*
-第一行包含两个正整数 $N,M$，表示了村庄的数目与公路的数量。
-
-第二行包含 $N$ 个非负整数 $t_0,t_1,\cdots,t_{N-1}$，表示了每个村庄重建完成的时间，数据保证了 $t_0 \le t_1 \le \cdots \le t_{N-1}$。
-
-接下来 $M$ 行，每行 $3$ 个非负整数 $i,j,w$，$w$ 为不超过 $10000$ 的正整数，表示了有一条连接村庄 $i$ 与村庄 $j$ 的道路，长度为 $w$，保证 $i\neq j$，且对于任意一对村庄只会存在一条道路。
-
-接下来一行也就是 $M+3$ 行包含一个正整数 $Q$，表示 $Q$ 个询问。
-
-接下来 $Q$ 行，每行 $3$ 个非负整数 $x,y,t$，询问在第 $t$ 天，从村庄 $x$ 到村庄 $y$ 的最短路径长度为多少，数据保证了 $t$ 是不下降的。
+输入包括多组数据。每组数据第一行是两个整数N、M（N<=100，M<=10000），N表示成都的大街上有几个路口，标号为1的路口是商店所在地，标号为N的路口是赛场所在地，M则表示在成都有几条路。N=M=0表示输入结束。接下来M行，每行包括3个整数A，B，C（1<=A,B<=N,1<=C<=1000）,表示在路口A与路口B之间有一条路，我们的工作人员需要C分钟的时间走过这条路。
+输入保证至少存在1条商店到赛场的路线。
 */
 int t[N];
 int main(int argc, char *argv[]){
     registerGen(argc, argv, 1);
     /*****************************/
     int k=opt<int>(1);
-    int Ln,Rn,Lq,Rq;
-    //根据测试点是第几组决定随机数范围
-    if(k>=1 && k<=3){
-		Ln=1,Rn=50;
-		Lq=1,Rq=100;
-	}else if(k<=5){
-		Ln=1,Rn=50;
-		Lq=1,Rq=100;
-	}else if(k<=7){
-		Ln=51,Rn=100;
-		Lq=101,Rq=50000;
-	}else if(k<=9){
-		Ln=100,Rn=200;
-		Lq=101,Rq=50000;
+    int Ln,Rn;
+	if(k>=1&&k<=5){
+		Ln=2,Rn=10;
+	}else if(k<=8){
+		Ln=11,Rn=100;
 	}else{
-		Ln=200,Rn=200;
-		Lq=50000,Rq=50000;
+		Ln=100,Rn=100;
 	}
-	int n=rnd.next(Ln,Rn);
-	int m=rnd.next(0,n*(n-1)/2);
-	int q=rnd.next(Lq,Rq);
-	
-	printf("%d %d\n",n,m);//给出村庄的数量和边的数量
-	for(int i=1;i<=n;i++){
-		t[i]=rnd.next(1,100000);
-		if(k>=6&&k<=7) t[i]=0;//20%的ti=0
-	}
-	sort(t+1,t+n+1);//村庄重建完成时间不下降
-	for(int i=1;i<=n;i++){
-		printf("%d ",t[i]);
-	}
-	printf("\n");
-	
-	//给定m条边 ，不能有重边
-	for(int i=1;i<=m;i++){
-		int x=rnd.next(0,n-1),y=rnd.next(0,n-1);
-		while(x==y||vis[x][y]){//x!=y 且 不能有重边
-			x=rnd.next(0,n-1);
-			y=rnd.next(0,n-1);
+	int T=rnd.next(1,100);//数据组数
+	for(int i=1;i<=T;i++){
+		int n=rnd.next(Ln,Rn);//随机点的数量
+		int m=rnd.next(n*(n-1)/2,10000);//随机边的数量
+		if(k>=9) m=10000;
+		printf("%d %d\n",n,m);
+		for(int j=1;j<=m;j++){
+			int a=rnd.next(1,n);
+			int b=rnd.next(1,n);
+			int c=rnd.next(1,1000);
+			printf("%d %d %d\n",a,b,c);
 		}
-		vis[x][y]=vis[y][x]=1;
-		int w=rnd.next(1,100000);//随机边权值
-		printf("%d %d %d\n",x,y,w);
 	}
-	//q次询问
-	printf("%d\n",q);
-	for(int i=1;i<=q;i++){
-		t[i]=rnd.next(1,100000);
-	}
-	sort(t+1,t+1+q);
-	for(int i=1;i<=q;i++){
-		int x=rnd.next(0,n-1);
-		int y=rnd.next(0,n-1);
-		printf("%d %d %d\n",x,y,t[i]);
-	}
+	printf("0 0");
 	
 	return 0;
 }
