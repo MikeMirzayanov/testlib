@@ -2414,7 +2414,7 @@ struct ConstantBound {
                 value = "";
             }
         }
-    };
+    }
 
     bool has_value() {
         return !value.empty() && !broken && value.length() < 32;
