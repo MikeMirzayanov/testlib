@@ -2378,6 +2378,8 @@ random_t rnd;
 TTestlibMode testlibMode = _unknown;
 double __testlib_points = std::numeric_limits<float>::infinity();
 
+const size_t VALIDATOR_MAX_VARIABLE_COUNT = 255;
+
 struct ValidatorBoundsHit {
     static const double EPS;
     bool minHit;
@@ -2392,6 +2394,36 @@ struct ValidatorBoundsHit {
                 __testlib_max(maxHit, validatorBoundsHit.maxHit) || ignoreMaxBound
         );
     }
+};
+
+struct ConstantBound {
+    std::string value;
+    bool broken;
+
+    template<typename T>
+    void adjust(T t) {
+        std::string t_string = std::to_string(t);
+        if (t_string.length() >= 32) {
+            broken = true;
+            value = "";
+        } else {
+            if (!broken && value.empty())
+                value = t_string;
+            if (!broken && value != t_string) {
+                broken = true;
+                value = "";
+            }
+        }
+    };
+
+    bool has_value() {
+        return !value.empty() && !broken && value.length() < 32;
+    }
+};
+
+struct ConstantBounds {
+    ConstantBound lowerBound;
+    ConstantBound upperBound;
 };
 
 const double ValidatorBoundsHit::EPS = 1E-12;
@@ -2412,6 +2444,7 @@ private:
     std::string _testCaseFileName;
 
     std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
+    std::map<std::string, ConstantBounds> _constantBoundsByVariableName;
     std::set<std::string> _features;
     std::set<std::string> _hitFeatures;
 
@@ -2510,10 +2543,19 @@ public:
     }
 
     void addBoundsHit(const std::string &variableName, ValidatorBoundsHit boundsHit) {
-        if (isVariableNameBoundsAnalyzable(variableName)) {
+        if (isVariableNameBoundsAnalyzable(variableName)
+                && _boundsHitByVariableName.size() < VALIDATOR_MAX_VARIABLE_COUNT) {
             std::string preparedVariableName = prepVariableName(variableName);
             _boundsHitByVariableName[preparedVariableName] = boundsHit.merge(_boundsHitByVariableName[preparedVariableName],
                 ignoreMinBound(variableName), ignoreMaxBound(variableName));
+        }
+    }
+
+    template<typename T>
+    void adjustConstantBounds(const std::string &variableName, T lower, T upper) {
+        if (_constantBoundsByVariableName.size() < VALIDATOR_MAX_VARIABLE_COUNT) {
+            _constantBoundsByVariableName[variableName].lowerBound.adjust(lower);
+            _constantBoundsByVariableName[variableName].upperBound.adjust(upper);
         }
     }
 
@@ -2528,6 +2570,27 @@ public:
             if (i->second.maxHit)
                 result += " max-value-hit";
             result += "\n";
+        }
+        return result;
+    }
+
+    std::string getConstantBoundsLog() {
+        std::string result;
+        for (std::map<std::string, ConstantBounds>::iterator i = _constantBoundsByVariableName.begin();
+             i != _constantBoundsByVariableName.end();
+             i++) {
+            if (i->second.lowerBound.has_value() || i->second.upperBound.has_value()) {
+                result += "constant-bounds \"" + i->first + "\":";
+                if (i->second.lowerBound.has_value())
+                    result += " " + i->second.lowerBound.value;
+                else
+                    result += " ?";
+                if (i->second.upperBound.has_value())
+                    result += " " + i->second.upperBound.value;
+                else
+                    result += " ?";
+                result += "\n";
+            }
         }
         return result;
     }
@@ -2561,7 +2624,7 @@ public:
                 if (NULL == f)
                     __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
             }
-            fprintf(f, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
+            fprintf(f, "%s%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str(), getConstantBoundsLog().c_str());
             std::fflush(f);
             if (!standard_file)
                 if (std::fclose(f))
@@ -3784,8 +3847,10 @@ long long InStream::readLong(long long minv, long long maxv, const std::string &
         }
     }
 
-    if (strict && !variableName.empty())
+    if (strict && !variableName.empty()) {
         validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
+        validator.adjustConstantBounds(variableName, minv, maxv);
+    }
 
     return result;
 }
@@ -3825,8 +3890,10 @@ InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, con
         }
     }
 
-    if (strict && !variableName.empty())
+    if (strict && !variableName.empty()) {
         validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
+        validator.adjustConstantBounds(variableName, minv, maxv);
+    }
 
     return result;
 }
@@ -3871,8 +3938,10 @@ int InStream::readInt(int minv, int maxv, const std::string &variableName) {
         }
     }
 
-    if (strict && !variableName.empty())
+    if (strict && !variableName.empty()) {
         validator.addBoundsHit(variableName, ValidatorBoundsHit(minv == result, maxv == result));
+        validator.adjustConstantBounds(variableName, minv, maxv);
+    }
 
     return result;
 }
@@ -3930,12 +3999,14 @@ double InStream::readReal(double minv, double maxv, const std::string &variableN
         }
     }
 
-    if (strict && !variableName.empty())
+    if (strict && !variableName.empty()) {
         validator.addBoundsHit(variableName, ValidatorBoundsHit(
                 doubleDelta(minv, result) < ValidatorBoundsHit::EPS,
                 doubleDelta(maxv, result) < ValidatorBoundsHit::EPS
         ));
-
+        validator.adjustConstantBounds(variableName, minv, maxv);
+    }
+    
     return result;
 }
 
@@ -3989,11 +4060,13 @@ double InStream::readStrictReal(double minv, double maxv,
         }
     }
 
-    if (strict && !variableName.empty())
+    if (strict && !variableName.empty()) {
         validator.addBoundsHit(variableName, ValidatorBoundsHit(
                 doubleDelta(minv, result) < ValidatorBoundsHit::EPS,
                 doubleDelta(maxv, result) < ValidatorBoundsHit::EPS
         ));
+        validator.adjustConstantBounds(variableName, minv, maxv);
+    }
 
     return result;
 }
