@@ -4277,9 +4277,26 @@ NORETURN void quit(TResult result, const char *msg) {
     ouf.quit(result, msg);
 }
 
+double __testlib_preparePoints(double points_) {
+    volatile double points = points_;
+    if (__testlib_isNaN(points))
+        quit(_fail, "Parameter 'points' can't be nan");
+    if (__testlib_isInfinite(points))
+        quit(_fail, "Parameter 'points' can't be infinite");
+    if (points < -1E-8)
+        quit(_fail, "Parameter 'points' can't be negative");
+    if (points <= 0.0)
+        points = +0.0;
+    if (points > 1E6 + 1E-8)
+        quit(_fail, "Parameter 'points' can't be greater than 1E6");
+    if (points >= 1E6)
+        points = 1E6;
+    return points;
+}
+
 NORETURN void __testlib_quitp(double points, const char *message) {
-    __testlib_points = points;
-    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", points));
+    __testlib_points = __testlib_preparePoints(points);
+    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", __testlib_points));
 
     std::string quitMessage;
     if (NULL == message || 0 == strlen(message))
@@ -4291,7 +4308,7 @@ NORETURN void __testlib_quitp(double points, const char *message) {
 }
 
 NORETURN void __testlib_quitp(int points, const char *message) {
-    __testlib_points = points;
+    __testlib_points = __testlib_preparePoints(points);
     std::string stringPoints = format("%d", points);
 
     std::string quitMessage;
