@@ -478,6 +478,20 @@ static bool __testlib_isInfinite(double r) {
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Compares two double values with a specified maximum error tolerance.
+ *
+ * This function compares the `expected` and `result` values to check if they
+ * are within a specified `MAX_DOUBLE_ERROR`. It handles special cases such as
+ * NaN and infinity.
+ *
+ * @param expected The expected double value.
+ * @param result The actual result double value to compare against the expected
+ * value.
+ * @param MAX_DOUBLE_ERROR The maximum allowable error for the comparison.
+ * @return `true` if the `result` is within the allowable error of `expected`,
+ * otherwise `false`.
+ */
 inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERROR) {
     MAX_DOUBLE_ERROR += 1E-15;
     if (__testlib_isNaN(expected)) {
@@ -504,6 +518,22 @@ inline bool doubleCompare(double expected, double result, double MAX_DOUBLE_ERRO
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Calculates the minimum of the absolute and relative differences
+ * between two double values.
+ *
+ * This function computes the absolute difference between `expected` and
+ * `result`. If the absolute value of `expected` is greater than a small
+ * threshold (1E-9), it also computes the relative difference and returns the
+ * smaller of the absolute and relative differences. If `expected` is very
+ * small, it returns the absolute difference.
+ *
+ * @param expected The expected double value.
+ * @param result The actual result double value to compare against the expected
+ * value.
+ * @return The minimum of the absolute and relative differences between
+ * `expected` and `result`.
+ */
 inline double doubleDelta(double expected, double result) {
     double absolute = __testlib_abs(result - expected);
 
@@ -514,9 +544,22 @@ inline double doubleDelta(double expected, double result) {
         return absolute;
 }
 
-/** It does nothing on non-windows and files differ from stdin/stdout/stderr. */
+/**
+ * @brief Sets binary mode for a given file on Windows platforms.
+ *
+ * This function adjusts the file mode to binary for files identified as stdin,
+ * stdout, or stderr on Windows platforms. It ensures that file operations on
+ * these streams are treated in binary mode to prevent unwanted text mode
+ * conversions that could affect file handling, especially when dealing with
+ * non-textual data.
+ *
+ * @param file A pointer to a FILE object for which binary mode should be set.
+ *
+ * @note This function does nothing on non-Windows platforms and for files other
+ * than stdin, stdout, or stderr.
+ */
 static void __testlib_set_binary(std::FILE *file) {
-    if (NULL != file) {
+    if (nullptr != file) {
 #ifdef ON_WINDOWS
 #   ifdef _O_BINARY
         if (stdin == file)
@@ -562,10 +605,23 @@ static void __testlib_set_binary(std::FILE *file) {
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
+/**
+ * @brief Converts a value of type T to a string representation.
+ *
+ * This function template converts a value of type T to its string
+ * representation. For integral types, it converts the value to a string by
+ * extracting digits. For non-integral types, it uses stringstream to perform
+ * the conversion.
+ *
+ * @tparam T The type of the value to convert.
+ * @param t The value to convert to a string.
+ * @return A string representation of the value t.
+ */
 template<typename T>
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+
 static std::string vtos(const T &t, std::true_type) {
     if (t == 0)
         return "0";
@@ -585,6 +641,16 @@ static std::string vtos(const T &t, std::true_type) {
     }
 }
 
+/**
+ * @brief Converts a value of type T to a string representation.
+ *
+ * This function template converts a value of type T to its string
+ * representation using stringstream for non-integral types.
+ *
+ * @tparam T The type of the value to convert.
+ * @param t The value to convert to a string.
+ * @return A string representation of the value t.
+ */
 template<typename T>
 static std::string vtos(const T &t, std::false_type) {
     std::string s;
@@ -596,12 +662,33 @@ static std::string vtos(const T &t, std::false_type) {
     return s;
 }
 
+/**
+ * @brief Converts a value of type T to a string representation.
+ *
+ * This function template dispatches the conversion to the appropriate vtos
+ * implementation based on whether T is an integral type or not.
+ *
+ * @tparam T The type of the value to convert.
+ * @param t The value to convert to a string.
+ * @return A string representation of the value t.
+ */
 template<typename T>
 static std::string vtos(const T &t) {
     return vtos(t, std::is_integral<T>());
 }
 
-/* signed case. */
+/**
+ * @brief Converts a signed integral value to a human-readable string
+ * representation.
+ *
+ * This function template converts a signed integral value `n` to a
+ * human-readable string representation. It handles cases where `n` is zero or
+ * has trailing zeros, and formats large numbers using scientific notation.
+ *
+ * @tparam T The type of the integral value `n`.
+ * @param n The signed integral value to convert to a string.
+ * @return A human-readable string representation of the integral value `n`.
+ */
 template<typename T>
 static std::string toHumanReadableString(const T &n, std::false_type) {
     if (n == 0)
@@ -621,7 +708,19 @@ static std::string toHumanReadableString(const T &n, std::false_type) {
         return vtos(n);
 }
 
-/* unsigned case. */
+/**
+ * @brief Converts an unsigned integral value to a human-readable string
+ * representation.
+ *
+ * This function template converts an unsigned integral value `n` to a
+ * human-readable string representation. It handles cases where `n` is zero or
+ * has trailing zeros, and formats large numbers using scientific notation.
+ *
+ * @tparam T The type of the unsigned integral value `n`.
+ * @param n The unsigned integral value to convert to a string.
+ * @return A human-readable string representation of the unsigned integral value
+ * `n`.
+ */
 template<typename T>
 static std::string toHumanReadableString(const T &n, std::true_type) {
     if (n == 0)
@@ -639,11 +738,34 @@ static std::string toHumanReadableString(const T &n, std::true_type) {
         return vtos(n);
 }
 
+/**
+ * @brief Converts an integral value to a human-readable string representation.
+ *
+ * This function template dispatches the conversion of an integral value `n` to
+ * a human-readable string representation based on whether `T` is signed or
+ * unsigned.
+ *
+ * @tparam T The type of the integral value `n`.
+ * @param n The integral value to convert to a string.
+ * @return A human-readable string representation of the integral value `n`.
+ */
 template<typename T>
 static std::string toHumanReadableString(const T &n) {
     return toHumanReadableString(n, std::is_unsigned<T>());
 }
 #else
+
+/**
+ * @brief Converts any type to a string representation using std::stringstream.
+ *
+ * This function template converts a value of any type `T` to its string
+ * representation using std::stringstream. It is only available when C++11 or
+ * later is not supported.
+ *
+ * @tparam T The type of the value to convert.
+ * @param t The value to convert to a string.
+ * @return A string representation of the value `t`.
+ */
 template<typename T>
 static std::string vtos(const T& t)
 {
@@ -656,12 +778,32 @@ static std::string vtos(const T& t)
     return s;
 }
 
+/**
+ * @brief Converts an integral value to a human-readable string representation.
+ *
+ * This function template converts an integral value `n` to a human-readable
+ * string representation.
+ *
+ * @tparam T The type of the integral value `n`.
+ * @param n The integral value to convert to a string.
+ * @return A human-readable string representation of the integral value `n`.
+ */
 template<typename T>
 static std::string toHumanReadableString(const T &n) {
     return vtos(n);
 }
 #endif
 
+/**
+ * @brief Converts any type to a string representation.
+ *
+ * This function template converts a value of any type `T` to its string
+ * representation using the vtos function template.
+ *
+ * @tparam T The type of the value to convert.
+ * @param t The value to convert to a string.
+ * @return A string representation of the value `t`.
+ */
 template<typename T>
 static std::string toString(const T &t) {
     return vtos(t);
@@ -673,18 +815,16 @@ void prepareOpts(int argc, char* argv[]);
 #endif
 
 /*
- * Very simple regex-like pattern.
- * It used for two purposes: validation and generation.
+ * Very simple regex-like pattern. It used for two purposes: validation and
+ * generation.
  *
- * For example, pattern("[a-z]{1,5}").next(rnd) will return
- * random string from lowercase latin letters with length
- * from 1 to 5. It is easier to call rnd.next("[a-z]{1,5}")
- * for the same effect.
+ * For example, pattern("[a-z]{1,5}").next(rnd) will return random string from
+ * lowercase latin letters with length from 1 to 5. It is easier to call
+ * rnd.next("[a-z]{1,5}") for the same effect.
  *
- * Another samples:
- * "mike|john" will generate (match) "mike" or "john";
- * "-?[1-9][0-9]{0,3}" will generate (match) non-zero integers from -9999 to 9999;
- * "id-([ac]|b{2})" will generate (match) "id-a", "id-bb", "id-c";
+ * Another samples: "mike|john" will generate (match) "mike" or "john";
+ * "-?[1-9][0-9]{0,3}" will generate (match) non-zero integers from -9999 to
+ * 9999; "id-([ac]|b{2})" will generate (match) "id-a", "id-bb", "id-c";
  * "[^0-9]*" will match sequences (empty or non-empty) without digits, you can't
  * use it for generations.
  *
@@ -698,61 +838,105 @@ void prepareOpts(int argc, char* argv[]);
  *
  * If you want to use one expression many times it is better to compile it into
  * a single pattern like "pattern p("[a-z]+")". Later you can use
- * "p.matches(std::string s)" or "p.next(random_t& rd)" to check matching or generate
- * new string by pattern.
+ * "p.matches(std::string s)" or "p.next(random_t& rd)" to check matching or
+ * generate new string by pattern.
  *
- * Simpler way to read token and check it for pattern matching is "inf.readToken("[a-z]+")".
+ * Simpler way to read token and check it for pattern matching is
+ * "inf.readToken("[a-z]+")".
  *
- * All spaces are ignored in regex, unless escaped with \. For example, ouf.readLine("NO SOLUTION")
- * will expect "NOSOLUTION", the correct call should be ouf.readLine("NO\\ SOLUTION") or
- * ouf.readLine(R"(NO\ SOLUTION)") if you prefer raw string literals from C++11.
+ * All spaces are ignored in regex, unless escaped with \. For example,
+ * ouf.readLine("NO SOLUTION") will expect "NOSOLUTION", the correct call should
+ * be ouf.readLine("NO\\ SOLUTION") or ouf.readLine(R"(NO\ SOLUTION)") if you
+ * prefer raw string literals from C++11.
  */
 class random_t;
 
 class pattern {
 public:
-    /* Create pattern instance by string. */
-    pattern(std::string s);
+    /**
+     * @brief Constructs a pattern instance from a string.
+     *
+     * @param s The string representing the pattern.
+     */
+    explicit pattern(std::string s);
 
-    /* Generate new string by pattern and given random_t. */
+    /**
+     * @brief Generates a new string based on the pattern and a random number
+     * generator.
+     *
+     * @param rnd The random number generator to use for generating the string.
+     * @return A new string generated based on the pattern.
+     */
     std::string next(random_t &rnd) const;
 
-    /* Checks if given string match the pattern. */
+    /**
+     * @brief Checks if a given string matches the pattern.
+     *
+     * @param s The string to check against the pattern.
+     * @return true if the string matches the pattern, false otherwise.
+     */
     bool matches(const std::string &s) const;
 
-    /* Returns source string of the pattern. */
+     /**
+     * @brief Retrieves the source string of the pattern.
+     *
+     * @return The original source string used to create the pattern.
+     */
     std::string src() const;
 
 private:
+    /**
+     * @brief Checks if a substring of a given string matches the pattern
+     * starting from a specified position.
+     *
+     * @param s The string to check against the pattern.
+     * @param pos The starting position in the string to begin checking.
+     * @return true if the substring matches the pattern, false otherwise.
+     */
     bool matches(const std::string &s, size_t pos) const;
 
-    std::string s;
-    std::vector<pattern> children;
-    std::vector<char> chars;
+    // The source string used to define the pattern.
+    std::string s;                 
+    // List of child patterns for composite patterns.
+    std::vector<pattern> children; 
+    // List of characters for simple character-based patterns.
+    std::vector<char> chars;       
+    // Minimum repeat count for repetition patterns.
     int from;
-    int to;
+    // Maximum repeat count for repetition patterns.                      
+    int to;                        
 };
 
 /*
- * Use random_t instances to generate random values. It is preferred
- * way to use randoms instead of rand() function or self-written
- * randoms.
+ * Use random_t instances to generate random values. It is preferred way to use
+ * randoms instead of rand() function or self-written randoms.
  *
- * Testlib defines global variable "rnd" of random_t class.
- * Use registerGen(argc, argv, 1) to setup random_t seed be command
- * line (to use latest random generator version).
+ * Testlib defines global variable "rnd" of random_t class. Use
+ * registerGen(argc, argv, 1) to setup random_t seed be command line (to use
+ * latest random generator version).
  *
- * Random generates uniformly distributed values if another strategy is
- * not specified explicitly.
+ * Random generates uniformly distributed values if another strategy is not
+ * specified explicitly.
  */
 class random_t {
 private:
+    // Seed value for the random number generator.
     unsigned long long seed;
-    static const unsigned long long multiplier;
-    static const unsigned long long addend;
-    static const unsigned long long mask;
-    static const int lim;
+    // Multiplier constant for the random number generator.
+    static const unsigned long long multiplier = 0x5DEECE66DLL;
+    // Addend constant for the random number generator.
+    static const unsigned long long addend = 0xBLL;
+    // Mask constant for the random number generator.
+    static const unsigned long long mask = (1LL << 48) - 1;
+    // Limit constant for the random number generator.
+    static const int lim = 25;
 
+    /**
+     * @brief Generates the next `bits` number of bits for the random number.
+     *
+     * @param bits Number of bits to generate, which must be below 64.
+     * @return The generated random bits.
+     */
     long long nextBits(int bits) {
         if (bits <= 48) {
             seed = (seed * multiplier + addend) & mask;
@@ -771,14 +955,24 @@ private:
     }
 
 public:
+    // Version of the random number generator.
     static int version;
 
-    /* New random_t with fixed seed. */
+     /**
+     * @brief Constructs a random_t instance with a fixed seed.
+     *
+     * Initializes the seed to a fixed value.
+     */
     random_t()
             : seed(3905348978240129619LL) {
     }
 
-    /* Sets seed by command line. */
+    /**
+     * @brief Sets the seed based on command line arguments.
+     *
+     * @param argc Number of command line arguments.
+     * @param argv Array of command line argument strings.
+     */
     void setSeed(int argc, char *argv[]) {
         random_t p;
 
@@ -793,7 +987,11 @@ public:
         seed = seed & mask;
     }
 
-    /* Sets seed by given value. */
+    /**
+     * @brief Sets the seed based on a given value.
+     *
+     * @param _seed The seed value to set.
+     */
     void setSeed(long long _seed) {
         seed = (unsigned long long) _seed;
         seed = (seed ^ multiplier) & mask;
@@ -801,14 +999,24 @@ public:
 
 #ifndef __BORLANDC__
 
-    /* Random string value by given pattern (see pattern documentation). */
+    /**
+     * @brief Generates a random string value based on the given pattern.
+     *
+     * @param ptrn The pattern string used for generation.
+     * @return The generated random string.
+     */
     std::string next(const std::string &ptrn) {
         pattern p(ptrn);
         return p.next(*this);
     }
 
 #else
-    /* Random string value by given pattern (see pattern documentation). */
+    /**
+     * @brief Generates a random string value based on the given pattern.
+     *
+     * @param ptrn The pattern string used for generation.
+     * @return The generated random string.
+     */
     std::string next(std::string ptrn)
     {
         pattern p(ptrn);
@@ -816,7 +1024,12 @@ public:
     }
 #endif
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random integer value in the range [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated integer.
+     * @return The generated random integer.
+     */
     int next(int n) {
         if (n <= 0)
             __testlib_fail("random_t::next(int n): n must be positive");
@@ -834,14 +1047,24 @@ public:
         return int(bits % n);
     }
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random unsigned integer value in the range [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned integer.
+     * @return The generated random unsigned integer.
+     */
     unsigned int next(unsigned int n) {
         if (n >= INT_MAX)
             __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
         return (unsigned int) next(int(n));
     }
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random long long integer value in the range [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated long long integer.
+     * @return The generated random long long integer.
+     */
     long long next(long long n) {
         if (n <= 0)
             __testlib_fail("random_t::next(long long n): n must be positive");
@@ -856,81 +1079,165 @@ public:
         return bits % n;
     }
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random unsigned long long integer value in the range
+     * [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned long long
+     * integer.
+     * @return The generated random unsiged long long integer.
+     */
     unsigned long long next(unsigned long long n) {
         if (n >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
             __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
         return (unsigned long long) next((long long) (n));
     }
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random long integer value in the range [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated long integer.
+     * @return The generated random long integer.
+     */
     long next(long n) {
         return (long) next((long long) (n));
     }
 
-    /* Random value in range [0, n-1]. */
+    /**
+     * @brief Generates a random unsigned long integer value in the range [0,
+     * n).
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned long
+     * integer.
+     * @return The generated random unsigned long integer.
+     */
     unsigned long next(unsigned long n) {
         if (n >= (unsigned long) (LONG_MAX))
             __testlib_fail("random_t::next(unsigned long n): n must be less LONG_MAX");
         return (unsigned long) next((unsigned long long) (n));
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random integer value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated integer value.
+     * @param to The upper limit (exclusive) for the generated integer value.
+     * @return The generated random integer value.
+     */
     int next(int from, int to) {
         return int(next((long long) to - from + 1) + from);
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random unsigned integer value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated unsigned
+     * integer value.
+     * @param to The upper limit (exclusive) for the generated unsigned integer
+     * value.
+     * @return The generated random unsigned integer value.
+     */
     unsigned int next(unsigned int from, unsigned int to) {
         return (unsigned int) (next((long long) to - from + 1) + from);
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random long long value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated long long
+     * value.
+     * @param to The upper limit (exclusive) for the generated long long value.
+     * @return The generated random long long value.
+     */
     long long next(long long from, long long to) {
         return next(to - from + 1) + from;
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random unsigned long long value in the range [from,
+     * to).
+     *
+     * @param from The lower limit (inclusive) for the generated unsigned long
+     * long value.
+     * @param to The upper limit (exclusive) for the generated unsigned long
+     * long value.
+     * @return The generated random unsigned long long value.
+     */
     unsigned long long next(unsigned long long from, unsigned long long to) {
         if (from > to)
             __testlib_fail("random_t::next(unsigned long long from, unsigned long long to): from can't not exceed to");
         return next(to - from + 1) + from;
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random long value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated long value.
+     * @param to The upper limit (exclusive) for the generated long value.
+     * @return The generated random long value.
+     */
     long next(long from, long to) {
         return next(to - from + 1) + from;
     }
 
-    /* Returns random value in range [from,to]. */
+    /**
+     * @brief Generates a random unsigned long value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated unsigned long
+     * value.
+     * @param to The upper limit (exclusive) for the generated unsigned long
+     * value.
+     * @return The generated random unsigned long value.
+     */
     unsigned long next(unsigned long from, unsigned long to) {
         if (from > to)
             __testlib_fail("random_t::next(unsigned long from, unsigned long to): from can't not exceed to");
         return next(to - from + 1) + from;
     }
 
-    /* Random double value in range [0, 1). */
+    /**
+     * @brief Generates a random double value in the range [0, 1).
+     *
+     * @return The generated random double value.
+     */
     double next() {
         long long left = ((long long) (nextBits(26)) << 27);
         long long right = nextBits(27);
         return __testlib_crop((double) (left + right) / (double) (1LL << 53), 0.0, 1.0);
     }
 
-    /* Random double value in range [0, n). */
+    /**
+     * @brief Generates a random double value in the range [0, n).
+     *
+     * @param n The upper limit (exclusive) for the generated double value.
+     * @return The generated random double value.
+     */
     double next(double n) {
         if (n <= 0.0)
             __testlib_fail("random_t::next(double): n should be positive");
         return __testlib_crop(n * next(), 0.0, n);
     }
 
-    /* Random double value in range [from, to). */
+    /**
+     * @brief Generates a random double value in the range [from, to).
+     *
+     * @param from The lower limit (inclusive) for the generated double value.
+     * @param to The upper limit (exclusive) for the generated double value.
+     * @return The generated random double value.
+     */
     double next(double from, double to) {
         if (from >= to)
             __testlib_fail("random_t::next(double from, double to): from should be strictly less than to");
         return next(to - from) + from;
     }
 
-    /* Returns random element from container. */
+    /**
+     * @brief Returns a random element from a container.
+     *
+     * @tparam Container Type of the container.
+     * @param c The container from which to select a random element.
+     * @return The randomly selected element from the container.
+     */
     template<typename Container>
     typename Container::value_type any(const Container &c) {
         int size = int(c.size());
@@ -941,7 +1248,14 @@ public:
         return *it;
     }
 
-    /* Returns random element from iterator range. */
+    /**
+     * @brief Returns a random element from an iterator range.
+     *
+     * @tparam Iter Type of the iterator.
+     * @param begin The beginning iterator of the range.
+     * @param end The ending iterator of the range.
+     * @return The randomly selected element from the iterator range.
+     */
     template<typename Iter>
     typename Iter::value_type any(const Iter &begin, const Iter &end) {
         int size = static_cast<int>(std::distance(begin, end));
@@ -956,18 +1270,32 @@ public:
 #ifdef __GNUC__
     __attribute__ ((format (printf, 2, 3)))
 #endif
+/**
+     * @brief Generates a random string value based on the given pattern.
+     *
+     * @param format The pattern format used for generation.
+     * @return The generated random string.
+     */
     std::string next(const char *format, ...) {
         FMT_TO_RESULT(format, format, ptrn);
         return next(ptrn);
     }
 
-    /*
-     * Weighted next. If type == 0 than it is usual "next()".
+    /**
+     * @brief Generates a weighted random integer value in the range [0, n).
      *
-     * If type = 1, than it returns "max(next(), next())"
-     * (the number of "max" functions equals to "type").
+     * If type == 0, it behaves like the usual next().
      *
-     * If type < 0, than "max" function replaces with "min".
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated integer.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random integer.
      */
     int wnext(int n, int type) {
         if (n <= 0)
@@ -995,7 +1323,22 @@ public:
         }
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random long long value in the range [0, n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated long long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random long long.
+     */
     long long wnext(long long n, int type) {
         if (n <= 0)
             __testlib_fail("random_t::wnext(long long n, int type): n must be positive");
@@ -1022,7 +1365,22 @@ public:
         }
     }
 
-    /* Returns value in [0, n). See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random double value in the range [0, n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated double.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random double.
+     */
     double wnext(double n, int type) {
         if (n <= 0)
             __testlib_fail("random_t::wnext(double n, int type): n must be positive");
@@ -1049,19 +1407,66 @@ public:
         }
     }
 
-    /* Returns value in [0, 1). See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random double value in the range [0, 1).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random double.
+     */
     double wnext(int type) {
         return wnext(1.0, type);
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random unsigned int value in the range [0,
+     * n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned int.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random unsigned int.
+     */
     unsigned int wnext(unsigned int n, int type) {
         if (n >= INT_MAX)
             __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
         return (unsigned int) wnext(int(n), type);
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random unsigned long long value in the range
+     * [0, n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned long
+     * long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random unsigned long long.
+     */
     unsigned long long wnext(unsigned long long n, int type) {
         if (n >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
             __testlib_fail("random_t::wnext(unsigned long long n, int type): n must be less LONGLONG_MAX");
@@ -1069,12 +1474,43 @@ public:
         return (unsigned long long) wnext((long long) (n), type);
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random long value in the range [0, n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random long.
+     */
     long wnext(long n, int type) {
         return (long) wnext((long long) (n), type);
     }
 
-    /* See wnext(int, int). It uses the same algorithms. */
+    /**
+     * @brief Generates a weighted random unsigned long value in the range [0,
+     * n).
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param n The upper limit (exclusive) for the generated unsigned long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random unsigned long.
+     */
     unsigned long wnext(unsigned long n, int type) {
         if (n >= (unsigned long) (LONG_MAX))
             __testlib_fail("random_t::wnext(unsigned long n, int type): n must be less LONG_MAX");
@@ -1082,28 +1518,96 @@ public:
         return (unsigned long) wnext((unsigned long long) (n), type);
     }
 
-    /* Returns weighted random value in range [from, to]. */
+    /**
+     * @brief Generates a weighted random integer value in the range [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated integer.
+     * @param to The upper limit (inclusive) for the generated integer.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random integer.
+     */
     int wnext(int from, int to, int type) {
         if (from > to)
             __testlib_fail("random_t::wnext(int from, int to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
-
-    /* Returns weighted random value in range [from, to]. */
+        
+    /**
+     * @brief Generates a weighted random integer value in the range [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated integer.
+     * @param to The upper limit (inclusive) for the generated integer.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random integer.
+     */
     int wnext(unsigned int from, unsigned int to, int type) {
         if (from > to)
             __testlib_fail("random_t::wnext(unsigned int from, unsigned int to, int type): from can't not exceed to");
         return int(wnext(to - from + 1, type) + from);
     }
 
-    /* Returns weighted random value in range [from, to]. */
+    /**
+     * @brief Generates a weighted random long long value in the range [from,
+     * to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated long long.
+     * @param to The upper limit (inclusive) for the generated long long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random long long.
+     */
     long long wnext(long long from, long long to, int type) {
         if (from > to)
             __testlib_fail("random_t::wnext(long long from, long long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
 
-    /* Returns weighted random value in range [from, to]. */
+    /**
+     * @brief Generates a weighted random unsigned long long value in the range
+     * [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated unsigned long
+     * long.
+     * @param to The upper limit (inclusive) for the generated unsigned long
+     * long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random unsigned long long.
+     */
     unsigned long long wnext(unsigned long long from, unsigned long long to, int type) {
         if (from > to)
             __testlib_fail(
@@ -1111,28 +1615,85 @@ public:
         return wnext(to - from + 1, type) + from;
     }
 
-    /* Returns weighted random value in range [from, to]. */
+    /**
+     * @brief Generates a weighted random long value in the range [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated long.
+     * @param to The upper limit (inclusive) for the generated long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random long.
+     */
     long wnext(long from, long to, int type) {
         if (from > to)
             __testlib_fail("random_t::wnext(long from, long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
 
-    /* Returns weighted random value in range [from, to]. */
+    /**
+     * @brief Generates a weighted random unsigned long value in the range
+     * [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated unsigned long.
+     * @param to The upper limit (inclusive) for the generated unsigned long.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random unsigned long.
+     */
     unsigned long wnext(unsigned long from, unsigned long to, int type) {
         if (from > to)
             __testlib_fail("random_t::wnext(unsigned long from, unsigned long to, int type): from can't not exceed to");
         return wnext(to - from + 1, type) + from;
     }
 
-    /* Returns weighted random double value in range [from, to). */
+    /**
+     * @brief Generates a weighted random double value in the range [from, to].
+     *
+     * If type == 0, it behaves like the usual next().
+     *
+     * If type > 0, it returns the maximum value from (type + 1) calls to
+     * next().
+     *
+     * If type < 0, it returns the minimum value from (abs(type) + 1) calls to
+     * next().
+     *
+     * @param from The lower limit (inclusive) for the generated double.
+     * @param to The upper limit (inclusive) for the generated double.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return The generated weighted random double.
+     */
     double wnext(double from, double to, int type) {
         if (from >= to)
             __testlib_fail("random_t::wnext(double from, double to, int type): from should be strictly less than to");
         return wnext(to - from, type) + from;
     }
 
-    /* Returns weighted random element from container. */
+    /**
+     * @brief Returns a weighted random element from a container.
+     *
+     * @tparam Container The type of the container.
+     * @param c The container from which to select a random element.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return A weighted random element from the container.
+     */
     template<typename Container>
     typename Container::value_type wany(const Container &c, int type) {
         int size = int(c.size());
@@ -1143,7 +1704,16 @@ public:
         return *it;
     }
 
-    /* Returns weighted random element from iterator range. */
+    /**
+     * @brief Returns a weighted random element from a range of iterators.
+     *
+     * @tparam Iter The type of the iterators.
+     * @param begin The beginning iterator of the range.
+     * @param end The ending iterator of the range.
+     * @param type The type of weighting to apply (positive for max, negative
+     * for min).
+     * @return A weighted random element from the iterator range.
+     */
     template<typename Iter>
     typename Iter::value_type wany(const Iter &begin, const Iter &end, int type) {
         int size = static_cast<int>(std::distance(begin, end));
@@ -1155,7 +1725,16 @@ public:
         return *it;
     }
 
-    /* Returns random permutation of the given size (values are between `first` and `first`+size-1)*/
+    /**
+     * @brief Returns a random permutation of the given size with values between
+     * `first` and `first` + size - 1.
+     *
+     * @tparam T The type of the size parameter.
+     * @tparam E The type of the elements in the permutation.
+     * @param size The size of the permutation.
+     * @param first The starting value of the permutation.
+     * @return A vector containing the random permutation.
+     */
     template<typename T, typename E>
     std::vector<E> perm(T size, E first) {
         if (size < 0)
@@ -1172,13 +1751,29 @@ public:
         return p;
     }
 
-    /* Returns random permutation of the given size (values are between 0 and size-1)*/
+    /**
+     * @brief Returns a random permutation of the given size with values between
+     * 0 and size - 1.
+     *
+     * @tparam T The type of the size parameter.
+     * @param size The size of the permutation.
+     * @return A vector containing the random permutation.
+     */
     template<typename T>
     std::vector<T> perm(T size) {
         return perm(size, T(0));
     }
 
-    /* Returns `size` unordered (unsorted) distinct numbers between `from` and `to`. */
+    /**
+     * @brief Returns `size` unordered (unsorted) distinct numbers between
+     * `from` and `to`.
+     *
+     * @tparam T The type of the elements.
+     * @param size The number of distinct numbers to generate.
+     * @param from The lower bound (inclusive) of the range.
+     * @param to The upper bound (inclusive) of the range.
+     * @return A vector containing the distinct numbers.
+     */
     template<typename T>
     std::vector<T> distinct(int size, T from, T to) {
         std::vector<T> result;
@@ -1216,7 +1811,15 @@ public:
         return result;
     }
 
-    /* Returns `size` unordered (unsorted) distinct numbers between `0` and `upper`-1. */
+    /**
+     * @brief Returns `size` unordered (unsorted) distinct numbers between 0 and
+     * `upper` - 1.
+     *
+     * @tparam T The type of the elements.
+     * @param size The number of distinct numbers to generate.
+     * @param upper The upper bound (exclusive) of the range.
+     * @return A vector containing the distinct numbers.
+     */
     template<typename T>
     std::vector<T> distinct(int size, T upper) {
         if (size < 0)
@@ -1232,7 +1835,16 @@ public:
         return distinct(size, T(0), upper - 1);
     }
 
-    /* Returns random (unsorted) partition which is a representation of sum as a sum of integers not less than min_part. */
+    /**
+     * @brief Returns a random (unsorted) partition representing a sum as a sum
+     * of integers not less than `min_part`.
+     *
+     * @tparam T The type of the elements in the partition.
+     * @param size The number of parts in the partition.
+     * @param sum The total sum to partition.
+     * @param min_part The minimum value for each part.
+     * @return A vector containing the partition.
+     */
     template<typename T>
     std::vector<T> partition(int size, T sum, T min_part) {
         if (size < 0)
@@ -1276,24 +1888,35 @@ public:
         return result;
     }
 
-    /* Returns random (unsorted) partition which is a representation of sum as a sum of positive integers. */
+    /**
+     * @brief Returns a random (unsorted) partition representing a sum as a sum
+     * of positive integers.
+     *
+     * @tparam T The type of the elements in the partition.
+     * @param size The number of parts in the partition.
+     * @param sum The total sum to partition.
+     * @return A vector containing the partition.
+     */
     template<typename T>
     std::vector<T> partition(int size, T sum) {
         return partition(size, sum, T(1));
     }
 };
 
-const int random_t::lim = 25;
-const unsigned long long random_t::multiplier = 0x5DEECE66DLL;
-const unsigned long long random_t::addend = 0xBLL;
-const unsigned long long random_t::mask = (1LL << 48) - 1;
 int random_t::version = -1;
 
-/* Pattern implementation */
 bool pattern::matches(const std::string &s) const {
     return matches(s, 0);
 }
 
+/**
+ * @brief Checks if a character at a specific position in the string is a
+ * backslash.
+ *
+ * @param s The string to check.
+ * @param pos The position of the character in the string.
+ * @return true if the character is a backslash, false otherwise.
+ */
 static bool __pattern_isSlash(const std::string &s, size_t pos) {
     return s[pos] == '\\';
 }
@@ -1301,6 +1924,15 @@ static bool __pattern_isSlash(const std::string &s, size_t pos) {
 #ifdef __GNUC__
 __attribute__((pure))
 #endif
+/**
+ * @brief Checks if a character at a specific position in the string is a
+ * command character.
+ *
+ * @param s The string to check.
+ * @param pos The position of the character in the string.
+ * @param value The command character to check for.
+ * @return true if the character is a command character, false otherwise.
+ */
 static bool __pattern_isCommandChar(const std::string &s, size_t pos, char value) {
     if (pos >= s.length())
         return false;
@@ -1314,6 +1946,15 @@ static bool __pattern_isCommandChar(const std::string &s, size_t pos, char value
     return slashes % 2 == 0 && s[pos] == value;
 }
 
+/**
+ * @brief Gets the character at a specific position in the string, considering
+ * escape sequences.
+ *
+ * @param s The string to get the character from.
+ * @param pos The position of the character in the string. This position will be
+ * updated to the next character.
+ * @return The character at the specified position.
+ */
 static char __pattern_getChar(const std::string &s, size_t &pos) {
     if (__pattern_isSlash(s, pos))
         pos += 2;
@@ -1326,6 +1967,14 @@ static char __pattern_getChar(const std::string &s, size_t &pos) {
 #ifdef __GNUC__
 __attribute__((pure))
 #endif
+/**
+ * @brief Matches a sequence of characters greedily from the string.
+ *
+ * @param s The string to match from.
+ * @param pos The starting position in the string.
+ * @param chars The characters to match.
+ * @return The number of characters matched.
+ */
 static int __pattern_greedyMatch(const std::string &s, size_t pos, const std::vector<char> chars) {
     int result = 0;
 
@@ -1345,8 +1994,6 @@ std::string pattern::src() const {
 }
 
 bool pattern::matches(const std::string &s, size_t pos) const {
-    std::string result;
-
     if (to > 0) {
         int size = __pattern_greedyMatch(s, pos, chars);
         if (size < from)
@@ -1386,6 +2033,14 @@ std::string pattern::next(random_t &rnd) const {
     return result;
 }
 
+/**
+ * @brief Scans and retrieves the counts for repetitions from the pattern.
+ *
+ * @param s The pattern string.
+ * @param pos The current position in the pattern string.
+ * @param from The minimum number of repetitions.
+ * @param to The maximum number of repetitions.
+ */
 static void __pattern_scanCounts(const std::string &s, size_t &pos, int &from, int &to) {
     if (pos >= s.length()) {
         from = to = 1;
@@ -1454,6 +2109,13 @@ static void __pattern_scanCounts(const std::string &s, size_t &pos, int &from, i
     }
 }
 
+/**
+ * @brief Scans and retrieves a character set from the pattern.
+ *
+ * @param s The pattern string.
+ * @param pos The current position in the pattern string.
+ * @return A vector containing the characters in the set.
+ */
 static std::vector<char> __pattern_scanCharSet(const std::string &s, size_t &pos) {
     if (pos >= s.length())
         __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
@@ -1578,21 +2240,49 @@ pattern::pattern(std::string s) : s(s), from(0), to(0) {
 
 /* End of pattern implementation */
 
+/**
+ * @brief Checks if the character is an end-of-file character.
+ *
+ * @tparam C Type of the character.
+ * @param c The character to check.
+ * @return true if the character is EOFC, false otherwise.
+ */
 template<typename C>
 inline bool isEof(C c) {
     return c == EOFC;
 }
 
+/**
+ * @brief Checks if the character is an end-of-line character. An end-of-line
+ * character is either '\\r' (CR, 13) or '\\n' (LF, 10).
+ *
+ * @tparam C Type of the character.
+ * @param c The character to check.
+ * @return true if the character is LF or CR, false otherwise.
+ */
 template<typename C>
 inline bool isEoln(C c) {
     return (c == LF || c == CR);
 }
 
+/**
+ * @brief Checks if the character is a blank space character.
+ *
+ * @tparam C Type of the character.
+ * @param c The character to check.
+ * @return true if the character is LF, CR, SPACE, or TAB, false otherwise.
+ */
 template<typename C>
 inline bool isBlanks(C c) {
     return (c == LF || c == CR || c == SPACE || c == TAB);
 }
 
+/**
+ * @brief Trims leading and trailing blank spaces from a string.
+ *
+ * @param s The string to trim.
+ * @return A new string with leading and trailing blank spaces removed.
+ */
 inline std::string trim(const std::string &s) {
     if (s.empty())
         return s;
@@ -1612,29 +2302,57 @@ inline std::string trim(const std::string &s) {
     return s.substr(left, right - left + 1);
 }
 
+
+/**
+ * @brief Enumeration representing the mode of the test library.
+ */
 enum TMode {
-    _input, _output, _answer
+    _input,   // Input mode
+    _output,  // Output mode
+    _answer   // Answer mode
 };
 
-/* Outcomes 6-15 are reserved for future use. */
+/**
+ * @brief Enumeration representing the result of the test.
+ *
+ * Outcomes 6-15 are reserved for future use.
+ */
 enum TResult {
-    _ok = 0,
-    _wa = 1,
-    _pe = 2,
-    _fail = 3,
-    _dirt = 4,
+    _ok = 0,             // Test passed
+    _wa = 1,             // Wrong answer
+    _pe = 2,             // Presentation error
+    _fail = 3,           // Fail 
+    _dirt = 4,           
     _points = 5,
-    _unexpected_eof = 8,
-    _partially = 16
+    _unexpected_eof = 8, // Unexpected EOF
+    _partially = 16      // Partially correct
 };
 
+/**
+ * @brief Enumeration representing the mode of the test library component.
+ */
 enum TTestlibMode {
-    _unknown, _checker, _validator, _generator, _interactor, _scorer
+    _unknown,     // Unknown mode
+    _checker,     // Checker mode
+    _validator,   // Validator mode
+    _generator,   // Generator mode
+    _interactor,  // Interactor mode
+    _scorer       // Scorer mode
 };
 
+/**
+ * @brief Macro to define a partially correct result with a custom exit code.
+ *
+ * @param exitCode The custom exit code.
+ * @return TResult The resulting partially correct result.
+ */
 #define _pc(exitCode) (TResult(_partially + (exitCode)))
 
-/* Outcomes 6-15 are reserved for future use. */
+/**
+ * @brief Array of outcome strings representing different results.
+ *
+ * Outcomes 6-15 are reserved for future use.
+ */
 const std::string outcomes[] = {
         "accepted",
         "wrong-answer",
@@ -1659,61 +2377,143 @@ const std::string outcomes[] = {
         "partially-correct"
 };
 
+/**
+ * @brief Abstract class representing an input stream reader.
+ */
 class InputStreamReader {
 public:
+/**
+     * @brief Sets the current test case.
+     *
+     * @param testCase The test case to set.
+     */
     virtual void setTestCase(int testCase) = 0;
 
+    /**
+     * @brief Gets the read characters.
+     *
+     * @return A vector of read characters.
+     */
     virtual std::vector<int> getReadChars() = 0;
     
+    /**
+     * @brief Gets the current character.
+     *
+     * @return The current character.
+     */
     virtual int curChar() = 0;
 
+    /**
+     * @brief Reads the next character.
+     *
+     * @return The next character.
+     */
     virtual int nextChar() = 0;
 
+    /**
+     * @brief Skips the current character.
+     */
     virtual void skipChar() = 0;
 
+    /**
+     * @brief Unreads the given character, pushing it back into the stream.
+     *
+     * @param c The character to unread.
+     */
     virtual void unreadChar(int c) = 0;
 
+    /**
+     * @brief Gets the name of the stream reader.
+     *
+     * @return The name of the stream reader.
+     */
     virtual std::string getName() = 0;
 
+    /**
+     * @brief Checks if the end of the file (stream) is reached.
+     *
+     * @return true if end of file is reached, false otherwise.
+     */
     virtual bool eof() = 0;
 
+    /**
+     * @brief Closes the stream reader.
+     */
     virtual void close() = 0;
 
+
+    /**
+     * @brief Gets the current line number.
+     *
+     * @return The current line number.
+     */
     virtual int getLine() = 0;
 
+    /**
+     * @brief Virtual destructor for the InputStreamReader class.
+     */
     virtual ~InputStreamReader() = 0;
 };
 
-InputStreamReader::~InputStreamReader() {
-    // No operations.
-}
-
+/**
+ * @class StringInputStreamReader
+ * @brief A class for reading from a string.
+ */
 class StringInputStreamReader : public InputStreamReader {
 private:
-    std::string s;
-    size_t pos;
+    // The string content to read from.
+    std::string s; 
+    // The current position in the string.
+    size_t pos;    
 
 public:
-    StringInputStreamReader(const std::string &content) : s(content), pos(0) {
-        // No operations.
-    }
+    /**
+     * @brief Constructs a StringInputStreamReader with the given string
+     * content.
+     *
+     * @param content The string content to initialize the reader with.
+     */
+    explicit StringInputStreamReader(const std::string &content) 
+        : s(content), pos(0) {}
 
-    void setTestCase(int) {
+    /**
+     * @brief Sets the current test case (not implemented).
+     *
+     * @param testCase The test case to set.
+     */
+    void setTestCase(int) override {
         __testlib_fail("setTestCase not implemented in StringInputStreamReader");
     }
 
-    std::vector<int> getReadChars() {
+    /**
+     * @brief Gets the read characters (not implemented).
+     *
+     * @return A vector of read characters.
+     */
+    std::vector<int> getReadChars() override {
         __testlib_fail("getReadChars not implemented in StringInputStreamReader");
     }
     
-    int curChar() {
-        if (pos >= s.length())
+    /**
+     * @brief Gets the current character.
+     *
+     * @return The current character or EOFC if end of string is reached.
+     */
+    int curChar() override {
+        if (pos >= s.length()) {
             return EOFC;
-        else
+        }
+        else {
             return s[pos];
+        }
     }
 
-    int nextChar() {
+    /**
+     * @brief Reads the next character.
+     *
+     * @return The next character or EOFC if end of string is reached.
+     */
+    int nextChar() override {
         if (pos >= s.length()) {
             pos++;
             return EOFC;
@@ -1721,11 +2521,19 @@ public:
             return s[pos++];
     }
 
-    void skipChar() {
+    /**
+     * @brief Skips the current character.
+     */
+    void skipChar() override {
         pos++;
     }
 
-    void unreadChar(int c) {
+    /**
+     * @brief Unreads the given character, pushing it back into the stream.
+     *
+     * @param c The character to unread.
+     */
+    void unreadChar(int c) override {
         if (pos == 0)
             __testlib_fail("StringInputStreamReader::unreadChar(int): pos == 0.");
         pos--;
@@ -1733,39 +2541,76 @@ public:
             s[pos] = char(c);
     }
 
-    std::string getName() {
+    /**
+     * @brief Gets the name of the string being read (part of it).
+     *
+     * @return A substring representing the name.
+     */
+    std::string getName() override {
         return __testlib_part(s);
     }
 
-    int getLine() {
+    /**
+     * @brief Gets the current line number.
+     *
+     * @return Always returns -1 as line numbers are not tracked.
+     */
+    int getLine() override {
         return -1;
     }
 
-    bool eof() {
+    /**
+     * @brief Checks if the end of the string is reached.
+     *
+     * @return true if end of string is reached, false otherwise.
+     */
+    bool eof() override {
         return pos >= s.length();
     }
 
-    void close() {
-        // No operations.
-    }
+    /**
+     * @brief Closes the reader. This does nothing.
+     */
+    void close() override {}
 };
 
+/**
+ * @brief A class for reading from a file, derived from InputStreamReader.
+ */
 class FileInputStreamReader : public InputStreamReader {
 private:
+    // File pointer for the input stream.
     std::FILE *file;
+    // Name of the input stream.
     std::string name;
+    // Current line number in the input stream.
     int line;
+    // Stack for characters to undo.
     std::vector<int> undoChars;
+    // Stack to store characters read.
     std::vector<int> readChars;
+    // Stack for characters read to undo.
     std::vector<int> undoReadChars;
 
+    /**
+     * @brief Post-processing function for getc results.
+     * @param getcResult Result of the getc operation.
+     * @return Processed character result.
+     */
     inline int postprocessGetc(int getcResult) {
-        if (getcResult != EOF)
+        if (getcResult != EOF) {
             return getcResult;
-        else
+        }
+        else {
             return EOFC;
+        }
     }
 
+    /**
+     * @brief Custom getc function to read a character from file or undo stack.
+     * @param file File pointer to read from.
+     * @return Character read or EOFC if end of file.
+     */
     int getc(FILE *file) {
         int c;
         int rc;
@@ -1786,6 +2631,12 @@ private:
         return c;
     }
 
+    /**
+     * @brief Custom ungetc function to push back a character into the undo
+     * stack.
+     * @param c Character to push back.
+     * @return Character pushed back.
+     */
     int ungetc(int c/*, FILE* file*/) {
         if (!readChars.empty()) {
             undoReadChars.push_back(readChars.back());
@@ -1798,21 +2649,37 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
-        // No operations.
-    }
+    /**
+     * @brief Constructor for FileInputStreamReader.
+     * @param file File pointer of the file to read from.
+     * @param name Name of the input stream.
+     */
+    FileInputStreamReader(std::FILE *file, const std::string &name) 
+        : file(file), name(name), line(1) {}
 
-    void setTestCase(int testCase) {
+    /**
+     * @brief Sets the test case index (not implemented).
+     * @param testCase Index of the test case.
+     */
+    void setTestCase(int testCase) override {
         if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
             __testlib_fail(format("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
         readChars.push_back(testCase + 256);
     }
 
-    std::vector<int> getReadChars() {
+    /**
+     * @brief Retrieves the characters read so far.
+     * @return Vector of integers representing the characters read.
+     */
+    std::vector<int> getReadChars() override  {
         return readChars;
     }
 
-    int curChar() {
+    /**
+     * @brief Retrieves the current character from the input stream.
+     * @return Current character or EOFC if end of file.
+     */
+    int curChar() override {
         if (feof(file))
             return EOFC;
         else {
@@ -1822,31 +2689,54 @@ public:
         }
     }
 
-    int nextChar() {
+    /**
+     * @brief Retrieves the next character from the input stream.
+     * @return Next character or EOFC if end of file.
+     */
+    int nextChar() override {
         if (feof(file))
             return EOFC;
         else
             return postprocessGetc(getc(file));
     }
 
-    void skipChar() {
+    /**
+     * @brief Skips the next character in the input stream.
+     */
+    void skipChar() override {
         getc(file);
     }
 
-    void unreadChar(int c) {
+    /**
+     * @brief Pushes back a character into the input stream.
+     * @param c Character to push back.
+     */
+    void unreadChar(int c) override {
         ungetc(c/*, file*/);
     }
 
-    std::string getName() {
+    /**
+     * @brief Retrieves the name of the input stream.
+     * @return Name of the input stream.
+     */
+    std::string getName() override {
         return name;
     }
 
-    int getLine() {
+    /**
+     * @brief Retrieves the current line number in the input stream.
+     * @return Current line number.
+     */
+    int getLine() override {
         return line;
     }
 
-    bool eof() {
-        if (NULL == file || feof(file))
+    /**
+     * @brief Checks if the input stream has reached the end.
+     * @return True if end of file, otherwise false.
+     */
+    bool eof() override {
+        if (nullptr == file || feof(file))
             return true;
         else {
             int c = nextChar();
@@ -1857,31 +2747,49 @@ public:
         }
     }
 
-    void close() {
-        if (NULL != file) {
+    /**
+     * @brief Closes the input stream.
+     */
+    void close() override {
+        if (nullptr != file) {
             fclose(file);
-            file = NULL;
+            file = nullptr;
         }
     }
 };
 
+/**
+ * @class BufferedFileInputStreamReader
+ * @brief Buffered input stream reader for files.
+ */
 class BufferedFileInputStreamReader : public InputStreamReader {
 private:
-    static const size_t BUFFER_SIZE;
-    static const size_t MAX_UNREAD_COUNT;
+    static const size_t BUFFER_SIZE = 2000000;
+    static const size_t MAX_UNREAD_COUNT = BUFFER_SIZE / 2;
 
+    // The file pointer to read from.
     std::FILE *file;
+    // The name of the file.
     std::string name;
+    // The current line number in the file.
     int line;
 
+    // Buffer to store read characters.
     char *buffer;
+    // Array to track end-of-file status for each buffer position.
     bool *isEof;
+    // Current position in the buffer.
     int bufferPos;
+    // Current size of the buffer.
     size_t bufferSize;
 
+    /**
+     * @brief Refills the buffer with data from the file.
+     * @return True if successful, false if end of file.
+     */
     bool refill() {
-        if (NULL == file)
-            __testlib_fail("BufferedFileInputStreamReader: file == NULL (" + getName() + ")");
+        if (nullptr == file)
+            __testlib_fail("BufferedFileInputStreamReader: file == nullptr (" + getName() + ")");
 
         if (bufferPos >= int(bufferSize)) {
             size_t readSize = fread(
@@ -1891,8 +2799,7 @@ private:
                     file
             );
 
-            if (readSize < BUFFER_SIZE - MAX_UNREAD_COUNT
-                && ferror(file))
+            if (readSize < BUFFER_SIZE - MAX_UNREAD_COUNT && ferror(file))
                 __testlib_fail("BufferedFileInputStreamReader: unable to read (" + getName() + ")");
 
             bufferSize = MAX_UNREAD_COUNT + readSize;
@@ -1900,10 +2807,17 @@ private:
             std::memset(isEof + MAX_UNREAD_COUNT, 0, sizeof(isEof[0]) * readSize);
 
             return readSize > 0;
-        } else
+        } 
+        else {
             return true;
+        }
     }
 
+    /**
+     * @brief Increments the buffer position and updates the current line
+     * number.
+     * @return Character at the incremented position.
+     */
     char increment() {
         char c;
         if ((c = buffer[bufferPos++]) == LF)
@@ -1912,6 +2826,12 @@ private:
     }
 
 public:
+
+    /**
+     * @brief Constructs a new BufferedFileInputStreamReader object.
+     * @param file File pointer to read from.
+     * @param name Name of the file.
+     */
     BufferedFileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
@@ -1919,44 +2839,68 @@ public:
         bufferPos = int(MAX_UNREAD_COUNT);
     }
 
+    /**
+     * @brief Destroys the BufferedFileInputStreamReader object.
+     */
     ~BufferedFileInputStreamReader() {
-        if (NULL != buffer) {
+        if (nullptr != buffer) {
             delete[] buffer;
-            buffer = NULL;
+            buffer = nullptr;
         }
-        if (NULL != isEof) {
+        if (nullptr != isEof) {
             delete[] isEof;
-            isEof = NULL;
+            isEof = nullptr;
         }
     }
 
-    void setTestCase(int) {
+    /**
+     * @brief Sets the test case index (not implemented).
+     */
+    void setTestCase(int) override {
         __testlib_fail("setTestCase not implemented in BufferedFileInputStreamReader");
     }
 
-    std::vector<int> getReadChars() {
+    /**
+     * @brief Retrieves the characters read (not implemented).
+     */
+    std::vector<int> getReadChars() override {
         __testlib_fail("getReadChars not implemented in BufferedFileInputStreamReader");
     }
     
-    int curChar() {
+    /**
+     * @brief Retrieves the current character.
+     * @return Integer representing the current character.
+     */
+    int curChar() override {
         if (!refill())
             return EOFC;
 
         return isEof[bufferPos] ? EOFC : buffer[bufferPos];
     }
 
-    int nextChar() {
+    /**
+     * @brief Retrieves the next character.
+     * @return Integer representing the next character.
+     */
+    int nextChar() override {
         if (!refill())
             return EOFC;
 
         return isEof[bufferPos] ? EOFC : increment();
     }
 
-    void skipChar() {
+    /**
+     * @brief Skips the current character.
+     */
+    void skipChar() override {
         increment();
     }
 
-    void unreadChar(int c) {
+    /**
+     * @brief Unreads the character.
+     * @param c Character to unread.
+     */
+    void unreadChar(int c) override {
         bufferPos--;
         if (bufferPos < 0)
             __testlib_fail("BufferedFileInputStreamReader::unreadChar(int): bufferPos < 0");
@@ -1966,378 +2910,994 @@ public:
             line--;
     }
 
-    std::string getName() {
+    /**
+     * @brief Retrieves the name of the input stream.
+     * @return Name of the input stream.
+     */
+    std::string getName() override {
         return name;
     }
 
-    int getLine() {
+    /**
+     * \brief Retrieves the current line number in the input stream. \return
+     * Current line number.
+     */
+    int getLine() override {
         return line;
-    }
+    }   
 
-    bool eof() {
+    /**
+     * @brief Checks if the end of the input stream has been reached.
+     * @return True if end of stream, otherwise false.
+     */
+    bool eof() override {
         return !refill() || EOFC == curChar();
     }
 
-    void close() {
-        if (NULL != file) {
+    /**
+     * @brief Closes the input stream.
+     */
+    void close() override {
+        if (nullptr != file) {
             fclose(file);
-            file = NULL;
+            file = nullptr;
         }
     }
 };
 
-const size_t BufferedFileInputStreamReader::BUFFER_SIZE = 2000000;
-const size_t BufferedFileInputStreamReader::MAX_UNREAD_COUNT = BufferedFileInputStreamReader::BUFFER_SIZE / 2;
-
-/*
- * Streams to be used for reading data in checkers or validators.
- * Each read*() method moves pointer to the next character after the
- * read value.
+/**
+ * @struct InStream
+ * @brief Streams to be used for reading data in checkers or validators. Each
+ * read*() method moves pointer to the next character after the read value.
  */
 struct InStream {
-    /* Do not use them. */
-    InStream();
+    /**
+     * @brief Default constructor.
+     *
+     * Do not use them.
+     */
+    InStream() = delete;
 
+    /**
+     * @brief Destructor.
+     */
     ~InStream();
 
-    /* Wrap std::string with InStream. */
+    /**
+     * @brief Constructor that wraps std::string with InStream.
+     *
+     * @param baseStream The base stream to wrap.
+     * @param content The content to wrap with.
+     */
     InStream(const InStream &baseStream, std::string content);
 
+    // Reader instance.
     InputStreamReader *reader;
+    // Last line index.
     int lastLine;
 
+    // Name of the stream.
     std::string name;
+    // Mode of the stream.
     TMode mode;
+    // Flag indicating if the stream is opened.
     bool opened;
+    // Flag indicating if the stream is standard file.
     bool stdfile;
+    // Flag indicating strict mode.
     bool strict;
 
+    // Word reserve size.
     int wordReserveSize;
+    // Temporary read token.
     std::string _tmpReadToken;
-
-    int readManyIteration;
+        
+    // Number of read iterations.    
+    int readManyIteration; 
+    // Maximum file size.
     size_t maxFileSize;
+    // Maximum token length.
     size_t maxTokenLength;
+    // Maximum message length.
     size_t maxMessageLength;
 
+    /**
+     * @brief Initializes the stream with a file name and mode.
+     *
+     * @param fileName The name of the file.
+     * @param mode The mode of the stream.
+     */
     void init(std::string fileName, TMode mode);
 
+    /**
+     * @brief Initializes the stream with a FILE pointer and mode.
+     *
+     * @param f The FILE pointer.
+     * @param mode The mode of the stream.
+     */
     void init(std::FILE *f, TMode mode);
 
+    /**
+     * @brief Sets the test case number.
+     *
+     * @param testCase The test case number.
+     */
     void setTestCase(int testCase);
+
+    /**
+     * @brief Retrieves characters read by the stream.
+     *
+     * @return A vector of integers representing read characters.
+     */
     std::vector<int> getReadChars();
 
-    /* Moves stream pointer to the first non-white-space character or EOF. */
+    /**
+     * @brief Moves the stream pointer to the first non-white-space character or
+     * EOF.
+     */
     void skipBlanks();
 
-    /* Returns current character in the stream. Doesn't remove it from stream. */
+    /**
+     * @brief Returns the current character in the stream without removing it.
+     *
+     * @return The current character.
+     */
     char curChar();
 
-    /* Moves stream pointer one character forward. */
+    /**
+     * @brief Moves the stream pointer one character forward.
+     */
     void skipChar();
 
-    /* Returns current character and moves pointer one character forward. */
+    /**
+     * @brief Reads the current character and moves the pointer one character
+     * forward.
+     *
+     * @return The read character.
+     */
     char nextChar();
 
-    /* Returns current character and moves pointer one character forward. */
+    /**
+     * @brief Reads the current character and moves the pointer one character
+     * forward.
+     *
+     * @return The read character.
+     */
     char readChar();
 
-    /* As "readChar()" but ensures that the result is equal to given parameter. */
+    /**
+     * @brief Reads a character from the stream and ensures it matches the given
+     * parameter.
+     *
+     * @param c The character to match.
+     * @return The read character.
+     */
     char readChar(char c);
 
-    /* As "readChar()" but ensures that the result is equal to the space (code=32). */
+    /**
+     * @brief Reads a space character from the stream.
+     *
+     * @return The read space character.
+     */
     char readSpace();
 
-    /* Puts back the character into the stream. */
+    /**
+     * @brief Puts back the character into the stream.
+     *
+     * @param c The character to put back.
+     */
     void unreadChar(char c);
 
-    /* Reopens stream, you should not use it. */
-    void reset(std::FILE *file = NULL);
+    /**
+     * @brief Checks if the current position is EOF without moving the stream
+     * pointer.
+     *
+     * @return True if EOF, false otherwise.
+     */    bool eof();
 
-    /* Checks that current position is EOF. If not it doesn't move stream pointer. */
-    bool eof();
-
-    /* Moves pointer to the first non-white-space character and calls "eof()". */
+    /**
+     * @brief Moves the pointer to the first non-white-space character and
+     * checks if at EOF.
+     *
+     * @return True if at EOF, false otherwise.
+     */
     bool seekEof();
 
-    /*
-     * Checks that current position contains EOLN.
-     * If not it doesn't move stream pointer.
+     /**
+     * @brief Checks if the current position contains EOLN without moving the
+     * stream pointer.
+     *
      * In strict mode expects "#13#10" for windows or "#10" for other platforms.
+     *
+     * @return True if at EOLN, false otherwise.
      */
     bool eoln();
 
-    /* Moves pointer to the first non-space and non-tab character and calls "eoln()". */
+     /**
+     * @brief Moves the pointer to the first non-space and non-tab character and
+     * checks if at EOLN.
+     *
+     * @return True if at EOLN, false otherwise.
+     */
     bool seekEoln();
 
-    /* Moves stream pointer to the first character of the next line (if exists). */
+    /**
+     * @brief Moves the stream pointer to the first character of the next line.
+     */
     void nextLine();
-
-    /*
-     * Reads new token. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+       
+    /**
+     * @brief Reads a new word from the stream, ignoring white-spaces in
+     * non-strict mode.
+     *
+     * @return The read word.
+     *
+     * @deprecated Use readToken() instead.
      */
     std::string readWord();
 
-    /* The same as "readWord()", it is preferred to use "readToken()". */
-    std::string readToken();
-
-    /* The same as "readWord()", but ensures that token matches to given pattern. */
+    /**
+     * @brief Reads a new word from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read word.
+     */
     std::string readWord(const std::string &ptrn, const std::string &variableName = "");
 
+    /**
+     * @brief Reads a new word from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read word.
+     */
     std::string readWord(const pattern &p, const std::string &variableName = "");
 
-    std::vector<std::string>
-    readWords(int size, const std::string &ptrn, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple words from the stream, ensuring each matches the
+     * given pattern.
+     *
+     * @param size The number of words to read.
+     * @param ptrn The pattern to match.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read words.
+     */
+    std::vector<std::string> readWords(int size, const std::string &ptrn, const std::string &variablesName = "", int indexBase = 1);
 
-    std::vector<std::string>
-    readWords(int size, const pattern &p, const std::string &variablesName = "", int indexBase = 1);
+     /**
+     * @brief Reads multiple words from the stream, ensuring each matches the
+     * given pattern.
+     *
+     * @param size The number of words to read.
+     * @param p The pattern to match.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read words.
+     */
+    std::vector<std::string> readWords(int size, const pattern &p, const std::string &variablesName = "", int indexBase = 1);
 
+    /**
+     * @brief Reads multiple words from the stream.
+     *
+     * @param size The number of words to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read words.
+     */
     std::vector<std::string> readWords(int size, int indexBase = 1);
 
-    /* The same as "readToken()", but ensures that token matches to given pattern. */
+    /**
+     * @brief Reads a new token from the stream.
+     *
+     * @return The read token.
+     */
+    std::string readToken();
+        
+    /**
+     * @brief Reads a new token from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read token.
+     */
     std::string readToken(const std::string &ptrn, const std::string &variableName = "");
 
+    /**
+     * @brief Reads a new token from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read token.
+     */
     std::string readToken(const pattern &p, const std::string &variableName = "");
 
-    std::vector<std::string>
-    readTokens(int size, const std::string &ptrn, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple tokens from the stream, ensuring each matches the
+     * given pattern.
+     *
+     * @param size The number of tokens to read.
+     * @param ptrn The pattern to match.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read tokens.
+     */
+    std::vector<std::string> readTokens(int size, const std::string &ptrn, const std::string &variablesName = "", int indexBase = 1);
 
-    std::vector<std::string>
-    readTokens(int size, const pattern &p, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple tokens from the stream, ensuring each matches the
+     * given pattern.
+     *
+     * @param size The number of tokens to read.
+     * @param p The pattern to match.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read tokens.
+     */
+    std::vector<std::string> readTokens(int size, const pattern &p, const std::string &variablesName = "", int indexBase = 1);
 
+    /**
+     * @brief Reads multiple tokens from the stream.
+     *
+     * @param size The number of tokens to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read tokens.
+     */
     std::vector<std::string> readTokens(int size, int indexBase = 1);
 
+    /**
+     * @brief Reads a word from the stream and stores it in the provided result
+     * variable.
+     *
+     * @param result Reference to store the read word.
+     */
     void readWordTo(std::string &result);
 
+    /**
+     * @brief Reads a word from the stream and stores it in the provided result
+     * variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read word.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readWordTo(std::string &result, const pattern &p, const std::string &variableName = "");
 
+    /**
+     * @brief Reads a word from the stream and stores it in the provided result
+     * variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read word.
+     * @param ptrm The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readWordTo(std::string &result, const std::string &ptrn, const std::string &variableName = "");
 
+    /**
+     * @brief Reads a token from the stream and stores it in the provided result
+     * variable.
+     *
+     * @param result Reference to store the read token.
+     */
     void readTokenTo(std::string &result);
 
+    /**
+     * @brief Reads a token from the stream and stores it in the provided result
+     * variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read token.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readTokenTo(std::string &result, const pattern &p, const std::string &variableName = "");
 
+    /**
+     * @brief Reads a token from the stream and stores it in the provided result
+     * variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read token.
+     * @param ptrm The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readTokenTo(std::string &result, const std::string &ptrn, const std::string &variableName = "");
 
-    /*
-     * Reads new long long value. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+    /**
+     * @brief Reads a long long integer from the stream.
+     *
+     * @return The read long long integer.
      */
     long long readLong();
 
+    /**
+     * @brief Reads a unsigned long long integer from the stream.
+     *
+     * @return The read unsigned long long integer.
+     */
     unsigned long long readUnsignedLong();
 
-    /*
-     * Reads new int. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+    /**
+     * @brief Reads an integer from the stream. 
+     *
+     * In non-strict mode, whitespaces are ignored.
+     *
+     * @return The read integer.
      */
     int readInteger();
 
-    /*
-     * Reads new int. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+    /**
+     * @brief Reads an integer from the stream. 
+     *
+     * In non-strict mode, whitespaces are ignored.
+     *
+     * @return The read integer.
      */
     int readInt();
 
-    /* As "readLong()" but ensures that value in the range [minv,maxv]. */
+    /**
+     * @brief Reads a long long integer from the stream and ensures it is within
+     * a specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read long long integer.
+     */
     long long readLong(long long minv, long long maxv, const std::string &variableName = "");
 
-    /* Reads space-separated sequence of long longs. */
+     /**
+     * @brief Reads a sequence of long long integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read long long integers.
+     */
     std::vector<long long>
     readLongs(int size, long long minv, long long maxv, const std::string &variablesName = "", int indexBase = 1);
 
-    /* Reads space-separated sequence of long longs. */
+    /**
+     * @brief Reads a sequence of long long integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read long long integers.
+     */
     std::vector<long long> readLongs(int size, int indexBase = 1);
 
-    unsigned long long
-    readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string &variableName = "");
+    /**
+     * @brief Reads an unsigned long long integer from the stream and ensures it
+     * is within a specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read unsigned long long integer.
+     */
+    unsigned long long readUnsignedLong(unsigned long long minv, unsigned long long maxv, const std::string &variableName = "");
 
-    std::vector<unsigned long long>
-    readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string &variablesName = "",
-                      int indexBase = 1);
+    /**
+     * @brief Reads a sequence of unsigned long long integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read unsigned long long integers.
+     */
+    std::vector<unsigned long long> readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string &variablesName = "", int indexBase = 1);
 
+    /**
+     * @brief Reads a sequence of unsigned long long integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read unsigned long long integers.
+     */
     std::vector<unsigned long long> readUnsignedLongs(int size, int indexBase = 1);
 
+    /**
+     * @brief Reads an unsigned long long integer from the stream and ensures it
+     * is within a specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read unsigned long long integer.
+     */
     unsigned long long readLong(unsigned long long minv, unsigned long long maxv, const std::string &variableName = "");
 
-    std::vector<unsigned long long>
-    readLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string &variablesName = "",
-              int indexBase = 1);
+    /**
+     * @brief Reads a sequence of unsigned long long integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read unsigned long long integers.
+     */
+    std::vector<unsigned long long> readLongs(int size, unsigned long long minv, unsigned long long maxv, const std::string &variablesName = "", int indexBase = 1);
 
-    /* As "readInteger()" but ensures that value in the range [minv,maxv]. */
+    /**
+     * @brief Reads an integer from the stream and ensures it is within a
+     * specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read integer.
+     */
     int readInteger(int minv, int maxv, const std::string &variableName = "");
 
-    /* As "readInt()" but ensures that value in the range [minv,maxv]. */
+    /**
+     * @brief Reads an integer from the stream and ensures it is within a
+     * specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read integer.
+     */
     int readInt(int minv, int maxv, const std::string &variableName = "");
 
-    /* Reads space-separated sequence of integers. */
-    std::vector<int>
-    readIntegers(int size, int minv, int maxv, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads a sequence of integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read integers.
+     */
+    std::vector<int> readIntegers(int size, int minv, int maxv, const std::string &variablesName = "", int indexBase = 1);
 
-    /* Reads space-separated sequence of integers. */
+    /**
+     * @brief Reads a sequence of integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read integers.
+     */
     std::vector<int> readIntegers(int size, int indexBase = 1);
 
-    /* Reads space-separated sequence of integers. */
+    /**
+     * @brief Reads a sequence of integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read integers.
+     */
     std::vector<int> readInts(int size, int minv, int maxv, const std::string &variablesName = "", int indexBase = 1);
 
-    /* Reads space-separated sequence of integers. */
+    /**
+     * @brief Reads a sequence of integers from the stream.
+     *
+     * @param size The number of integers to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read integers.
+     */
     std::vector<int> readInts(int size, int indexBase = 1);
 
-    /*
-     * Reads new double. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+    /**
+     * @brief Reads a double from the stream.
+     *
+     * @return The read double.
+     *
      */
     double readReal();
 
-    /*
-     * Reads new double. Ignores white-spaces into the non-strict mode
-     * (strict mode is used in validators usually).
+    /**
+     * @brief Reads a double from the stream.
+     *
+     * @return The read double.
      */
     double readDouble();
 
-    /* As "readReal()" but ensures that value in the range [minv,maxv]. */
+    /**
+    * @brief Reads a double from the stream and ensures it is within a specified
+    * range.
+    *
+    * @param minv Minimum value.
+    * @param maxv Maximum value.
+    * @param variableName Optional variable name for error reporting.
+    * @return The read double.
+    */
     double readReal(double minv, double maxv, const std::string &variableName = "");
 
-    std::vector<double>
-    readReals(int size, double minv, double maxv, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads a sequence of doubles from the stream.
+     *
+     * @param size The number of doubles to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read doubles.
+     */
+    std::vector<double> readReals(int size, double minv, double maxv, const std::string &variablesName = "", int indexBase = 1);
 
+    /**
+     * @brief Reads a sequence of doubles from the stream.
+     *
+     * @param size The number of doubles to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read doubles.
+     */
     std::vector<double> readReals(int size, int indexBase = 1);
 
-    /* As "readDouble()" but ensures that value in the range [minv,maxv]. */
+    
+    /**
+     * @brief Reads a double from the stream and ensures it is within a
+     * specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read double.
+     */
     double readDouble(double minv, double maxv, const std::string &variableName = "");
 
-    std::vector<double>
-    readDoubles(int size, double minv, double maxv, const std::string &variablesName = "", int indexBase = 1);
+    /**
+     * @brief Reads a sequence of doubles from the stream.
+     *
+     * @param size The number of doubles to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read doubles.
+     */
+    std::vector<double> readDoubles(int size, double minv, double maxv, const std::string &variablesName = "", int indexBase = 1);
 
+    /**
+     * @brief Reads a sequence of doubles from the stream.
+     *
+     * @param size The number of doubles to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read doubles.
+     */
     std::vector<double> readDoubles(int size, int indexBase = 1);
 
-    /*
-     * As "readReal()" but ensures that value in the range [minv,maxv] and
-     * number of digit after the decimal point is in range [minAfterPointDigitCount,maxAfterPointDigitCount]
-     * and number is in the form "[-]digit(s)[.digit(s)]".
+
+    /**
+     * @brief Reads a double from the stream and ensures it is within a
+     * specified range and the number of digits after the decimal point is
+     * within a specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param minAfterPointDigitCount Minimum number of digits after the decimal
+     * point.
+     * @param maxAfterPointDigitCount Maximum number of digits after the decimal
+     * point.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read double.
      */
     double readStrictReal(double minv, double maxv,
                           int minAfterPointDigitCount, int maxAfterPointDigitCount,
                           const std::string &variableName = "");
 
+    /**
+     * @brief Reads a sequence of doubles from the stream and ensures they are
+     * within a specified range and the number of digits after the decimal point
+     * is within a specified range.
+     *
+     * @param size The number of doubles to read.
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param minAfterPointDigitCount Minimum number of digits after the decimal
+     * point.
+     * @param maxAfterPointDigitCount Maximum number of digits after the decimal
+     * point.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read strict doubles.
+     */
     std::vector<double> readStrictReals(int size, double minv, double maxv,
                                         int minAfterPointDigitCount, int maxAfterPointDigitCount,
                                         const std::string &variablesName = "", int indexBase = 1);
 
-    /*
-     * As "readDouble()" but ensures that value in the range [minv,maxv] and
-     * number of digit after the decimal point is in range [minAfterPointDigitCount,maxAfterPointDigitCount]
-     * and number is in the form "[-]digit(s)[.digit(s)]".
+    
+    /**
+     * @brief Reads a double from the stream and ensures it is within a
+     * specified range and the number of digits after the decimal point is
+     * within a specified range.
+     *
+     * @param minv Minimum value.
+     * @param maxv Maximum value.
+     * @param minAfterPointDigitCount Minimum number of digits after the decimal
+     * point.
+     * @param maxAfterPointDigitCount Maximum number of digits after the decimal
+     * point.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read double.
      */
     double readStrictDouble(double minv, double maxv,
                             int minAfterPointDigitCount, int maxAfterPointDigitCount,
                             const std::string &variableName = "");
 
+        /**
+     * @brief Reads a sequence of doubles from the stream and ensures the number
+     * of digits after the decimal point is within a specified range.
+     *
+     * @param size The number of doubles to read.
+     * @param minAfterPointDigitCount Minimum number of digits after the decimal
+     * point.
+     * @param maxAfterPointDigitCount Maximum number of digits after the decimal
+     * point.
+     * @param variablesName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read strict doubles.
+     */
     std::vector<double> readStrictDoubles(int size, double minv, double maxv,
                                           int minAfterPointDigitCount, int maxAfterPointDigitCount,
                                           const std::string &variablesName = "", int indexBase = 1);
 
-    /* As readLine(). */
+    /**
+     * @brief Reads a string from the stream.
+     *
+     * @return The read string.
+     */
     std::string readString();
 
-    /* Read many lines. */
+    /**
+     * @brief Reads multiple strings from the stream.
+     *
+     * @param size The number of strings to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read strings.
+     */
     std::vector<std::string> readStrings(int size, int indexBase = 1);
 
-    /* See readLine(). */
+    /**
+     * @brief Reads a string from the stream and stores it in the provided
+     * result variable.
+     *
+     * @param result Reference to store the read string.
+     */
     void readStringTo(std::string &result);
 
-    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a string from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read string.
+     */
     std::string readString(const pattern &p, const std::string &variableName = "");
 
-    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a string from the stream and ensures it matches the given
+     * pattern.
+     *
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read string.
+     */
     std::string readString(const std::string &ptrn, const std::string &variableName = "");
 
-    /* Read many lines. */
-    std::vector<std::string>
-    readStrings(int size, const pattern &p, const std::string &variableName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple strings from the stream and ensures each matches
+     * the given pattern.
+     *
+     * @param size The number of strings to read.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read strings.
+     */
+    std::vector<std::string> readStrings(int size, const pattern &p, const std::string &variableName = "", int indexBase = 1);
 
-    /* Read many lines. */
-    std::vector<std::string>
-    readStrings(int size, const std::string &ptrn, const std::string &variableName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple strings from the stream and ensures each matches
+     * the given pattern.
+     *
+     * @param size The number of strings to read.
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read strings.
+     */
+    std::vector<std::string> readStrings(int size, const std::string &ptrn, const std::string &variableName = "", int indexBase = 1);
 
-    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a string from the stream and stores it in the provided
+     * result variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read string.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readStringTo(std::string &result, const pattern &p, const std::string &variableName = "");
 
-    /* The same as "readLine()/readString()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a string from the stream and stores it in the provided
+     * result variable, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read string.
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readStringTo(std::string &result, const std::string &ptrn, const std::string &variableName = "");
 
-    /*
-     * Reads line from the current position to EOLN or EOF. Moves stream pointer to
-     * the first character of the new line (if possible).
+    /**
+     * @brief Reads a line from the current position to EOLN or EOF. Moves
+     * stream pointer to the first character of the new line (if possible).
+     *
+     * @return The read line.
      */
     std::string readLine();
 
-    /* Read many lines. */
+    /**
+     * @brief Reads multiple lines from the stream.
+     *
+     * @param size The number of lines to read.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read lines.
+     */
     std::vector<std::string> readLines(int size, int indexBase = 1);
-
-    /* See readLine(). */
+        
+    /**
+     * @brief Reads a line from the input stream and stores it in the provided
+     * string reference.
+     *
+     * @param result Reference to store the read line.
+     */
     void readLineTo(std::string &result);
 
-    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a line from the input stream and ensures it matches the
+     * given pattern.
+     *
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read line.
+     */
     std::string readLine(const pattern &p, const std::string &variableName = "");
 
-    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a line from the input stream and ensures it matches the
+     * given pattern.
+     *
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @return The read line.
+     */
     std::string readLine(const std::string &ptrn, const std::string &variableName = "");
 
-    /* Read many lines. */
-    std::vector<std::string>
-    readLines(int size, const pattern &p, const std::string &variableName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple lines from the input stream and ensures each
+     * matches the given pattern.
+     *
+     * @param size The number of lines to read.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read lines.
+     */
+    std::vector<std::string> readLines(int size, const pattern &p, const std::string &variableName = "", int indexBase = 1);
 
-    /* Read many lines. */
-    std::vector<std::string>
-    readLines(int size, const std::string &ptrn, const std::string &variableName = "", int indexBase = 1);
+    /**
+     * @brief Reads multiple lines from the input stream and ensures each
+     * matches the given pattern.
+     *
+     * @param size The number of lines to read.
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     * @param indexBase Base index for reporting.
+     * @return A vector of read lines.
+     */
+    std::vector<std::string> readLines(int size, const std::string &ptrn, const std::string &variableName = "", int indexBase = 1);
 
-    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+
+    /**
+     * @brief Reads a line from the input stream and stores it in the provided
+     * string reference, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read line.
+     * @param p The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readLineTo(std::string &result, const pattern &p, const std::string &variableName = "");
 
-    /* The same as "readLine()", but ensures that line matches to the given pattern. */
+    /**
+     * @brief Reads a line from the input stream and stores it in the provided
+     * string reference, ensuring it matches the given pattern.
+     *
+     * @param result Reference to store the read line.
+     * @param ptrn The pattern to match.
+     * @param variableName Optional variable name for error reporting.
+     */
     void readLineTo(std::string &result, const std::string &ptrn, const std::string &variableName = "");
 
-    /* Reads EOLN or fails. Use it in validators. Calls "eoln()" method internally. */
+    /**
+     * @brief Reads the end-of-line (EOLN) from the input stream or fails. Use
+     * this in validators. Internally calls the "eoln()" method.
+     */
     void readEoln();
 
-    /* Reads EOF or fails. Use it in validators. Calls "eof()" method internally. */
+    /**
+     * @brief Reads the end-of-file (EOF) from the input stream or fails. Use
+     * this in validators. Internally calls the "eof()" method.
+     */
     void readEof();
 
-    /*
-     * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replace any result to FAIL.
+    /**
+     * @brief Aborts the program with a specified result and message. Replaces
+     * any result with FAIL in input/answer streams.
+     *
+     * @param result The result to return.
+     * @param msg The message to display.
      */
     NORETURN void quit(TResult result, const char *msg);
-    /*
-     * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replace any result to FAIL.
+
+    /**
+     * @brief Aborts the program with a specified result and formatted message.
+     * Replaces any result with FAIL in input/answer streams.
+     *
+     * @param result The result to return.
+     * @param msg The formatted message to display.
+     * @param ... Additional arguments for formatting.
      */
     NORETURN void quitf(TResult result, const char *msg, ...);
 
-    /*
-     * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replace any result to FAIL.
+    /**
+     * @brief Aborts the program with a specified result and formatted message
+     * if a condition is met. Replaces any result with FAIL in input/answer
+     * streams.
+     *
+     * @param condition The condition to check.
+     * @param result The result to return if the condition is true.
+     * @param msg The formatted message to display if the condition is true.
+     * @param ... Additional arguments for formatting.
      */
     void quitif(bool condition, TResult result, const char *msg, ...);
-    /*
-     * Quit-functions aborts program with <result> and <message>:
-     * input/answer streams replace any result to FAIL.
-     */
-    NORETURN void quits(TResult result, std::string msg);
 
-    /*
-     * Checks condition and aborts a program if condition is false.
-     * Returns _wa for ouf and _fail on any other streams.
+    /**
+     * @brief Aborts the program with a specified result and message. Replaces
+     * any result with FAIL in input/answer streams.
+     *
+     * @param result The result to return.
+     * @param msg The message to display.
+     */
+    void quits(TResult result, std::string msg);
+
+    /**
+     * @brief Checks a condition and aborts the program if the condition is
+     * false. Returns _wa for ouf and _fail on any other streams.
+     *
+     * @param cond The condition to check.
+     * @param format The format string for the error message.
+     * @param ... Additional arguments for formatting.
      */
 #ifdef __GNUC__
     __attribute__ ((format (printf, 3, 4)))
 #endif
     void ensuref(bool cond, const char *format, ...);
 
+     /**
+     * @brief Ensures a condition is true or aborts with a message.
+     *
+     * @param cond The condition to check.
+     * @param message The message to display if the condition is false.
+     */
     void __testlib_ensure(bool cond, std::string message);
 
+    /**
+     * @brief Closes the input stream.
+     */
     void close();
 
     const static int NO_INDEX = INT_MAX;
@@ -2358,63 +3918,112 @@ struct InStream {
 
     void xmlSafeWrite(std::FILE *file, const char *msg);
 
-    /* Skips UTF-8 Byte Order Mark. */
+    /**
+     * @brief Skips the UTF-8 Byte Order Mark (BOM) in the input stream.
+     */
     void skipBom();
 
 private:
     InStream(const InStream &);
 
     InStream &operator=(const InStream &);
+        
+    /**
+     * @brief Resets the stream, reopening it with an optional FILE pointer.
+     *
+     * @param file The FILE pointer to reset to (optional).
+     */
+    void reset(std::FILE *file = nullptr);
 };
 
-InStream inf;
-InStream ouf;
-InStream ans;
-bool appesMode;
-std::string appesModeEncoding = "windows-1251";
-std::string resultName;
-std::string checkerName = "untitled checker";
-random_t rnd;
-TTestlibMode testlibMode = _unknown;
-double __testlib_points = std::numeric_limits<float>::infinity();
+InStream inf;         // Input stream for reading input data
+InStream ouf;         // Output stream for reading contestant's output
+InStream ans;         // Output stream for reading expected output
+bool appesMode;       // Flag indicating application-specific mode
+std::string appesModeEncoding = "windows-1251"; 
+std::string resultName;    // Name of the result
+std::string checkerName = "untitled checker";   // Name of the checker
+random_t rnd;          // Random number generator instance
+TTestlibMode testlibMode = _unknown;    // Testlib mode
+double __testlib_points = std::numeric_limits<float>::infinity();  // Points in the test case
 
+/**
+ * @brief Struct to track hits on bounds in validation
+ */
 struct ValidatorBoundsHit {
-    static const double EPS;
+    // Small epsilon value for comparisons
+    static const double EPS = 1E-12; 
+    // Flag indicating if minimum bound is hit
     bool minHit;
+    // Flag indicating if maximumbound is hit
     bool maxHit;
 
-    ValidatorBoundsHit(bool minHit = false, bool maxHit = false) : minHit(minHit), maxHit(maxHit) {
-    };
+    /**
+     * @brief Constructor for ValidatorBoundsHit.
+     *
+     * @param minHit Indicates if minimum bound is hit.
+     * @param maxHit Indicates if maximum bound is hit.
+     */
+    ValidatorBoundsHit(bool minHit = false, bool maxHit = false) 
+        : minHit(minHit), maxHit(maxHit) {};
 
+    /**
+     * @brief Merge current bounds hit with another ValidatorBoundsHit object.
+     *
+     * @param validatorBoundsHit ValidatorBoundsHit object to merge with.
+     * @param ignoreMinBound Flag to ignore minimum bound.
+     * @param ignoreMaxBound Flag to ignore maximum bound.
+     * @return ValidatorBoundsHit Merged ValidatorBoundsHit object.
+     */
     ValidatorBoundsHit merge(const ValidatorBoundsHit &validatorBoundsHit, bool ignoreMinBound, bool ignoreMaxBound) {
         return ValidatorBoundsHit(
-                __testlib_max(minHit, validatorBoundsHit.minHit) || ignoreMinBound,
-                __testlib_max(maxHit, validatorBoundsHit.maxHit) || ignoreMaxBound
+            __testlib_max(minHit, validatorBoundsHit.minHit) || ignoreMinBound,
+            __testlib_max(maxHit, validatorBoundsHit.maxHit) || ignoreMaxBound
         );
     }
 };
 
-const double ValidatorBoundsHit::EPS = 1E-12;
-
+/**
+ * @brief Class for validating test cases and managing validation data.
+ */
 class Validator {
 private:
+    // Test markup header
     const static std::string TEST_MARKUP_HEADER;
+    // Test case open tag
     const static std::string TEST_CASE_OPEN_TAG;
+    // Test case close tag
     const static std::string TEST_CASE_CLOSE_TAG;
 
-    bool _initialized;
-    std::string _testset;
-    std::string _group;
+    // Flag indicating if the validator is initialized
+    bool _initialized;               
+    // Name of the current test set
+    std::string _testset;           
+    // Name of the current group
+    std::string _group;             
 
-    std::string _testOverviewLogFileName;
-    std::string _testMarkupFileName;
-    int _testCase = -1;
-    std::string _testCaseFileName;
+    // File name for test overview log
+    std::string _testOverviewLogFileName;  
+    // File name for test markup
+    std::string _testMarkupFileName;       
+    // Current test case number
+    int _testCase = -1;              
+    // File name for the current test case
+    std::string _testCaseFileName;  
 
-    std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName;
-    std::set<std::string> _features;
-    std::set<std::string> _hitFeatures;
+    // Mapping of bounds hit information by variable name
+    std::map<std::string, ValidatorBoundsHit> _boundsHitByVariableName; 
+    // Set of registered features
+    std::set<std::string> _features;        
+    // Set of features hit during validation
+    std::set<std::string> _hitFeatures;     
 
+    /**
+     * @brief Check if a variable name is analyzable for bounds.
+     *
+     * @param variableName Name of the variable to check.
+     * @return true if variable name is analyzable; false otherwise.
+     */
     bool isVariableNameBoundsAnalyzable(const std::string &variableName) {
         for (size_t i = 0; i < variableName.length(); i++)
             if ((variableName[i] >= '0' && variableName[i] <= '9') || variableName[i] < ' ')
@@ -2422,6 +4031,12 @@ private:
         return true;
     }
 
+    /**
+     * @brief Check if a feature name is analyzable.
+     *
+     * @param featureName Name of the feature to check.
+     * @return true if feature name is analyzable; false otherwise.
+     */
     bool isFeatureNameAnalyzable(const std::string &featureName) {
         for (size_t i = 0; i < featureName.length(); i++)
             if (featureName[i] < ' ')
@@ -2430,65 +4045,137 @@ private:
     }
 
 public:
-    Validator() : _initialized(false), _testset("tests"), _group() {
-    }
+    /**
+     * @brief Default constructor initializing the validator.
+     */
+    Validator() 
+        : _initialized(false), _testset("tests"), _group() {}
 
+    /**
+     * @brief Initialize the validator instance.
+     */
     void initialize() {
         _initialized = true;
     }
 
+    /**
+     * @brief Get the current test set name.
+     *
+     * @return std::string Current test set name.
+     */
     std::string testset() const {
         if (!_initialized)
             __testlib_fail("Validator should be initialized with registerValidation(argc, argv) instead of registerValidation() to support validator.testset()");
         return _testset;
     }
 
+    /**
+     * @brief Get the current group name.
+     *
+     * @return std::string Current group name.
+     */
     std::string group() const {
         if (!_initialized)
             __testlib_fail("Validator should be initialized with registerValidation(argc, argv) instead of registerValidation() to support validator.group()");
         return _group;
     }
 
+    /**
+     * @brief Get the file name for test overview log.
+     *
+     * @return Test overview log file name.
+     */
     std::string testOverviewLogFileName() const {
         return _testOverviewLogFileName;
     }
 
+    /**
+     * @brief Get the file name for test markup.
+     *
+     * @return std::string Test markup file name.
+     */
     std::string testMarkupFileName() const {
         return _testMarkupFileName;
     }
 
+    /**
+     * @brief Get the current test case number.
+     *
+     * @return int Current test case number.
+     */
     int testCase() const {
         return _testCase;
     }
 
+    /**
+     * @brief Get the file name of the current test case.
+     *
+     * @return std::string File name of the current test case.
+     */
     std::string testCaseFileName() const {
         return _testCaseFileName;
     }
-
+     
+    /**
+     * @brief Set the name of the test set.
+     *
+     * @param testset Name of the test set.
+     */
     void setTestset(const char *const testset) {
         _testset = testset;
     }
 
+    /**
+     * @brief Set the name of the group.
+     *
+     * @param group Name of the group.
+     */
     void setGroup(const char *const group) {
         _group = group;
     }
 
+    /**
+     * @brief Set the file name for test overview log.
+     *
+     * @param testOverviewLogFileName File name for test overview log.
+     */
     void setTestOverviewLogFileName(const char *const testOverviewLogFileName) {
         _testOverviewLogFileName = testOverviewLogFileName;
     }
 
+    /**
+     * @brief Set the file name for test markup.
+     *
+     * @param testMarkupFileName File name for test markup.
+     */
     void setTestMarkupFileName(const char *const testMarkupFileName) {
         _testMarkupFileName = testMarkupFileName;
     }
 
+    /**
+     * @brief Set the current test case number.
+     *
+     * @param testCase Current test case number.
+     */
     void setTestCase(int testCase) {
         _testCase = testCase;
     }
 
+    /**
+     * @brief Set the file name of the current test case.
+     *
+     * @param testCaseFileName File name of the current test case.
+     */
     void setTestCaseFileName(const char *const testCaseFileName) {
         _testCaseFileName = testCaseFileName;
     }
 
+    /**
+     * @brief Prepare a variable name for processing.
+     *
+     * @param variableName Variable name to prepare.
+     * @return Prepared variable name.
+     */
     std::string prepVariableName(const std::string &variableName) {
         if (variableName.length() >= 2 && variableName != "~~") {
             if (variableName[0] == '~' && variableName.back() != '~')
@@ -2501,14 +4188,32 @@ public:
         return variableName;
     }
 
+    /**
+     * @brief Check if the minimum bound should be ignored for a variable.
+     *
+     * @param variableName Variable name to check.
+     * @return true if minimum bound should be ignored; false otherwise.
+     */
     bool ignoreMinBound(const std::string &variableName) {
         return variableName.length() >= 2 && variableName != "~~" && variableName[0] == '~';
     }
 
+    /**
+     * @brief Check if the maximums bound should be ignored for a variable.
+     *
+     * @param variableName Variable name to check.
+     * @return true if maximum bound should be ignored; false otherwise.
+     */
     bool ignoreMaxBound(const std::string &variableName) {
         return variableName.length() >= 2 && variableName != "~~" && variableName.back() == '~';
     }
 
+    /**
+     * @brief Add bounds hit information for a variable.
+     *
+     * @param variableName Variable name.
+     * @param boundsHit Bounds hit information.
+     */
     void addBoundsHit(const std::string &variableName, ValidatorBoundsHit boundsHit) {
         if (isVariableNameBoundsAnalyzable(variableName)) {
             std::string preparedVariableName = prepVariableName(variableName);
@@ -2517,6 +4222,11 @@ public:
         }
     }
 
+    /**
+     * @brief Get the log of bounds hit information.
+     *
+     * @return Bounds hit log.
+     */
     std::string getBoundsHitLog() {
         std::string result;
         for (std::map<std::string, ValidatorBoundsHit>::iterator i = _boundsHitByVariableName.begin();
@@ -2532,6 +4242,11 @@ public:
         return result;
     }
 
+    /**
+     * @brief Get the log of features registered and hit during validation.
+     *
+     * @return Features log.
+     */
     std::string getFeaturesLog() {
         std::string result;
         for (std::set<std::string>::iterator i = _features.begin();
@@ -2545,6 +4260,9 @@ public:
         return result;
     }
 
+    /**
+     * @brief Write the test overview log to file or standard output.
+     */
     void writeTestOverviewLog() {
         if (!_testOverviewLogFileName.empty()) {
             std::string fileName(_testOverviewLogFileName);
@@ -2558,7 +4276,7 @@ public:
                 f = stderr, standard_file = true;
             else {
                 f = fopen(fileName.c_str(), "wb");
-                if (NULL == f)
+                if (nullptr == f)
                     __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
             }
             fprintf(f, "%s%s", getBoundsHitLog().c_str(), getFeaturesLog().c_str());
@@ -2569,6 +4287,9 @@ public:
         }
     }
 
+    /**
+     * @brief Write the test markup to file or standard output.
+     */
     void writeTestMarkup() {
         if (!_testMarkupFileName.empty()) {
             std::vector<int> readChars = inf.getReadChars();
@@ -2597,7 +4318,7 @@ public:
                     f = stderr, standard_file = true;
                 else {
                     f = fopen(_testMarkupFileName.c_str(), "wb");
-                    if (NULL == f)
+                    if (nullptr == f)
                         __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + _testMarkupFileName + ")");
                 }
                 std::fprintf(f, "%s", markup.c_str());
@@ -2609,6 +4330,9 @@ public:
         }
     }
 
+    /**
+     * @brief Write the current test case content to file or standard output.
+     */
     void writeTestCase() {
         if (_testCase > 0) {
             std::vector<int> readChars = inf.getReadChars();
@@ -2644,7 +4368,7 @@ public:
                         f = stderr, standard_file = true;
                     else {
                         f = fopen(_testCaseFileName.c_str(), "wb");
-                        if (NULL == f)
+                        if (nullptr == f)
                             __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
                     }
                     std::fprintf(f, "%s", testCaseContent.c_str());
@@ -2657,6 +4381,11 @@ public:
         }
     }
 
+     /**
+     * @brief Register a feature for validation.
+     *
+     * @param feature Feature name.
+     */
     void addFeature(const std::string &feature) {
         if (_features.count(feature))
             __testlib_fail("Feature " + feature + " registered twice.");
@@ -2666,6 +4395,11 @@ public:
         _features.insert(feature);
     }
 
+    /**
+     * @brief Mark a feature as hit during validation.
+     *
+     * @param feature Feature name.
+     */
     void feature(const std::string &feature) {
         if (!isFeatureNameAnalyzable(feature))
             __testlib_fail("Feature name '" + feature + "' contains restricted characters.");
@@ -2675,22 +4409,37 @@ public:
 
         _hitFeatures.insert(feature);
     }
-} validator;
+};
+
+extern Validator validator;
 
 const std::string Validator::TEST_MARKUP_HEADER = "MU\xF3\x01";
 const std::string Validator::TEST_CASE_OPEN_TAG = "!c";
 const std::string Validator::TEST_CASE_CLOSE_TAG = ";";
 
+/**
+ * @brief Guard struct to finalize Testlib operations upon destruction.
+ */
 struct TestlibFinalizeGuard {
+    // Flag indicating if the guard is alive
     static bool alive;
+    // Flag indicating if registration function is called
     static bool registered;
 
-    int quitCount, readEofCount;
+    // Count of quit calls
+    int quitCount;
+    // Count of readEof calls
+    int readEofCount;
 
-    TestlibFinalizeGuard() : quitCount(0), readEofCount(0) {
-        // No operations.
-    }
+    /**
+     * @brief Default constructor initializing counts.
+     */
+    TestlibFinalizeGuard() 
+        : quitCount(0), readEofCount(0) {}
 
+    /**
+     * @brief Destructor to finalize Testlib operations.
+     */
     ~TestlibFinalizeGuard() {
         bool _alive = alive;
         alive = false;
@@ -2717,7 +4466,9 @@ struct TestlibFinalizeGuard {
     }
 
 private:
-    /* opts */
+    /**
+     * @brief Ensure no unused options are left behind.
+     */
     void autoEnsureNoUnusedOpts();
 };
 
@@ -2740,7 +4491,7 @@ std::fstream tout;
  */
 
 InStream::InStream() {
-    reader = NULL;
+    reader = nullptr;
     lastLine = -1;
     opened = false;
     name = "";
@@ -2769,10 +4520,10 @@ InStream::InStream(const InStream &baseStream, std::string content) {
 }
 
 InStream::~InStream() {
-    if (NULL != reader) {
+    if (nullptr != reader) {
         reader->close();
         delete reader;
-        reader = NULL;
+        reader = nullptr;
     }
 }
 
@@ -2786,9 +4537,15 @@ void InStream::setTestCase(int testCase) {
 std::vector<int> InStream::getReadChars() {
     if (testlibMode != _validator || mode != _input || !stdfile || this != &inf)
         __testlib_fail("InStream::getReadChars can be used only for inf in validator-mode.");
-    return reader == NULL ? std::vector<int>() : reader->getReadChars();
+    return reader == nullptr ? std::vector<int>() : reader->getReadChars();
 }
 
+/**
+ * @brief Sets the test case number and adjusts for zero-based indexing if
+ * needed.
+ *
+ * @param testCase The test case number.
+ */
 void setTestCase(int testCase) {
     static bool first_run = true;
     static bool zero_based = false;
@@ -2811,6 +4568,12 @@ void setTestCase(int testCase) {
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Converts a test result into its corresponding exit code.
+ *
+ * @param r The test result to convert.
+ * @return The corresponding exit code.
+ */
 int resultExitCode(TResult r) {
     if (r == _ok)
         return OK_EXIT_CODE;
@@ -2835,6 +4598,12 @@ int resultExitCode(TResult r) {
     return FAIL_EXIT_CODE;
 }
 
+/**
+ * @brief Sets the text color for console output on non-Windows platforms using
+ * ANSI escape sequences.
+ *
+ * @param color The color to set.
+ */
 void InStream::textColor(
 #if !(defined(ON_WINDOWS) && (!defined(_MSC_VER) || _MSC_VER > 1400)) && defined(__GNUC__)
         __attribute__((unused))
@@ -2880,6 +4649,11 @@ public:
 };
 #endif
 
+/**
+ * @brief Halts the program execution with the specified exit code.
+ *
+ * @param exitCode The exit code to terminate with.
+ */
 NORETURN void halt(int exitCode) {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
@@ -2894,10 +4668,23 @@ NORETURN void halt(int exitCode) {
     std::exit(exitCode);
 }
 
+/**
+ * @brief Checks if a result type requires checking dirt.
+ *
+ * @param result The test result to check.
+ * @return True if the result requires checking dirt, false otherwise.
+ */
 static bool __testlib_shouldCheckDirt(TResult result) {
     return result == _ok || result == _points || result >= _partially;
 }
 
+/**
+ * @brief Appends extra information to a message.
+ *
+ * @param message The original message.
+ * @param extra The extra information to append.
+ * @return The modified message with appended extra information.
+ */
 static std::string __testlib_appendMessage(const std::string &message, const std::string &extra) {
     int openPos = -1, closePos = -1;
     for (size_t i = 0; i < message.length(); i++) {
@@ -2929,6 +4716,14 @@ static std::string __testlib_appendMessage(const std::string &message, const std
     return message + " " + InStream::OPEN_BRACKET + extra + InStream::CLOSE_BRACKET;
 }
 
+/**
+ * @brief Converts message to a message suitable for printing.
+ *
+ * It converts the message to use parantheses instead of brackets.
+ *
+ * @param message The message to convert.
+ * @return The converted message.
+ */
 static std::string __testlib_toPrintableMessage(const std::string &message) {
     int openPos = -1, closePos = -1;
     for (size_t i = 0; i < message.length(); i++) {
@@ -2975,8 +4770,8 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
         }
     }
 
-    // You can change maxMessageLength.
-    // Example: 'inf.maxMessageLength = 1024 * 1024;'.
+    // You can change maxMessageLength. Example: 'inf.maxMessageLength = 1024 *
+    // 1024;'.
     if (message.length() > maxMessageLength) {
         std::string warn = "message length exceeds " + vtos(maxMessageLength)
                            + ", the message is truncated: ";
@@ -3050,7 +4845,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
 
     if (resultName != "") {
         resultFile = std::fopen(resultName.c_str(), "w");
-        if (resultFile == NULL) {
+        if (resultFile == nullptr) {
             resultName = "";
             quit(_fail, "Can not write to the result file");
         }
@@ -3074,7 +4869,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
             std::fprintf(resultFile, "</result>\n");
         } else
             std::fprintf(resultFile, "%s", __testlib_toPrintableMessage(message).c_str());
-        if (NULL == resultFile || fclose(resultFile) != 0) {
+        if (nullptr == resultFile || fclose(resultFile) != 0) {
             resultName = "";
             quit(_fail, "Can not write to the result file");
         }
@@ -3165,8 +4960,8 @@ void InStream::reset(std::FILE *file) {
     if (opened)
         close();
 
-    if (!stdfile && NULL == file)
-        if (NULL == (file = std::fopen(name.c_str(), "rb"))) {
+    if (!stdfile && nullptr == file)
+        if (nullptr == (file = std::fopen(name.c_str(), "rb"))) {
             if (mode == _output)
                 quits(_pe, std::string("Output file not found: \"") + name + "\"");
 
@@ -3174,7 +4969,7 @@ void InStream::reset(std::FILE *file) {
                 quits(_fail, std::string("Answer file not found: \"") + name + "\"");
         }
 
-    if (NULL != file) {
+    if (nullptr != file) {
         opened = true;
         __testlib_set_binary(file);
 
@@ -3184,7 +4979,7 @@ void InStream::reset(std::FILE *file) {
             reader = new BufferedFileInputStreamReader(file, name);
     } else {
         opened = false;
-        reader = NULL;
+        reader = nullptr;
     }
 }
 
@@ -3203,8 +4998,8 @@ void InStream::init(std::string fileName, TMode mode) {
         size_t fileSize = size_t(end - start);
         stream.close();
 
-        // You can change maxFileSize.
-        // Example: 'inf.maxFileSize = 256 * 1024 * 1024;'.
+        // You can change maxFileSize. Example: 'inf.maxFileSize = 256 * 1024 *
+        // 1024;'.
         if (fileSize > maxFileSize)
             quitf(_pe, "File size exceeds %d bytes, size is %d", int(maxFileSize), int(fileSize));
     }
@@ -3308,8 +5103,8 @@ void InStream::readWordTo(std::string &result) {
     while (!(isBlanks(cur) || cur == EOFC)) {
         result += char(cur);
 
-        // You can change maxTokenLength.
-        // Example: 'inf.maxTokenLength = 128 * 1024 * 1024;'.
+        // You can change maxTokenLength. Example: 'inf.maxTokenLength = 128 *
+        // 1024 * 1024;'.
         if (result.length() > maxTokenLength)
             quitf(_pe, "Length of token exceeds %d, token is '%s...'", int(maxTokenLength),
                   __testlib_part(result).c_str());
@@ -3334,6 +5129,15 @@ void InStream::readTokenTo(std::string &result) {
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Removes null characters ('\0') from the input string and replaces them
+ *        with '~'. Truncates the resulting string if its length exceeds 64
+ *        characters.
+ *
+ * @param s The input string.
+ * @return A processed string with null characters replaced and possibly
+ * truncated.
+ */
 static std::string __testlib_part(const std::string &s) {
     std::string t;
     for (size_t i = 0; i < s.length(); i++)
@@ -3347,6 +5151,17 @@ static std::string __testlib_part(const std::string &s) {
         return t.substr(0, 30) + "..." + t.substr(s.length() - 31, 31);
 }
 
+/**
+ * @brief Macro to read multiple items from the input stream and perform
+ *        validations. Quits the program with a failure message if validations
+ *        fail.
+ *
+ * @param readMany The function name for reading multiple items.
+ * @param readOne The function name for reading a single item.
+ * @param typeName The type of items to read.
+ * @param space Whether to expect spaces between items.
+ * @return A vector containing the read items.
+ */
 #define __testlib_readMany(readMany, readOne, typeName, space)                  \
     if (size < 0)                                                               \
         quit(_fail, #readMany ": size should be non-negative.");                \
@@ -3462,6 +5277,14 @@ void InStream::readTokenTo(std::string &result, const std::string &ptrn, const s
 #ifdef __GNUC__
 __attribute__((pure))
 #endif
+/**
+ * @brief Checks if a long long integer equals a string representation.
+ *
+ * @param integer The long long integer to compare.
+ * @param s The string representation to compare against.
+ * @return true if the integer equals the string representation, false
+ * otherwise.
+ */
 static inline bool equals(long long integer, const char *s) {
     if (integer == LLONG_MIN)
         return strcmp(s, "-9223372036854775808") == 0;
@@ -3499,6 +5322,14 @@ static inline bool equals(long long integer, const char *s) {
 #ifdef __GNUC__
 __attribute__((pure))
 #endif
+/**
+ * @brief Checks if a unsigned long long integer equals a string representation.
+ *
+ * @param integer The unsigned long long integer to compare.
+ * @param s The string representation to compare against.
+ * @return true if the integer equals the string representation, false
+ * otherwise.
+ */
 static inline bool equals(unsigned long long integer, const char *s) {
     if (integer == ULLONG_MAX)
         return strcmp(s, "18446744073709551615") == 0;
@@ -3524,6 +5355,13 @@ static inline bool equals(unsigned long long integer, const char *s) {
     return length == 0;
 }
 
+/**
+ * @brief Converts a C-string buffer to a double value with strict validation.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The C-string buffer containing the double value.
+ * @return The converted double value.
+ */
 static inline double stringToDouble(InStream &in, const char *buffer) {
     double result;
 
@@ -3571,6 +5409,14 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+/**
+ * @brief Converts a std::string buffer to a double value with strict
+ * validation.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The std::string buffer containing the double value.
+ * @return The converted double value.
+ */
 static inline double stringToDouble(InStream &in, const std::string& buffer) {
     for (size_t i = 0; i < buffer.length(); i++)
         if (buffer[i] == '\0')
@@ -3578,6 +5424,18 @@ static inline double stringToDouble(InStream &in, const std::string& buffer) {
     return stringToDouble(in, buffer.c_str());
 }
 
+/**
+ * @brief Converts a C-string buffer to a double value and ensures the number of
+ * digits after the decimal point is within a specified range.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The C-string buffer containing the double value.
+ * @param minAfterPointDigitCount The minimum number of digits allowed after the
+ * decimal point.
+ * @param maxAfterPointDigitCount The maximum number of digits allowed after the
+ * decimal point.
+ * @return The converted double value.
+ */
 static inline double stringToStrictDouble(InStream &in, const char *buffer,
         int minAfterPointDigitCount, int maxAfterPointDigitCount) {
     if (minAfterPointDigitCount < 0)
@@ -3650,6 +5508,18 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
         in.quit(_pe, ("Expected double, but \"" + __testlib_part(buffer) + "\" found").c_str());
 }
 
+/**
+ * @brief Converts a std::string buffer to a double value and ensures the number
+ * of digits after the decimal point is within a specified range.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The std::string buffer containing the double value.
+ * @param minAfterPointDigitCount The minimum number of digits allowed after the
+ * decimal point.
+ * @param maxAfterPointDigitCount The maximum number of digits allowed after the
+ * decimal point.
+ * @return The converted double value.
+ */
 static inline double stringToStrictDouble(InStream &in, const std::string& buffer,
         int minAfterPointDigitCount, int maxAfterPointDigitCount) {
     for (size_t i = 0; i < buffer.length(); i++)
@@ -3658,6 +5528,13 @@ static inline double stringToStrictDouble(InStream &in, const std::string& buffe
     return stringToStrictDouble(in, buffer.c_str(), minAfterPointDigitCount, maxAfterPointDigitCount);
 }
 
+/**
+ * @brief Converts a C-string buffer to a long long integer.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The C-string buffer containing the integer value.
+ * @return The converted long long integer value.
+ */
 static inline long long stringToLongLong(InStream &in, const char *buffer) {
     size_t length = strlen(buffer);
     if (length == 0 || length > 20)
@@ -3692,6 +5569,13 @@ static inline long long stringToLongLong(InStream &in, const char *buffer) {
     return result;
 }
 
+/**
+ * @brief Converts a std::string buffer to a long long integer.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The std::string buffer containing the integer value.
+ * @return The converted long long integer value.
+ */
 static inline long long stringToLongLong(InStream &in, const std::string& buffer) {
     for (size_t i = 0; i < buffer.length(); i++)
         if (buffer[i] == '\0')
@@ -3699,6 +5583,13 @@ static inline long long stringToLongLong(InStream &in, const std::string& buffer
     return stringToLongLong(in, buffer.c_str());
 }
 
+/**
+ * @brief Converts a C-string buffer to a unsigned long long integer.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The C-string buffer containing the integer value.
+ * @return The converted unsigned long long integer value.
+ */
 static inline unsigned long long stringToUnsignedLongLong(InStream &in, const char *buffer) {
     size_t length = strlen(buffer);
 
@@ -3724,6 +5615,13 @@ static inline unsigned long long stringToUnsignedLongLong(InStream &in, const ch
     return result;
 }
 
+/**
+ * @brief Converts a std::string buffer to a unsigned long long integer.
+ *
+ * @param in The input stream reference for error reporting.
+ * @param buffer The std::string buffer containing the integer value.
+ * @return The converted unsigned long long integer value.
+ */
 static inline long long stringToUnsignedLongLong(InStream &in, const std::string& buffer) {
     for (size_t i = 0; i < buffer.length(); i++)
         if (buffer[i] == '\0')
@@ -4023,21 +5921,21 @@ std::vector<double> InStream::readStrictDoubles(int size, double minv, double ma
 }
 
 bool InStream::eof() {
-    if (!strict && NULL == reader)
+    if (!strict && nullptr == reader)
         return true;
 
     return reader->eof();
 }
 
 bool InStream::seekEof() {
-    if (!strict && NULL == reader)
+    if (!strict && nullptr == reader)
         return true;
     skipBlanks();
     return eof();
 }
 
 bool InStream::eoln() {
-    if (!strict && NULL == reader)
+    if (!strict && nullptr == reader)
         return true;
 
     int c = reader->nextChar();
@@ -4102,7 +6000,7 @@ void InStream::readEof() {
 }
 
 bool InStream::seekEoln() {
-    if (!strict && NULL == reader)
+    if (!strict && nullptr == reader)
         return true;
 
     int cur;
@@ -4119,7 +6017,7 @@ void InStream::nextLine() {
 }
 
 void InStream::readStringTo(std::string &result) {
-    if (NULL == reader)
+    if (nullptr == reader)
         quit(_pe, "Expected line");
 
     result.clear();
@@ -4260,29 +6158,51 @@ void InStream::__testlib_ensure(bool cond, std::string message) {
 }
 
 void InStream::close() {
-    if (NULL != reader) {
+    if (nullptr != reader) {
         reader->close();
         delete reader;
-        reader = NULL;
+        reader = nullptr;
     }
 
     opened = false;
 }
 
+/**
+ * @brief Terminates the program with the specified result and message.
+ *
+ * @param result The result code indicating the termination reason.
+ * @param msg The message describing the reason for termination.
+ */
 NORETURN void quit(TResult result, const std::string &msg) {
     ouf.quit(result, msg.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified result and message.
+ *
+ * @param result The result code indicating the termination reason.
+ * @param msg The message describing the reason for termination.
+ */
 NORETURN void quit(TResult result, const char *msg) {
     ouf.quit(result, msg);
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void __testlib_quitp(double points, const char *message) {
     __testlib_points = points;
     std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", points));
 
     std::string quitMessage;
-    if (NULL == message || 0 == strlen(message))
+    if (nullptr == message || 0 == strlen(message))
         quitMessage = stringPoints;
     else
         quitMessage = stringPoints + " " + message;
@@ -4290,12 +6210,22 @@ NORETURN void __testlib_quitp(double points, const char *message) {
     quit(_points, quitMessage.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void __testlib_quitp(int points, const char *message) {
     __testlib_points = points;
     std::string stringPoints = format("%d", points);
 
     std::string quitMessage;
-    if (NULL == message || 0 == strlen(message))
+    if (nullptr == message || 0 == strlen(message))
         quitMessage = stringPoints;
     else
         quitMessage = stringPoints + " " + message;
@@ -4303,22 +6233,72 @@ NORETURN void __testlib_quitp(int points, const char *message) {
     quit(_points, quitMessage.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void quitp(float points, const std::string &message = "") {
     __testlib_quitp(double(points), message.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void quitp(double points, const std::string &message = "") {
     __testlib_quitp(points, message.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void quitp(long double points, const std::string &message = "") {
     __testlib_quitp(double(points), message.c_str());
 }
 
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
 NORETURN void quitp(int points, const std::string &message = "") {
     __testlib_quitp(points, message.c_str());
 }
 
+/**
+ * @brief Terminates the program with points information and optional message.
+ *
+ * This function takes a points_info string, checks for spaces (which are not
+ * allowed), and terminates the program with the points_info and an optional
+ * message.
+ *
+ * @param points_info The points information string to output.
+ * @param message Optional message to accompany the points information.
+ */
 NORETURN void quitpi(const std::string &points_info, const std::string &message = "") {
     if (points_info.find(' ') != std::string::npos)
         quit(_fail, "Parameter 'points_info' can't contain spaces");
@@ -4332,6 +6312,184 @@ template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
+NORETURN void quit(TResult result, const std::string &msg);
+
+/**
+ * @brief Terminates the program with the specified result and message.
+ *
+ * This function is used to immediately exit the program with the provided
+ * result code and message. The message is converted to a C-string and passed to
+ * the underlying `ouf.quit` function.
+ *
+ * @param result The result code indicating the termination reason.
+ * @param msg The message describing the reason for termination.
+ */
+NORETURN void quit(TResult result, const std::string &msg) {
+    ouf.quit(result, msg.c_str());
+}
+
+NORETURN void quit(TResult result, const char *msg);
+
+/**
+ * @brief Terminates the program with the specified result and message.
+ *
+ * This function is used to immediately exit the program with the provided
+ * result code and message. The message is directly passed to the underlying
+ * `ouf.quit` function.
+ *
+ * @param result The result code indicating the termination reason.
+ * @param msg The C-string message describing the reason for termination.
+ */
+NORETURN void quit(TResult result, const char *msg) {
+    ouf.quit(result, msg);
+}
+
+NORETURN void __testlib_quitp(double points, const char *message);
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void __testlib_quitp(double points, const char *message) {
+    __testlib_points = points;
+    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", points));
+
+    std::string quitMessage;
+    if (nullptr == message || 0 == strlen(message))
+        quitMessage = stringPoints;
+    else
+        quitMessage = stringPoints + " " + message;
+
+    quit(_points, quitMessage.c_str());
+}
+
+NORETURN void __testlib_quitp(int points, const char *message);
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function sets the internal points value and terminates the program with
+ * the accumulated points and an optional message. If no message is provided or
+ * if it's an empty string, only the points are output.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void __testlib_quitp(int points, const char *message) {
+    __testlib_points = points;
+    std::string stringPoints = format("%d", points);
+
+    std::string quitMessage;
+    if (nullptr == message || 0 == strlen(message))
+        quitMessage = stringPoints;
+    else
+        quitMessage = stringPoints + " " + message;
+
+    quit(_points, quitMessage.c_str());
+}
+
+NORETURN void quitp(float points, const std::string &message = "");
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function converts the points to double and calls __testlib_quitp with
+ * the converted points and optional message.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void quitp(float points, const std::string &message = "") {
+    __testlib_quitp(double(points), message.c_str());
+}
+
+NORETURN void quitp(double points, const std::string &message = "");
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function calls __testlib_quitp with the provided points and optional
+ * message.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void quitp(double points, const std::string &message = "") {
+    __testlib_quitp(points, message.c_str());
+}
+
+NORETURN void quitp(long double points, const std::string &message = "");
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function converts the points to double and calls __testlib_quitp with
+ * the converted points and optional message.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void quitp(long double points, const std::string &message = "") {
+    __testlib_quitp(double(points), message.c_str());
+}
+
+NORETURN void quitp(int points, const std::string &message = "");
+
+/**
+ * @brief Terminates the program with the specified points and optional message.
+ *
+ * This function calls __testlib_quitp with the provided points and optional
+ * message.
+ *
+ * @param points The points to output.
+ * @param message Optional message to accompany the points value.
+ */
+NORETURN void quitp(int points, const std::string &message = "") {
+    __testlib_quitp(points, message.c_str());
+}
+
+NORETURN void quitpi(const std::string &points_info, const std::string &message = "");
+
+/**
+ * @brief Terminates the program with points information and optional message.
+ *
+ * This function takes a points_info string, checks for spaces (which are not
+ * allowed), and terminates the program with the points_info and an optional
+ * message.
+ *
+ * @param points_info The points information string to output.
+ * @param message Optional message to accompany the points information.
+ */
+NORETURN void quitpi(const std::string &points_info, const std::string &message = "") {
+    if (points_info.find(' ') != std::string::npos)
+        quit(_fail, "Parameter 'points_info' can't contain spaces");
+    if (message.empty())
+        quit(_points, ("points_info=" + points_info).c_str());
+    else
+        quit(_points, ("points_info=" + points_info + " " + message).c_str());
+}
+
+template<typename F> NORETURN void quitp(F points, const char *format, ...);
+
+/**
+ * @brief Terminates the program with formatted points and message.
+ *
+ * This function is a variadic template that accepts formatted input to specify
+ * points and an optional message. It formats the message using the provided
+ * format and then calls quitp with the formatted points and message.
+ *
+ * @tparam F The type of points (int, float, double, etc.).
+ * @param points The points value to output.
+ * @param format... The format string for formatting the message.
+ * @param ... Additional arguments for formatting the message.
+ */
+template<typename F>
 NORETURN void quitp(F points, const char *format, ...) {
     FMT_TO_RESULT(format, format, message);
     quitp(points, message);
@@ -4340,6 +6498,17 @@ NORETURN void quitp(F points, const char *format, ...) {
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
+/**
+ * @brief Terminates the program with formatted result and message.
+ *
+ * This function is a variadic function that accepts formatted input to specify
+ * the result code and an optional message. It formats the message using the
+ * provided format and then calls quit with the formatted result and message.
+ *
+ * @param result The result code indicating the termination reason.
+ * @param format... The format string for formatting the message.
+ * @param ... Additional arguments for formatting the message.
+ */
 NORETURN void quitf(TResult result, const char *format, ...) {
     FMT_TO_RESULT(format, format, message);
     quit(result, message);
@@ -4348,6 +6517,20 @@ NORETURN void quitf(TResult result, const char *format, ...) {
 #ifdef __GNUC__
 __attribute__ ((format (printf, 3, 4)))
 #endif
+/**
+ * @brief Terminates the program if the condition is true with formatted result
+ * and message.
+ *
+ * This function checks the condition and if true, it formats the message using
+ * the provided format and then calls quit with the formatted result and
+ * message.
+ *
+ * @param condition The condition to check.
+ * @param result The result code indicating the termination reason if the
+ * condition is true.
+ * @param format The format string for formatting the message.
+ * @param ... Additional arguments for formatting the message.
+ */
 void quitif(bool condition, TResult result, const char *format, ...) {
     if (condition) {
         FMT_TO_RESULT(format, format, message);
@@ -4355,6 +6538,9 @@ void quitif(bool condition, TResult result, const char *format, ...) {
     }
 }
 
+/**
+ * @brief Print the help for Testlib.
+ */
 NORETURN void __testlib_help() {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
@@ -4376,20 +6562,24 @@ NORETURN void __testlib_help() {
     std::exit(FAIL_EXIT_CODE);
 }
 
+/**
+ * @brief Ensures preconditions required by the testlib library.
+ *
+ * This function verifies several assumptions that are crucial for the correct
+ * functioning of the testlib library. It includes static assertions for the
+ * sizes of data types and checks for specific conditions related to
+ * mathematical operations. If any condition fails, the function terminates the
+ * program with an appropriate message. 
+ *
+ * Specifically, it checks if sizeof(int) = 4, INT_MAX == 2147483647,
+ * sizeof(long long) = sizeof(double) = 8 and sizeof(double) and ensures that
+ * -ffast-math compiler flag is not used by checking NaN behavior.
+ */
 static void __testlib_ensuresPreconditions() {
-    // testlib assumes: sizeof(int) = 4.
     __TESTLIB_STATIC_ASSERT(sizeof(int) == 4);
-
-    // testlib assumes: INT_MAX == 2147483647.
     __TESTLIB_STATIC_ASSERT(INT_MAX == 2147483647);
-
-    // testlib assumes: sizeof(long long) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(long long) == 8);
-
-    // testlib assumes: sizeof(double) = 8.
     __TESTLIB_STATIC_ASSERT(sizeof(double) == 8);
-
-    // testlib assumes: no -ffast-math.
     if (!__testlib_isNaN(+__testlib_nan()))
         quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
     if (!__testlib_isNaN(-__testlib_nan()))
@@ -4398,16 +6588,36 @@ static void __testlib_ensuresPreconditions() {
 
 std::string __testlib_testset;
 
+/**
+ * @brief Retrieves the current testset name.
+ *
+ * @return A string representing the current testset name.
+ */
 std::string getTestset() {
     return __testlib_testset;
 }
 
 std::string __testlib_group;
 
+/**
+ * @brief Retrieves the current testgroup name.
+ *
+ * @return A string representing the current testgroup name.
+ */
 std::string getGroup() {
     return __testlib_group;
 }
 
+/**
+ * @brief Sets the testset and group names based on command-line arguments.
+ *
+ * This function parses command-line arguments (`argv`) to set the testset and
+ * group names. It looks for "--testset" and "--group" arguments followed by
+ * valid names. If arguments are missing or invalid, it terminates the program.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ */
 static void __testlib_set_testset_and_group(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp("--testset", argv[i])) {
@@ -4424,6 +6634,18 @@ static void __testlib_set_testset_and_group(int argc, char* argv[]) {
     }
 }
 
+/**
+ * @brief Initializes the test generator environment.
+ *
+ * This function initializes the test generator environment based on
+ * command-line arguments (`argc` and `argv`) and the specified random generator
+ * version. It sets the random generator version, ensures preconditions, and
+ * prepares the environment for generating test cases.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ * @param randomGeneratorVersion The version of the random generator (0 or 1).
+ */
 void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
     if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
         quitf(_fail, "Random generator version is expected to be 0 or 1.");
@@ -4442,6 +6664,17 @@ void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
 }
 
 #ifdef USE_RND_AS_BEFORE_087
+/**
+ * @brief Initializes the test generator environment.
+ *
+ * This function initializes the test generator environment based on
+ * command-line arguments (`argc` and `argv`) and the specified random generator
+ * version. It sets the random generator, ensures preconditions, and prepares
+ * the environment for generating test cases.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ */
 void registerGen(int argc, char* argv[])
 {
     registerGen(argc, argv, 0);
@@ -4463,6 +6696,17 @@ __declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv,
         " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
         " Version 1 has been released on Spring, 2013. Use it to write new generators."))
 #endif
+/**
+ * @brief Initializes the test generator environment.
+ *
+ * This function initializes the test generator environment based on
+ * command-line arguments (`argc` and `argv`) and the specified random generator
+ * version. It sets the random generator, ensures preconditions, and prepares
+ * the environment for generating test cases.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ */
 void registerGen(int argc, char *argv[]) {
     std::fprintf(stderr, "Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
                          " The third parameter stands for the random generator version."
@@ -4472,6 +6716,16 @@ void registerGen(int argc, char *argv[]) {
 }
 #endif
 
+/**
+ * @brief Sets the encoding mode for the application.
+ *
+ * This function sets the encoding mode for the application based on the
+ * provided encoding name (`appesModeEncoding`). It validates the encoding
+ * against a list of known encodings and sets it globally. If the provided
+ * encoding is not valid, it terminates the program with an error message.
+ *
+ * @param appesModeEncoding The name of the encoding mode to set.
+ */
 void setAppesModeEncoding(std::string appesModeEncoding) {
     static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
 "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
@@ -4496,6 +6750,20 @@ void setAppesModeEncoding(std::string appesModeEncoding) {
     ::appesModeEncoding = appesModeEncoding;
 }
 
+
+/**
+ * @brief Registers the program as an interaction program.
+ *
+ * This function sets up the environment for an interaction program,
+ * initializing input, output, and answer streams based on command-line
+ * arguments (`argc` and `argv`). It verifies the correct number and format of
+ * command-line arguments and sets flags based on the presence of specific
+ * arguments such as "--help" and "-APPES". If any conditions are not met, the
+ * function terminates the program with an appropriate error message.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ */
 void registerInteraction(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
     __testlib_set_testset_and_group(argc, argv);
@@ -4549,6 +6817,13 @@ void registerInteraction(int argc, char *argv[]) {
         ans.name = "unopened answer stream";
 }
 
+/**
+ * @brief Registers the program as a validator without additional arguments.
+ *
+ * This function sets up the environment for a validator program without any
+ * additional command-line arguments. It initializes input streams, sets the
+ * validator mode, and ensures necessary preconditions for validation.
+ */
 void registerValidation() {
     __testlib_ensuresPreconditions();
     TestlibFinalizeGuard::registered = true;
@@ -4563,6 +6838,19 @@ void registerValidation() {
     inf.strict = true;
 }
 
+/**
+ * @brief Registers the program as a validator with optional configuration
+ * arguments.
+ *
+ * This function sets up the environment for a validator program with optional
+ * configuration arguments provided via command-line (`argc` and `argv`). It
+ * initializes input streams, sets the validator mode, and allows configuration
+ * of validator-specific parameters such as testset, group, and output file
+ * names.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ */
 void registerValidation(int argc, char *argv[]) {
     registerValidation();
     __testlib_set_testset_and_group(argc, argv);
@@ -4623,53 +6911,122 @@ void registerValidation(int argc, char *argv[]) {
     }
 }
 
+/**
+ * @brief Adds a feature to the validator configuration.
+ *
+ * This function adds a feature to the validator configuration. Features can be
+ * used to enable or disable specific validation behaviors or settings. It
+ * checks if the current mode is validator; otherwise, it terminates the program
+ * with an error message.
+ *
+ * @param feature The feature to add to the validator configuration.
+ */
 void addFeature(const std::string &feature) {
     if (testlibMode != _validator)
         quit(_fail, "Features are supported in validators only.");
     validator.addFeature(feature);
 }
 
+/**
+ * @brief Sets a feature in the validator configuration.
+ *
+ * This function sets a feature in the validator configuration. Features can be
+ * used to enable or disable specific validation behaviors or settings. It
+ * checks if the current mode is validator; otherwise, it terminates the program
+ * with an error message.
+ *
+ * @param feature The feature to set in the validator configuration.
+ */
 void feature(const std::string &feature) {
     if (testlibMode != _validator)
         quit(_fail, "Features are supported in validators only.");
     validator.feature(feature);
 }
 
+/**
+ * @brief Checker class
+ */
 class Checker {
 private:
+    // Flag whether checker is initialized
     bool _initialized;
+    // The current testset
     std::string _testset;
+    // The current group
     std::string _group;
 
 public:
+    /**
+     * @brief Construct a new Checker object
+     */
     Checker() : _initialized(false), _testset("tests"), _group() {
     }
 
+    /**
+     * @brief Initializes the checker.
+     *
+     * This method marks the checker as initialized, enabling access to the
+     * `testset()` and `group()` methods.
+     */
     void initialize() {
         _initialized = true;
     }
 
+    /**
+     * @brief Retrieves the current testset.
+     *
+     * @return The current testset as a string.
+     */
     std::string testset() const {
         if (!_initialized)
             __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.testset()");
         return _testset;
     }
 
+    /**
+     * @brief Retrieves the current group.
+     *
+     * @return The current group as a string.
+     */
     std::string group() const {
         if (!_initialized)
             __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.group()");
         return _group;
     }
 
+    /**
+     * @brief Sets the testset for the checker.
+     *
+     * @param testset The testset to set.
+     */
     void setTestset(const char *const testset) {
         _testset = testset;
     }
 
+    /**
+     * @brief Sets the group for the checker.
+     *
+     * @param group The group to set.
+     */
     void setGroup(const char *const group) {
         _group = group;
     }
 } checker;
 
+/**
+ * @brief Registers the program as a checker with command-line arguments.
+ *
+ * This function sets up the environment for a checker program based on
+ * command-line arguments (`argc` and `argv`). It initializes input and output
+ * streams, sets the checker mode, and handles optional arguments like
+ * "--testset" and "--group" for configuring the checker's testset and group.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv An array of command-line argument strings.
+ *
+ * @throw _fail if the program is not run with the correct number or format of
+ * arguments, or if essential streams cannot be initialized.
+ */
 void registerTestlibCmd(int argc, char *argv[]) {
     __testlib_ensuresPreconditions();
     __testlib_set_testset_and_group(argc, argv);
@@ -4734,6 +7091,19 @@ void registerTestlibCmd(int argc, char *argv[]) {
     ans.init(args[3], _answer);
 }
 
+/**
+ * @brief Registers the program as a checker with variadic arguments.
+ *
+ * This function sets up the environment for a checker program based on variadic
+ * arguments. It converts variadic arguments into a standard `char *argv[]`
+ * format and calls `registerTestlibCmd()` to handle the setup.
+ *
+ * @param argc The number of variadic arguments.
+ * @param ... A list of `char *` strings representing command-line arguments.
+ *
+ * @throw _fail if the program is not run with the correct number or format of
+ * arguments, or if essential streams cannot be initialized.
+ */
 void registerTestlib(int argc, ...) {
     if (argc < 3 || argc > 5)
         quit(_fail, std::string("Program must be run with the following arguments: ") +
@@ -4743,7 +7113,7 @@ void registerTestlib(int argc, ...) {
 
     va_list ap;
     va_start(ap, argc);
-    argv[0] = NULL;
+    argv[0] = nullptr;
     for (int i = 0; i < argc; i++) {
         argv[i + 1] = va_arg(ap, char*);
     }
@@ -4753,6 +7123,12 @@ void registerTestlib(int argc, ...) {
     delete[] argv;
 }
 
+/**
+ * @brief Ensures a condition is true; otherwise, quits with an error message.
+ *
+ * @param cond Condition to check.
+ * @param msg Error message if the condition fails.
+ */
 static inline void __testlib_ensure(bool cond, const std::string &msg) {
     if (!cond)
         quit(_fail, msg.c_str());
@@ -4761,19 +7137,46 @@ static inline void __testlib_ensure(bool cond, const std::string &msg) {
 #ifdef __GNUC__
 __attribute__((unused))
 #endif
+/**
+ * @brief Ensures a condition is true; otherwise, quits with an error message.
+ *
+ * @param cond Condition to check.
+ * @param msg Error message if the condition fails.
+ */
 static inline void __testlib_ensure(bool cond, const char *msg) {
     if (!cond)
         quit(_fail, msg);
 }
 
+/**
+ * @brief Macro to ensure a condition is true with a predefined error message.
+ *
+ * @param cond Condition to check.
+ */
 #define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
+
+
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
+
+/**
+ * @brief Macro to ensure a condition is true with an error message including
+ * line number.
+ *
+ * @param cond Condition to check.
+ */
 #define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
+/**
+ * @brief Ensures a condition is true with a formatted error message.
+ *
+ * @param cond Condition to check.
+ * @param format Format string for the error message.
+ * @param ... Additional arguments for formatting.
+ */
 inline void ensuref(bool cond, const char *format, ...) {
     if (!cond) {
         FMT_TO_RESULT(format, format, message);
@@ -4781,6 +7184,11 @@ inline void ensuref(bool cond, const char *format, ...) {
     }
 }
 
+/**
+ * @brief Quits with a failure message.
+ *
+ * @param message Failure message.
+ */
 NORETURN static void __testlib_fail(const std::string &message) {
     quitf(_fail, "%s", message.c_str());
 }
@@ -4788,17 +7196,26 @@ NORETURN static void __testlib_fail(const std::string &message) {
 #ifdef __GNUC__
 __attribute__ ((format (printf, 1, 2)))
 #endif
+/**
+ * @brief Sets the name of the checker with a formatted string.
+ *
+ * @param format Format string for the checker name.
+ * @param ... Additional arguments for formatting.
+ */
 void setName(const char *format, ...) {
     FMT_TO_RESULT(format, format, name);
     checkerName = name;
 }
 
-/*
- * Do not use random_shuffle, because it will produce different result
- * for different C++ compilers.
+/**
+ * @brief Shuffles elements in a range using a stable implementation. 
  *
- * This implementation uses testlib random_t to produce random numbers, so
- * it is stable.
+ * @note This should be used instead of std::random_shuffle, because that gives
+ * different results on other compilers, while this is based on random_t.
+ *
+ * @tparam _RandomAccessIter Iterator type.
+ * @param __first Iterator to the first element.
+ * @param __last Iterator to the last element.
  */
 template<typename _RandomAccessIter>
 void shuffle(_RandomAccessIter __first, _RandomAccessIter __last) {
@@ -4855,15 +7272,27 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
                  "is randomGeneratorVersion (currently the latest is 1) [ignored seed=%u].", seed);
 }
 
+/**
+ * @brief Starts a new test with a given test number.
+ *
+ * @param test Test number.
+ */
 void startTest(int test) {
     const std::string testFileName = vtos(test);
-    if (NULL == freopen(testFileName.c_str(), "wt", stdout))
+    if (nullptr == freopen(testFileName.c_str(), "wt", stdout))
         __testlib_fail("Unable to write file '" + testFileName + "'");
 }
 
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Compresses the string `s`.
+ *
+ * @param s Input string to compress.
+ * @return Compressed string.
+ * @see __testlib_part(s)
+ */
 inline std::string compress(const std::string &s) {
     return __testlib_part(s);
 }
@@ -4871,6 +7300,12 @@ inline std::string compress(const std::string &s) {
 #ifdef __GNUC__
 __attribute__((const))
 #endif
+/**
+ * @brief Returns the English ordinal suffix for a given integer `x`.
+ *
+ * @param x Integer value.
+ * @return Ordinal suffix ("th", "st", "nd", "rd").
+ */
 inline std::string englishEnding(int x) {
     x %= 100;
     if (x / 10 == 1)
@@ -4884,6 +7319,17 @@ inline std::string englishEnding(int x) {
     return "th";
 }
 
+/**
+ * @brief Joins elements from iterator range `[first, last)` into a string
+ * separated by `separator`.
+ *
+ * @tparam _ForwardIterator Iterator type.
+ * @tparam _Separator Separator type (e.g., char).
+ * @param first Iterator to the first element.
+ * @param last Iterator to the last element (one past the end).
+ * @param separator Separator between elements.
+ * @return String containing joined elements.
+ */
 template<typename _ForwardIterator, typename _Separator>
 #ifdef __GNUC__
 __attribute__((const))
@@ -4901,6 +7347,16 @@ std::string join(_ForwardIterator first, _ForwardIterator last, _Separator separ
     return ss.str();
 }
 
+
+/**
+ * @brief Joins elements from iterator range `[first, last)` into a string
+ * separated by a space (' ').
+ *
+ * @tparam _ForwardIterator Iterator type.
+ * @param first Iterator to the first element.
+ * @param last Iterator to the last element (one past the end).
+ * @return String containing joined elements separated by space.
+ */
 template<typename _ForwardIterator>
 #ifdef __GNUC__
 __attribute__((const))
@@ -4909,6 +7365,16 @@ std::string join(_ForwardIterator first, _ForwardIterator last) {
     return join(first, last, ' ');
 }
 
+/**
+ * @brief Joins elements from a collection `collection` into a string separated
+ * by `separator`.
+ *
+ * @tparam _Collection Collection type.
+ * @tparam _Separator Separator type (e.g., char).
+ * @param collection Collection to join.
+ * @param separator Separator between elements.
+ * @return String containing joined elements.
+ */
 template<typename _Collection, typename _Separator>
 #ifdef __GNUC__
 __attribute__((const))
@@ -4917,6 +7383,14 @@ std::string join(const _Collection &collection, _Separator separator) {
     return join(collection.begin(), collection.end(), separator);
 }
 
+/**
+ * @brief Joins elements from a collection `collection` into a string separated
+ * by a space (' ').
+ *
+ * @tparam _Collection Collection type.
+ * @param collection Collection to join.
+ * @return String containing joined elements separated by space.
+ */
 template<typename _Collection>
 #ifdef __GNUC__
 __attribute__((const))
@@ -4926,8 +7400,12 @@ std::string join(const _Collection &collection) {
 }
 
 /**
- * Splits string s by character separator returning exactly k+1 items,
- * where k is the number of separator occurrences.
+ * @brief Splits string `s` by character `separator`, returning exactly k+1
+ * items where k is the number of separator occurrences.
+ *
+ * @param s Input string to split.
+ * @param separator Character separator.
+ * @return Vector of strings resulting from the split.
  */
 #ifdef __GNUC__
 __attribute__((const))
@@ -4946,8 +7424,12 @@ std::vector<std::string> split(const std::string &s, char separator) {
 }
 
 /**
- * Splits string s by character separators returning exactly k+1 items,
- * where k is the number of separator occurrences.
+ * @brief Splits string `s` by any character in `separators`, returning exactly
+ * k+1 items where k is the number of separator occurrences.
+ *
+ * @param s Input string to split.
+ * @param separators String containing all possible separators.
+ * @return Vector of strings resulting from the split.
  */
 #ifdef __GNUC__
 __attribute__((const))
@@ -4973,7 +7455,12 @@ std::vector<std::string> split(const std::string &s, const std::string &separato
 }
 
 /**
- * Splits string s by character separator returning non-empty items.
+ * @brief Tokenizes string `s` by character `separator`, returning non-empty
+ * items.
+ *
+ * @param s Input string to tokenize.
+ * @param separator Character separator.
+ * @return Vector of non-empty strings resulting from the tokenization.
  */
 #ifdef __GNUC__
 __attribute__((const))
@@ -4994,7 +7481,12 @@ std::vector<std::string> tokenize(const std::string &s, char separator) {
 }
 
 /**
- * Splits string s by character separators returning non-empty items.
+ * @brief Tokenizes string `s` by any character in `separators`, returning
+ * non-empty items.
+ *
+ * @param s Input string to tokenize.
+ * @param separators String containing all possible separators.
+ * @return Vector of non-empty strings resulting from the tokenization.
  */
 #ifdef __GNUC__
 __attribute__((const))
@@ -5023,6 +7515,14 @@ std::vector<std::string> tokenize(const std::string &s, const std::string &separ
     return result;
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ */
 NORETURN void __testlib_expectedButFound(TResult result, std::string expected, std::string found, const char *prepend) {
     std::string message;
     if (strlen(prepend) != 0)
@@ -5034,12 +7534,29 @@ NORETURN void __testlib_expectedButFound(TResult result, std::string expected, s
     quit(result, message);
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ */
 NORETURN void __testlib_expectedButFound(TResult result, double expected, double found, const char *prepend) {
     std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
     std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
     __testlib_expectedButFound(result, expectedString, foundString, prepend);
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<typename T>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
@@ -5051,6 +7568,15 @@ NORETURN void expectedButFound(TResult result, T expected, T found, const char *
     __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
@@ -5061,6 +7587,15 @@ expectedButFound<std::string>(TResult result, std::string expected, std::string 
     __testlib_expectedButFound(result, expected, found, prepend.c_str());
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
@@ -5072,17 +7607,34 @@ NORETURN void expectedButFound<double>(TResult result, double expected, double f
     __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
 #endif
 NORETURN void
-expectedButFound<const char *>(TResult result, const char *expected, const char *found, const char *prependFormat,
-                               ...) {
+expectedButFound<const char *>(TResult result, const char *expected, const char *found, const char *prependFormat, ...) {
     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
     __testlib_expectedButFound(result, std::string(expected), std::string(found), prepend.c_str());
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
@@ -5092,6 +7644,15 @@ NORETURN void expectedButFound<float>(TResult result, float expected, float foun
     __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
 }
 
+/**
+ * @brief Quits with an error message detailing expected and found values.
+ *
+ * @param result Test result type.
+ * @param expected Expected value.
+ * @param found Found value.
+ * @param prependFormat Format string for prepend message (optional).
+ * @param ... Additional arguments for prepend format string.
+ */
 template<>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 4, 5)))
@@ -5103,6 +7664,16 @@ expectedButFound<long double>(TResult result, long double expected, long double 
 }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
+
+/**
+ * @brief Type trait to check if a type `T` is iterable (has begin() and end()
+ * methods).
+ *
+ * Checks the existence of `typename U::iterator` for non-iterator types and
+ * fallbacks to check if `U *x` is a valid type.
+ *
+ * @tparam T Type to check.
+ */
 template<typename T>
 struct is_iterable {
     template<typename U>
@@ -5114,6 +7685,13 @@ struct is_iterable {
     static const bool value = sizeof(test<T>(0)) == 1;
 };
 
+/**
+ * @brief Type trait to enable/disable template specialization based on a
+ * boolean condition (`B`).
+ *
+ * @tparam B Boolean condition.
+ * @tparam T Type to enable if `B` is true.
+ */
 template<bool B, class T = void>
 struct __testlib_enable_if {
 };
@@ -5123,11 +7701,28 @@ struct __testlib_enable_if<true, T> {
     typedef T type;
 };
 
+/**
+ * @brief Prints a single element `t` to standard output.
+ *
+ * Specialized for non-iterable types.
+ *
+ * @tparam T Type of the element.
+ * @param t Element to print.
+ */
 template<typename T>
 typename __testlib_enable_if<!is_iterable<T>::value, void>::type __testlib_print_one(const T &t) {
     std::cout << t;
 }
 
+/**
+ * @brief Prints a single iterable `t` to standard output, separating elements
+ * by space.
+ *
+ * Specialized for iterable types.
+ *
+ * @tparam T Type of the iterable.
+ * @param t Iterable to print.
+ */
 template<typename T>
 typename __testlib_enable_if<is_iterable<T>::value, void>::type __testlib_print_one(const T &t) {
     bool first = true;
@@ -5140,16 +7735,30 @@ typename __testlib_enable_if<is_iterable<T>::value, void>::type __testlib_print_
     }
 }
 
+/**
+ * @brief Specialization to print a `std::string` without additional separation.
+ *
+ * @param t String to print.
+ */
 template<>
 typename __testlib_enable_if<is_iterable<std::string>::value, void>::type
 __testlib_print_one<std::string>(const std::string &t) {
     std::cout << t;
 }
 
-template<typename A, typename B>
-void __println_range(A begin, B end) {
+/**
+ * @brief Prints elements from range `[begin, end)` separated by space to
+ * standard output.
+ *
+ * @tparam BeginIt Type of the begin iterator.
+ * @tparam EndIt Type of the end iterator.
+ * @param begin Begin iterator of the range.
+ * @param end End iterator of the range.
+ */
+template<typename BeginIt, typename EndIt>
+void __println_range(BeginIt begin, EndIt end) {
     bool first = true;
-    for (B i = B(begin); i != end; i++) {
+    for (EndIt i = EndIt(begin); i != end; i++) {
         if (first)
             first = false;
         else
@@ -5159,6 +7768,14 @@ void __println_range(A begin, B end) {
     std::cout << std::endl;
 }
 
+/**
+ * @brief Type trait to check if a type `T` is an iterator.
+ *
+ * Uses SFINAE (Substitution Failure Is Not An Error) to check for the existence
+ * of `typename R::iterator_category`.
+ *
+ * @tparam T Type to check.
+ */
 template<class T, class Enable = void>
 struct is_iterator {
     static T makeT();
@@ -5176,11 +7793,24 @@ struct is_iterator {
     static const bool value = sizeof(test(makeT())) == sizeof(void *);
 };
 
+/**
+ * @brief Specialization for array types to indicate they are not iterators.
+ *
+ * @tparam T Array type.
+ */
 template<class T>
 struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::type> {
     static const bool value = false;
 };
 
+/**
+ * @brief Prints two elements `a` and `b` to standard output separated by space.
+ *
+ * @tparam A Type of the first element.
+ * @tparam B Type of the second element.
+ * @param a First element.
+ * @param b Second element.
+ */
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
@@ -5189,16 +7819,40 @@ typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints elements from iterator range `[a, b)` to standard output
+ * separated by space.
+ *
+ * @tparam A Type of the first iterator.
+ * @tparam B Type of the second iterator.
+ * @param a Begin iterator.
+ * @param b End iterator.
+ */
 template<typename A, typename B>
 typename __testlib_enable_if<is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __println_range(a, b);
 }
 
+/**
+ * @brief Prints elements from pointer range `[a, b)` to standard output
+ * separated by space.
+ *
+ * @tparam A Type of the elements.
+ * @param a Begin pointer.
+ * @param b End pointer.
+ */
 template<typename A>
 void println(const A *a, const A *b) {
     __println_range(a, b);
 }
 
+/**
+ * @brief Specialization for `char*` pointers to print two C-style strings
+ * separated by space.
+ *
+ * @param a Pointer to the first C-style string.
+ * @param b Pointer to the second C-style string.
+ */
 template<>
 void println<char>(const char *a, const char *b) {
     __testlib_print_one(a);
@@ -5207,12 +7861,29 @@ void println<char>(const char *a, const char *b) {
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints a single value `x` followed by a newline to standard output.
+ *
+ * @tparam T Type of the value to print.
+ * @param x Value to print.
+ */
 template<typename T>
 void println(const T &x) {
     __testlib_print_one(x);
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints three values `a`, `b`, and `c` separated by spaces, followed by
+ * a newline to standard output.
+ *
+ * @tparam A Type of the first value.
+ * @tparam B Type of the second value.
+ * @tparam C Type of the third value.
+ * @param a First value to print.
+ * @param b Second value to print.
+ * @param c Third value to print.
+ */
 template<typename A, typename B, typename C>
 void println(const A &a, const B &b, const C &c) {
     __testlib_print_one(a);
@@ -5223,6 +7894,19 @@ void println(const A &a, const B &b, const C &c) {
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints four values `a`, `b`, `c`, and `d` separated by spaces,
+ * followed by a newline to standard output.
+ *
+ * @tparam A Type of the first value.
+ * @tparam B Type of the second value.
+ * @tparam C Type of the third value.
+ * @tparam D Type of the fourth value.
+ * @param a First value to print.
+ * @param b Second value to print.
+ * @param c Third value to print.
+ * @param d Fourth value to print.
+ */
 template<typename A, typename B, typename C, typename D>
 void println(const A &a, const B &b, const C &c, const D &d) {
     __testlib_print_one(a);
@@ -5235,6 +7919,21 @@ void println(const A &a, const B &b, const C &c, const D &d) {
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints five values `a`, `b`, `c`, `d`, and `e` separated by spaces,
+ * followed by a newline to standard output.
+ *
+ * @tparam A Type of the first value.
+ * @tparam B Type of the second value.
+ * @tparam C Type of the third value.
+ * @tparam D Type of the fourth value.
+ * @tparam E Type of the fifth value.
+ * @param a First value to print.
+ * @param b Second value to print.
+ * @param c Third value to print.
+ * @param d Fourth value to print.
+ * @param e Fifth value to print.
+ */
 template<typename A, typename B, typename C, typename D, typename E>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e) {
     __testlib_print_one(a);
@@ -5249,6 +7948,23 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e) {
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints six values `a`, `b`, `c`, `d`, `e`, and `f` separated by
+ * spaces, followed by a newline to standard output.
+ *
+ * @tparam A Type of the first value.
+ * @tparam B Type of the second value.
+ * @tparam C Type of the third value.
+ * @tparam D Type of the fourth value.
+ * @tparam E Type of the fifth value.
+ * @tparam F Type of the sixth value.
+ * @param a First value to print.
+ * @param b Second value to print.
+ * @param c Third value to print.
+ * @param d Fourth value to print.
+ * @param e Fifth value to print.
+ * @param f Sixth value to print.
+ */
 template<typename A, typename B, typename C, typename D, typename E, typename F>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f) {
     __testlib_print_one(a);
@@ -5265,6 +7981,25 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
     std::cout << std::endl;
 }
 
+/**
+ * @brief Prints seven values `a`, `b`, `c`, `d`, `e`, `f`, and `g` separated by
+ * spaces, followed by a newline to standard output.
+ *
+ * @tparam A Type of the first value.
+ * @tparam B Type of the second value.
+ * @tparam C Type of the third value.
+ * @tparam D Type of the fourth value.
+ * @tparam E Type of the fifth value.
+ * @tparam F Type of the sixth value.
+ * @tparam G Type of the seventh value.
+ * @param a First value to print.
+ * @param b Second value to print.
+ * @param c Third value to print.
+ * @param d Fourth value to print.
+ * @param e Fifth value to print.
+ * @param f Sixth value to print.
+ * @param g Seventh value to print.
+ */
 template<typename A, typename B, typename C, typename D, typename E, typename F, typename G>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g) {
     __testlib_print_one(a);
@@ -5286,28 +8021,34 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 /* opts */
 
 /**
- * A struct for a singular testlib opt, containing the raw string value,
- * and a boolean value for marking whether the opt is used.
+ * @brief A struct representing a single testlib option.
+ *
+ * Contains a string `value` representing the raw option value and a boolean
+ * `used` indicating whether the option has been used.
  */
 struct TestlibOpt {
+    // Raw string value of the option.
     std::string value;
+    // Flag indicating if the option has been used.
     bool used;
 
-    TestlibOpt() : value(), used(false) {}
+    /**
+     * @brief Default constructor initializing the option with empty `value` and
+     * `used` as false.
+     */
+    TestlibOpt() 
+        : value(), used(false) {}
 };
 
 /**
- * Get the type of opt based on the number of `-` at the beginning and the
- * _validity_ of the key name.
- * 
+ * @brief Determines the type of option based on the number of dashes (`-`) at
+ * the beginning and the validity of the key name.
+ *
  * A valid key name must start with an alphabetical character.
- * 
- * Returns: 1 if s has one `-` at the beginning, that is, "-keyName".
- *          2 if s has two `-` at the beginning, that is, "--keyName".
- *          0 otherwise. That is, if s has no `-` at the beginning, or has more
- *          than 2 at the beginning ("---keyName", "----keyName", ...), or the
- *          keyName is invalid (the first character is not an alphabetical
- *          character).
+ *
+ * @param s C-style string representing the option.
+ * @return 1 if `s` starts with one `-`, 2 if `s` starts with two `--`, 0
+ * otherwise (invalid or no dashes).
  */
 size_t getOptType(char *s) {
     if (!s || strlen(s) <= 1)
@@ -5324,33 +8065,31 @@ size_t getOptType(char *s) {
 }
 
 /**
- * Parse the opt at a given index, and put it into the opts maps.
- * 
- * An opt can has the following form:
- * 1) -keyName=value or --keyName=value     (ex. -n=10 --test-count=20)
- * 2) -keyName value or --keyName value     (ex. -n 10 --test-count 20)
- * 3) -kNumval       or --kNumval           (ex. -n10  --t20)
- * 4) -boolProperty  or --boolProperty      (ex. -sorted --tree-only)
- * 
+ * @brief Parses a command line option at a given index and stores it in the
+ * `opts` map.
+ *
+ * The option can have several forms:
+ * 1. `-keyName=value` or `--keyName=value`
+ * 2. `-keyName value` or `--keyName value`
+ * 3. `-kNumval` or `--kNumval` (where `k` is a single character and `Numval` is
+ *    a number)
+ * 4. `-boolProperty` or `--boolProperty` (where `boolProperty` is treated as
+ *    `true`)
+ *
  * Only the second form consumes 2 arguments. The other consumes only 1
  * argument.
- * 
+ *
  * In the third form, the key is a single character, and after the key is the
  * value. The value _should_ be a number.
- * 
- * In the forth form, the value is true.
- * 
- * Params:
- * - argc and argv: the number of command line arguments and the command line
- *   arguments themselves.
- * - index: the starting index of the opts.
- * - opts: the map containing the resulting opt.
- *  
- * Returns: the number of consumed arguments to parse the opt.
- *          0 if there is no arguments to parse.
- * 
- * Algorithm details:
- * TODO. Please refer to the implementation to see how the code handles the 3rd and 4th forms separately.
+ *
+ * In the fourth form, the value is true.
+ *
+ * @param argc Number of command line arguments.
+ * @param argv Command line arguments array.
+ * @param index Starting index of the option to parse.
+ * @param opts Map to store the parsed options.
+ * @return Number of arguments consumed to parse the option (0 if no arguments
+ * to parse).
  */
 size_t parseOpt(size_t argc, char *argv[], size_t index, std::map<std::string, TestlibOpt> &opts) {
     if (index >= argc)
@@ -5385,7 +8124,8 @@ size_t parseOpt(size_t argc, char *argv[], size_t index, std::map<std::string, T
 }
 
 /**
- * Global list containing all the arguments in the order given in the command line.
+ * Global list containing all the arguments in the order given in the command
+ * line.
  */
 std::vector<std::string> __testlib_argv;
 
@@ -5395,9 +8135,9 @@ std::vector<std::string> __testlib_argv;
 std::map<std::string, TestlibOpt> __testlib_opts;
 
 /**
- * Whether automatic no unused opts ensurement should be done. This flag will
- * be turned on when `has_opt` or `opt(key, default_value)` is called.
- * 
+ * Whether automatic no unused opts ensurement should be done. This flag will be
+ * turned on when `has_opt` or `opt(key, default_value)` is called.
+ *
  * The automatic ensurement can be suppressed when
  * __testlib_ensureNoUnusedOptsSuppressed is true.
  */
@@ -5410,8 +8150,14 @@ bool __testlib_ensureNoUnusedOptsFlag = false;
 bool __testlib_ensureNoUnusedOptsSuppressed = false;
 
 /**
- * Parse command line arguments into opts.
- * The results are stored into __testlib_argv and __testlib_opts.
+ * @brief Prepares and parses command line arguments into options.
+ *
+ * The parsed results are stored in global variables `__testlib_argv` (vector of
+ * strings representing all arguments) and `__testlib_opts` (map of parsed
+ * options).
+ *
+ * @param argc Number of command line arguments.
+ * @param argv Command line arguments array.
  */
 void prepareOpts(int argc, char *argv[]) {
     if (argc <= 0)
@@ -5425,8 +8171,13 @@ void prepareOpts(int argc, char *argv[]) {
 }
 
 /**
- * An utility function to get the argument with a given index. This function
- * also print a readable message when no arguments are found.
+ * @brief Utility function to retrieve the command line argument at a given
+ * index.
+ *
+ * Provides a readable error message if the index is out of range.
+ *
+ * @param index Index of the argument to retrieve.
+ * @return String representation of the argument at `index`.
  */
 std::string __testlib_indexToArgv(int index) {
     if (index < 0 || index >= int(__testlib_argv.size()))
@@ -5436,8 +8187,13 @@ std::string __testlib_indexToArgv(int index) {
 }
 
 /**
- * An utility function to get the opt with a given key . This function
- * also print a readable message when no opts are found.
+ * @brief Utility function to retrieve the option value for a given key.
+ *
+ * Marks the option as used and provides a readable error message if the key is
+ * unknown.
+ *
+ * @param key Key of the option to retrieve.
+ * @return String value of the option corresponding to `key`.
  */
 std::string __testlib_keyToOpts(const std::string &key) {
     auto it = __testlib_opts.find(key);
@@ -5447,11 +8203,29 @@ std::string __testlib_keyToOpts(const std::string &key) {
     return it->second.value;
 }
 
+/**
+ * @brief Converts an option value `s` to an integral type `T`.
+ *
+ * Checks for numeric validity and handles overflow.
+ *
+ * @tparam T Integral type to convert to.
+ * @param s String representing the option value.
+ * @param nonnegative Flag indicating if the value should be non-negative.
+ * @return Converted integral value of type `T`.
+ */
 template<typename T>
 T optValueToIntegral(const std::string &s, bool nonnegative);
 
 long double optValueToLongDouble(const std::string &s);
 
+/**
+ * @brief Parses an exponential notation option value `s`.
+ *
+ * Checks for typical exponential notation and modifies `s` accordingly.
+ *
+ * @param s String representing the option value.
+ * @return Modified string after processing exponential notation.
+ */
 std::string parseExponentialOptValue(const std::string &s) {
     size_t pos = std::string::npos;
     for (size_t i = 0; i < s.length(); i++)
@@ -5514,6 +8288,14 @@ std::string parseExponentialOptValue(const std::string &s) {
     return (minus ? "-" : "") + num;
 }
 
+/**
+ * Converts an option value string to an integral type.
+ *
+ * @tparam T The integral type to convert to.
+ * @param s_ The option value string to convert.
+ * @param nonnegative Indicates if the value should be non-negative.
+ * @return The converted integral value.
+ */
 template<typename T>
 T optValueToIntegral(const std::string &s_, bool nonnegative) {
     std::string s(parseExponentialOptValue(s_));
@@ -5542,6 +8324,12 @@ T optValueToIntegral(const std::string &s_, bool nonnegative) {
     return value;
 }
 
+/**
+ * Converts an option value string to a long double.
+ *
+ * @param s_ The option value string to convert.
+ * @return The converted long double value.
+ */
 long double optValueToLongDouble(const std::string &s_) {
     std::string s(parseExponentialOptValue(s_));
     if (s.empty())
@@ -5578,11 +8366,14 @@ long double optValueToLongDouble(const std::string &s_) {
 }
 
 /**
- * Return true if there is an opt with a given key.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
- * turn it off.
+ * Checks if there is an option with a given key.
+ *
+ * By calling this function, automatic ensurement for no unused options will be
+ * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to turn
+ * it off.
+ *
+ * @param key The key to check for.
+ * @return True if there is an option with the given key, false otherwise.
  */
 bool has_opt(const std::string &key) {
     __testlib_ensureNoUnusedOptsFlag = true;
@@ -5590,77 +8381,128 @@ bool has_opt(const std::string &key) {
 }
 
 /* About the following part for opt with 2 and 3 arguments.
- * 
+ *
  * To parse the argv/opts correctly for a give type (integer, floating point or
- * string), some meta programming must be done to determine the type of
- * the type, and use the correct parsing function accordingly.
- * 
+ * string), some meta programming must be done to determine the type of the
+ * type, and use the correct parsing function accordingly.
+ *
  * The pseudo algorithm for determining the type of T and parse it accordingly
  * is as follows:
- * 
- * if (T is integral type) {
- *   if (T is unsigned) {
- *     parse the argv/opt as an **unsigned integer** of type T.
- *   } else {
- *     parse the argv/opt as an **signed integer** of type T.
- * } else {
- *   if (T is floating point type) {
- *     parse the argv/opt as an **floating point** of type T.
- *   } else {
- *     // T should be std::string
- *     just the raw content of the argv/opts.
+ *
+ * if (T is integral type) { if (T is unsigned) { parse the argv/opt as an
+ *   **unsigned integer** of type T. } else { parse the argv/opt as an **signed
+ *   integer** of type T. } else { if (T is floating point type) { parse the
+ *   argv/opt as an **floating point** of type T. } else { // T should be
+ *   std::string just the raw content of the argv/opts.
  *   }
  * }
- * 
+ *
  * To help with meta programming, some `opt` function with 2 or 3 arguments are
  * defined.
- * 
- * Opt with 3 arguments:    T opt(true/false is_integral, true/false is_unsigned, index/key)
- * 
+ *
+ * Opt with 3 arguments:    T opt(true/false is_integral, true/false
+ * is_unsigned, index/key)
+ *
  *   + The first argument is for determining whether the type T is an integral
- *   type. That is, the result of std::is_integral<T>() should be passed to
- *   this argument. When false, the type _should_ be either floating point or a
- *   std::string.
- *   
+ *     type. That is, the result of std::is_integral<T>() should be passed to
+ *     this argument. When false, the type _should_ be either floating point or
+ *     a std::string.
+ *
  *   + The second argument is for determining whether the signedness of the type
- *   T (if it is unsigned or signed). That is, the result of
- *   std::is_unsigned<T>() should be passed to this argument. This argument can
- *   be ignored if the first one is false, because it only applies to integer.
+ *     T (if it is unsigned or signed). That is, the result of
+ *     std::is_unsigned<T>() should be passed to this argument. This argument
+ *     can be ignored if the first one is false, because it only applies to
+ *     integer.
  *
  * Opt with 2 arguments:    T opt(true/false is_floating_point, index/key)
  *   + The first argument is for determining whether the type T is a floating
- *   point type. That is, the result of std::is_floating_point<T>() should be
- *   passed to this argument. When false, the type _should_ be a std::string.
+ *     point type. That is, the result of std::is_floating_point<T>() should be
+ *     passed to this argument. When false, the type _should_ be a std::string.
  */
 
+
+/**
+ * Converts an argv value to a type T, assuming it is not a floating point type.
+ *
+ * @tparam T The type to convert to.
+ * @param is_floating_point False_type indicating the type is not floating
+ * point.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::false_type is_floating_point, int index);
 
+/**
+ * Specialization for converting an argv value to a string.
+ *
+ * @param index The index of the argv to convert.
+ * @return The raw string value of the argv at the given index.
+ */
 template<>
 std::string opt(std::false_type /*is_floating_point*/, int index) {
     return __testlib_indexToArgv(index);
 }
 
+/**
+ * Converts an argv value to a floating point type T.
+ *
+ * @tparam T The floating point type to convert to.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_floating_point*/, int index) {
     return T(optValueToLongDouble(__testlib_indexToArgv(index)));
 }
 
+/**
+ * Converts an argv value to a type T, assuming it is not an integral type.
+ *
+ * @tparam T The type to convert to.
+ * @tparam U A type used to determine if T is unsigned.
+ * @param is_integral False_type indicating the type is not integral.
+ * @param is_unsigned Unused parameter for determining if the type is unsigned.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
+ */
 template<typename T, typename U>
 T opt(std::false_type /*is_integral*/, U /*is_unsigned*/, int index) {
     return opt<T>(std::is_floating_point<T>(), index);
 }
 
+/**
+ * Converts an argv value to a signed integral type T.
+ *
+ * @tparam T The signed integral type to convert to.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
 }
 
+/**
+ * Converts an argv value to a unsigned integral type T.
+ *
+ * @tparam T The unsigned integral type to convert to.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
 }
 
+/**
+ * Specialization for converting an argv value to a boolean.
+ *
+ * @param is_integral True_type indicating the type is integral.
+ * @param is_unsigned True_type indicating the type is unsigned.
+ * @param index The index of the argv to convert.
+ * @return The converted boolean value.
+ */
 template<>
 bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
     std::string value = __testlib_indexToArgv(index);
@@ -5673,7 +8515,12 @@ bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int ind
 }
 
 /**
- * Return the parsed argv by a given index.
+ * Return the parsed argv by a given index, based on whether it is an integral
+ * type or not, and whether it's unsigned or not.
+ *
+ * @tparam T The type to convert to.
+ * @param index The index of the argv to convert.
+ * @return The converted value of type T.
  */
 template<typename T>
 T opt(int index) {
@@ -5682,14 +8529,24 @@ T opt(int index) {
 
 /**
  * Return the raw string value of an argv by a given index.
+ *
+ * @param index The index of the argv to convert.
+ * @return The raw string value of the argv at the given index.
  */
 std::string opt(int index) {
     return opt<std::string>(index);
 }
 
 /**
- * Return the parsed argv by a given index. If the index is bigger than
- * the number of argv, return the given default_value.
+ * Return the parsed argv by a given index. If the index is greater than the
+ * number of argv, return the given default_value.
+ *
+ * @tparam T The type to convert to.
+ * @param index The index of the argv to convert.
+ * @param default_value The default value to return if the index is out of
+ * bounds.
+ * @return The converted value of type T, or the default value if index is out
+ * of bounds.
  */
 template<typename T>
 T opt(int index, const T &default_value) {
@@ -5701,40 +8558,104 @@ T opt(int index, const T &default_value) {
 
 /**
  * Return the raw string value of an argv by a given index. If the index is
- * bigger than the number of argv, return the given default_value.
+ * greater than the number of argv, return the given default_value.
+ *
+ * @param index The index of the argv to convert.
+ * @param default_value The default value to return if the index is out of
+ * bounds.
+ * @return The raw string value of the argv at the given index, or the default
+ * value if index is out of bounds.
  */
 std::string opt(int index, const std::string &default_value) {
     return opt<std::string>(index, default_value);
 }
 
+/**
+ * Converts an option value to a type T, assuming it is not a floating point
+ * type.
+ *
+ * @tparam T The type to convert to.
+ * @param is_floating_point False_type indicating the type is not floating
+ * point.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::false_type is_floating_point, const std::string &key);
 
+/**
+ * Specialization for converting an option value to a string in the case of
+ * integral types.
+ *
+ * @param key The key of the option to convert.
+ * @return The raw string value of the option.
+ */
 template<>
 std::string opt(std::false_type /*is_floating_point*/, const std::string &key) {
     return __testlib_keyToOpts(key);
 }
 
+/**
+ * Converts an option value to a floating point type T.
+ *
+ * @tparam T The floating point type to convert to.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_integral*/, const std::string &key) {
     return T(optValueToLongDouble(__testlib_keyToOpts(key)));
 }
 
+
+/**
+ * Converts an option value to a non-integral type T.
+ *
+ * @tparam T The type to convert to.
+ * @tparam U A type used to determine if T is unsigned.
+ * @param is_integral False_type indicating the type is not integral.
+ * @param U Unused parameter for determining if the type is unsigned.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
+ */
 template<typename T, typename U>
 T opt(std::false_type /*is_integral*/, U, const std::string &key) {
     return opt<T>(std::is_floating_point<T>(), key);
 }
 
+/**
+ * Converts an option value to a signed integral type T.
+ *
+ * @tparam T Th signed integral type to convert to.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
 }
 
+/**
+ * Converts an option value to an unsigned integral type T.
+ *
+ * @tparam T The unsigned integral type to convert to.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
+ */
 template<typename T>
 T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
 }
 
+/**
+ * Specialization for converting an option value to a boolean.
+ *
+ * @param is_integral True_type indicating the type is integral.
+ * @param is_unsigned True_type indicating the type is unsigned.
+ * @param key The key of the option to convert.
+ * @return The converted boolean value.
+ * @throws runtime_error If the string does not represent a valid boolean.
+ */
 template<>
 bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
     if (!has_opt(key))
@@ -5750,6 +8671,10 @@ bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const s
 
 /**
  * Return the parsed opt by a given key.
+ *
+ * @tparam T The type to convert to.
+ * @param key The key of the option to convert.
+ * @return The converted value of type T.
  */
 template<typename T>
 T opt(const std::string &key) {
@@ -5757,7 +8682,10 @@ T opt(const std::string &key) {
 }
 
 /**
- * Return the raw string value of an opt by a given key
+ * Return the raw string value of an opt by a given key.
+ *
+ * @param key The key of the option to convert.
+ * @return The raw string value of the option.
  */
 std::string opt(const std::string &key) {
     return opt<std::string>(key);
@@ -5765,6 +8693,10 @@ std::string opt(const std::string &key) {
 
 /* Scorer started. */
 
+
+/**
+ * @brief Enumeration representing various test result verdicts.
+ */
 enum TestResultVerdict {
     SKIPPED,
     OK,
@@ -5778,6 +8710,13 @@ enum TestResultVerdict {
     FAILED
 };
 
+/**
+ * @brief Serialize the TestResultVerdict enumeration to a string.
+ *
+ * @param verdict The TestResultVerdict to serialize.
+ * @return The serialized string representation of the verdict.
+ * @throws runtime_error If an unexpected verdict is encountered.
+ */
 std::string serializeVerdict(TestResultVerdict verdict) {
     switch (verdict) {
         case SKIPPED: return "SKIPPED";
@@ -5794,6 +8733,13 @@ std::string serializeVerdict(TestResultVerdict verdict) {
     throw "Unexpected verdict";
 }
 
+/**
+ * @brief Deserialize a string to a TestResultVerdict enumeration.
+ *
+ * @param s The string to deserialize.
+ * @return The deserialized TestResultVerdict.
+ * @throws runtime_error If an unexpected string is encountered.
+ */
 TestResultVerdict deserializeTestResultVerdict(std::string s) {
     if (s == "SKIPPED")
         return SKIPPED;
@@ -5820,6 +8766,9 @@ TestResultVerdict deserializeTestResultVerdict(std::string s) {
     return FAILED;
 }
 
+/**
+ * @brief Structure representing a test result.
+ */
 struct TestResult {
     int testIndex;
     std::string testset;
@@ -5835,6 +8784,12 @@ struct TestResult {
     std::string checkerComment;
 };
 
+/**
+ * @brief Serialize the points value to a string.
+ *
+ * @param points The points value to serialize.
+ * @return The serialized string representation of the points.
+ */
 std::string serializePoints(double points) {
     if (std::isnan(points))
         return "";
@@ -5845,6 +8800,13 @@ std::string serializePoints(double points) {
     }
 }
 
+/**
+ * @brief Deserialize a string to a points value.
+ *
+ * @param s The string to deserialize.
+ * @return The deserialized points value.
+ * @throws runtime_error If the string is invalid.
+ */
 double deserializePoints(std::string s) {
     if (s.empty())
         return std::numeric_limits<double>::quiet_NaN();
@@ -5855,6 +8817,12 @@ double deserializePoints(std::string s) {
     }                                              
 }
 
+/**
+ * @brief Escape a string for test result serialization.
+ *
+ * @param s The string to escape.
+ * @return The escaped string.
+ */
 std::string escapeTestResultString(std::string s) {
     std::string result;
     for (size_t i = 0; i < s.length(); i++) {
@@ -5871,6 +8839,12 @@ std::string escapeTestResultString(std::string s) {
     return result;
 }
 
+/**
+ * @brief Unescape a string from test result serialization.
+ *
+ * @param s The string to unescape.
+ * @return The unescaped string.
+ */
 std::string unescapeTestResultString(std::string s) {
     std::string result;
     for (size_t i = 0; i < s.length(); i++) {
@@ -5890,6 +8864,12 @@ std::string unescapeTestResultString(std::string s) {
     return result;
 }
 
+/**
+ * @brief Serialize a TestResult to a string.
+ *
+ * @param tr The TestResult to serialize.
+ * @return The serialized string representation of the TestResult.
+ */
 std::string serializeTestResult(TestResult tr) {
     std::string result;
     result += std::to_string(tr.testIndex);
@@ -5918,6 +8898,13 @@ std::string serializeTestResult(TestResult tr) {
     return result;
 }
 
+/**
+ * @brief Deserialize a string to a TestResult.
+ *
+ * @param s The string to deserialize.
+ * @return The deserialized TestResult.
+ * @throws runtime_error If the serialization format is invalid.
+ */
 TestResult deserializeTestResult(std::string s) {
     std::vector<std::string> items;
     std::string t;
@@ -5958,6 +8945,13 @@ TestResult deserializeTestResult(std::string s) {
     return tr;
 }
 
+/**
+ * @brief Read test results from a file.
+ *
+ * @param fileName The name of the file to read from.
+ * @return A vector of TestResult read from the file.
+ * @throws runtime_error If the file cannot be read.
+ */
 std::vector<TestResult> readTestResults(std::string fileName) {
     std::ifstream stream;
     stream.open(fileName.c_str(), std::ios::in);
@@ -5971,8 +8965,14 @@ std::vector<TestResult> readTestResults(std::string fileName) {
     return result;
 }
 
+/**
+ * @brief The scorer function to be used.
+ */
 std::function<double(std::vector<TestResult>)> __testlib_scorer;
 
+/**
+ * @brief Guard class to automatically finalize and score tests.
+ */
 struct TestlibScorerGuard {
     ~TestlibScorerGuard() {
         if (testlibMode == _scorer) {
@@ -5988,6 +8988,13 @@ struct TestlibScorerGuard {
     }
 } __testlib_scorer_guard;
 
+/**
+ * @brief Register a scorer function.
+ *
+ * @param argc The argument count.
+ * @param argv The argument vector.
+ * @param scorer The scorer function to register.
+ */
 void registerScorer(int argc, char *argv[], std::function<double(std::vector<TestResult>)> scorer) {
     /* Suppress unused. */
     (void)(argc), (void)(argv);
@@ -6006,12 +9013,17 @@ void registerScorer(int argc, char *argv[], std::function<double(std::vector<Tes
 /* Scorer ended. */
 
 /**
- * Return the parsed opt by a given key. If no opts with the given key are
- * found, return the given default_value.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
+ * @brief  Returns the parsed opt by a given key. If no opts with the given key
+ * are found, return the given default_value.
+ *
+ * @note By calling this function, automatic ensurement for no unused opts will
+ * be done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
  * turn it off.
+ *
+ * @param key Key of option
+ * @param default_value Default value if option doesn't exist at key
+ * @return The parsed opt by a given key if it exists, or default_value
+ * otherwise.
  */
 template<typename T>
 T opt(const std::string &key, const T &default_value) {
@@ -6022,23 +9034,28 @@ T opt(const std::string &key, const T &default_value) {
 }
 
 /**
- * Return the raw string value of an opt by a given key. If no opts with the
- * given key are found, return the given default_value.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
+ * @brief Returns the raw string value of an opt by a given key. If no opts with
+ * the given key are found, return the given default_value.
+ *
+ * @note By calling this function, automatic ensurement for no unused opts will
+ * be done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
  * turn it off.
+ *
+ * @param key Key of option
+ * @param default_value Default value if option doesn't exist at key
+ * @return The raw string value of an opt by a given key if it exists, or
+ * default_value otherwise.
  */
 std::string opt(const std::string &key, const std::string &default_value) {
     return opt<std::string>(key, default_value);
 }
 
 /**
- * Check if all opts are used. If not, __testlib_fail is called.
- * Should be used after calling all opt() function calls.
- * 
- * This function is useful when opt() with default_value for checking typos
- * in the opt's key.
+ * @brief Check if all opts are used, and fail otherwise.
+ *
+ * @note This function is useful when opt() with default_value for checking
+ * typos in the opt's key. It should be used after calling all opt() function
+ * calls.
  */
 void ensureNoUnusedOpts() {
     for (const auto &opt: __testlib_opts) {
@@ -6048,16 +9065,25 @@ void ensureNoUnusedOpts() {
     }
 }
 
+/**
+ * @brief Suppress the check for unused opts.
+ */
 void suppressEnsureNoUnusedOpts() {
     __testlib_ensureNoUnusedOptsSuppressed = true;
 }
 
+/**
+ * @brief Suppress the check for unused opts.
+ */
 void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
     if (__testlib_ensureNoUnusedOptsFlag && !__testlib_ensureNoUnusedOptsSuppressed) {
         ensureNoUnusedOpts();
     }
 }
 
+/**
+ * @brief Guard class to automatically finalize testlib.
+ */
 TestlibFinalizeGuard testlibFinalizeGuard;
 
 #endif
