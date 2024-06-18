@@ -2956,7 +2956,7 @@ struct InStream {
      *
      * Do not use them.
      */
-    InStream() = delete;
+    InStream();
 
     /**
      * @brief Destructor.
