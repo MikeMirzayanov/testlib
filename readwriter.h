@@ -3,6 +3,7 @@
 
 #include "testlib.h"
 #include "bits/stdc++.h"
+#include <filesystem>
 
 template <typename F, typename S>
 std::ostream &operator<<(std::ostream &os, const std::pair<F, S> &p)
@@ -65,6 +66,19 @@ public:
                             }
             )
         ) {}
+
+    bool operator==(const Graph& other) const {
+        if (numberOfNodes != other.numberOfNodes) {
+            return false;
+        }
+
+        for(int node = 0; node < graph.size() ; ++node) {
+            if(graph[node] != other.graph[node]) {
+                return false;
+            }
+        }
+        return true;        
+    }
 
     Graph& relabelNodes() {
         auto perm = rnd.perm(numberOfNodes);
@@ -374,11 +388,11 @@ public:
     }    
 };
 
-class Tree : Graph {
-    
-
-
-
-};
+void setupDirectories() {
+    const std::string dirs[] = {"in", "out", "solution-in"};
+    for (const auto& dir : dirs) {
+        std::filesystem::create_directory(dir);
+    }
+}
 
 #endif
