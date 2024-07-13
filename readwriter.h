@@ -1,3 +1,6 @@
+#ifndef READWRITER_H_
+#define READWRITER_H_
+
 #include "testlib.h"
 #include "bits/stdc++.h"
 
@@ -377,3 +380,5 @@ class Tree : Graph {
 
 
 };
+
+#endif

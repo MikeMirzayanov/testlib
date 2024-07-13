@@ -1,6 +1,7 @@
 .idea
 cmake-build-debug
 
+*.gch
 *.exe
 *.o
 *.obj
