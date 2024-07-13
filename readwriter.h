@@ -10,9 +10,13 @@ enum PrintFormat {
     Solution
 };
 
+
+// map for keeping the names of directories
+// promptInputDirectory - directory for in files formatted for prompt
+// promptInputDirectory - directory for in files formatted for the solution
 const std::map<std::string, std::string> dirs = {
-    {"in", "in"},
-    {"solution-in", "solution-in"}
+    {"promptInputDirectory", "in"},
+    {"solutionInputDirectory", "solution-in"}
 };
 
 template <typename F, typename S>
