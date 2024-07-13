@@ -12,7 +12,6 @@ enum PrintFormat {
 
 const std::map<std::string, std::string> dirs = {
     {"in", "in"},
-    {"out", "out"},
     {"solution-in", "solution-in"}
 };
 
