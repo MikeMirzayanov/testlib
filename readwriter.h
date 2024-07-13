@@ -21,17 +21,6 @@ std::ostream &operator<<(std::ostream &os, const std::pair<F, S> &p)
     return os << "(" << p.first << ", " << p.second << ")";
 }
 
-std::ostream &operator<<(std::ostream &os, const std::ranges::range auto R)
-{
-    for(auto&& it : R) {
-        if(it != begin(R)) {
-            os << ' ';
-        }
-        os << (*it) << ' ';
-    }
-    return os;
-}
-
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 {
@@ -114,7 +103,7 @@ public:
         return edges;
     }
     
-    string toStringForPrompt() {
+    std::string toStringForPrompt() {
         std::ostringstream oss;
         oss << "{";
         for (int i = 0; i < numberOfNodes; ++i) {
@@ -134,7 +123,7 @@ public:
         return oss.str();
     }
 
-    string toStringForSolution() {
+    std::string toStringForSolution() {
         std::ostringstream oss;
         auto edges = getEdges();
 
@@ -145,7 +134,7 @@ public:
         return oss.str();
     }
 
-    string toString(PrintFormat format) {
+    std::string toString(PrintFormat format) {
         switch (format) {
             case Prompt:
                 return toStringForPrompt();
@@ -416,8 +405,8 @@ void printToFile(const std::string& content, std::string filePath) {
         std::cerr << "Error: Could not open the file " << filePath << std::endl;
         exit(1);
     }
-    outFile << filePath;
-    outFile.close()
+    outFile << content;
+    outFile.close();
 }
 
 #endif
