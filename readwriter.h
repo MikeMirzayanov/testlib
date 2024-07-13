@@ -5,6 +5,17 @@
 #include "bits/stdc++.h"
 #include <filesystem>
 
+enum PrintFormat {
+    Prompt,
+    Solution
+};
+
+const std::map<std::string, std::string> dirs = {
+    {"in", "in"},
+    {"out", "out"},
+    {"solution-in", "solution-in"}
+};
+
 template <typename F, typename S>
 std::ostream &operator<<(std::ostream &os, const std::pair<F, S> &p)
 {
@@ -72,7 +83,7 @@ public:
             return false;
         }
 
-        for(int node = 0; node < graph.size() ; ++node) {
+        for(int node = 0; node < numberOfNodes ; ++node) {
             if(graph[node] != other.graph[node]) {
                 return false;
             }
@@ -104,43 +115,49 @@ public:
         return edges;
     }
     
-    void printForPrompt() {
-        std::cout << "{";
+    string toStringForPrompt() {
+        std::ostringstream oss;
+        oss << "{";
         for (int i = 0; i < numberOfNodes; ++i) {
-            std::cout << "{";
+            oss << "{";
             for (int j = 0; j < graph[i].size(); ++j) {
-                std::cout << graph[i][j];
+                oss << graph[i][j];
                 if (j != graph[i].size() - 1) {
-                    std::cout << ",";
+                    oss << ",";
                 }
             }
-            std::cout << "}";
+            oss << "}";
             if (i != numberOfNodes - 1) {
-                std::cout << ",";
+                oss << ",";
             }
         }
-        std::cout << "}\n";
+        oss <<  "}\n";
+        return oss.str();
     }
 
-     void printForSolution() {
+    string toStringForSolution() {
+        std::ostringstream oss;
         auto edges = getEdges();
 
-        std::cout << numberOfNodes << " " << edges.size() << "\n";
+        oss << numberOfNodes << " " << edges.size() << "\n";
         for(auto edge: edges) {
-            std::cout << edge.first << " " << edge.second << "\n";
+            oss << edge.first << " " << edge.second << "\n";
         }
+        return oss.str();
     }
 
-    void print(int format) {
-        if (format == 0) {
-            printForPrompt();
-        }
-        else if(format == 1) {
-            printForSolution();
-        }
-        else {
-            std::cerr<<"Format is expected to be 0 or 1.";
-            exit(1);
+    string toString(PrintFormat format) {
+        switch (format) {
+            case Prompt:
+                return toStringForPrompt();
+                break;
+            case Solution:
+                return toStringForSolution();
+                break;
+        
+            default:
+                std::cerr<<"Format is expected to be 0 or 1.";
+                exit(1);
         }
     }
 
@@ -389,10 +406,19 @@ public:
 };
 
 void setupDirectories() {
-    const std::string dirs[] = {"in", "out", "solution-in"};
     for (const auto& dir : dirs) {
-        std::filesystem::create_directory(dir);
+        std::filesystem::create_directory(dir.second);
     }
+}
+
+void printToFile(const std::string& content, std::string filePath) {
+    std::ofstream outFile(filePath);
+    if (!outFile) {
+        std::cerr << "Error: Could not open the file " << filePath << std::endl;
+        exit(1);
+    }
+    outFile << filePath;
+    outFile.close()
 }
 
 #endif
