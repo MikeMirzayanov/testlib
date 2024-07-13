@@ -52,7 +52,7 @@
  *   It will return non-zero exit code and writes message to standard output.
  *
  *   Generator, using testlib running format:
- *     gen.exe [parameter-1] [parameter-2] [... paramerter-n]
+ *     gen.exe [parameter-1] [parameter-2] [... paramerter-nodes]
  *   You can write generated test(s) into standard output or into the file(s).
  *
  *   Interactor, using testlib running format:
@@ -63,97 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
-        "rnd.any/wany use distance/advance instead of -/+: now they support sets/multisets",
-        "Use syntax `int t = inf.readInt(1, 3, \"~t\");` to skip the lower bound check. Tildes can be used on either side or both: ~t, t~, ~t~",
-        "Supported EJUDGE support in registerTestlibCmd",
-        "Supported '--testMarkupFileName fn' and '--testCase tc/--testCaseFileName fn' for validators",
-        "Added opt defaults via opt<T>(key/index, default_val); check unused opts when using has_opt or default opt (turn off this check with suppressEnsureNoUnusedOpt()).",
-        "For checker added --group and --testset command line params (like for validator), use checker.group() or checker.testset() to get values",
-        "Added quitpi(points_info, message) function to return with _points exit code 7 and given points_info",
-        "rnd.partition(size, sum[, min_part=1]) returns random (unsorted) partition which is a representation of the given `sum` as a sum of `size` positive integers (or >=min_part if specified)",
-        "rnd.distinct(size, n) and rnd.distinct(size, from, to)",
-        "opt<bool>(\"some_missing_key\") returns false now",
-        "has_opt(key)",
-        "Abort validator on validator.testset()/validator.group() if registered without using command line",
-        "Print integer range violations in a human readable way like `violates the range [1, 10^9]`",
-        "Opts supported: use them like n = opt<int>(\"n\"), in a command line you can use an exponential notation",
-        "Reformatted",
-        "Use setTestCase(i) or unsetTestCase() to support test cases (you can use it in any type of program: generator, interactor, validator or checker)",
-        "Fixed issue #87: readStrictDouble accepts \"-0.00\"",
-        "Fixed issue #83: added InStream::quitif(condition, ...)",
-        "Fixed issue #79: fixed missed guard against repeated header include",
-        "Fixed issue #80: fixed UB in case of huge quitf message",
-        "Fixed issue #84: added readXs(size, indexBase = 1)",
-        "Fixed stringstream repeated usage issue",
-        "Fixed compilation in g++ (for std=c++03)",
-        "Batch of println functions (support collections, iterator ranges)",
-        "Introduced rnd.perm(size, first = 0) to generate a `first`-indexed permutation",
-        "Allow any whitespace in readInts-like functions for non-validators",
-        "Ignore 4+ command line arguments ifdef EJUDGE",
-        "Speed up of vtos",
-        "Show line number in validators in case of incorrect format",
-        "Truncate huge checker/validator/interactor message",
-        "Fixed issue with readTokenTo of very long tokens, now aborts with _pe/_fail depending of a stream type",
-        "Introduced InStream::ensure/ensuref checking a condition, returns wa/fail depending of a stream type",
-        "Fixed compilation in VS 2015+",
-        "Introduced space-separated read functions: readWords/readTokens, multilines read functions: readStrings/readLines",
-        "Introduced space-separated read functions: readInts/readIntegers/readLongs/readUnsignedLongs/readDoubles/readReals/readStrictDoubles/readStrictReals",
-        "Introduced split/tokenize functions to separate string by given char",
-        "Introduced InStream::readUnsignedLong and InStream::readLong with unsigned long long parameters",
-        "Supported --testOverviewLogFileName for validator: bounds hits + features",
-        "Fixed UB (sequence points) in random_t",
-        "POINTS_EXIT_CODE returned back to 7 (instead of 0)",
-        "Removed disable buffers for interactive problems, because it works unexpectedly in wine",
-        "InStream over string: constructor of InStream from base InStream to inherit policies and std::string",
-        "Added expectedButFound quit function, examples: expectedButFound(_wa, 10, 20), expectedButFound(_fail, ja, pa, \"[n=%d,m=%d]\", n, m)",
-        "Fixed incorrect interval parsing in patterns",
-        "Use registerGen(argc, argv, 1) to develop new generator, use registerGen(argc, argv, 0) to compile old generators (originally created for testlib under 0.8.7)",
-        "Introduced disableFinalizeGuard() to switch off finalization checkings",
-        "Use join() functions to format a range of items as a single string (separated by spaces or other separators)",
-        "Use -DENABLE_UNEXPECTED_EOF to enable special exit code (by default, 8) in case of unexpected eof. It is good idea to use it in interactors",
-        "Use -DUSE_RND_AS_BEFORE_087 to compile in compatibility mode with random behavior of versions before 0.8.7",
-        "Fixed bug with nan in stringToDouble",
-        "Fixed issue around overloads for size_t on x64",
-        "Added attribute 'points' to the XML output in case of result=_points",
-        "Exit codes can be customized via macros, e.g. -DPE_EXIT_CODE=14",
-        "Introduced InStream function readWordTo/readTokenTo/readStringTo/readLineTo for faster reading",
-        "Introduced global functions: format(), englishEnding(), upperCase(), lowerCase(), compress()",
-        "Manual buffer in InStreams, some IO speed improvements",
-        "Introduced quitif(bool, const char* pattern, ...) which delegates to quitf() in case of first argument is true",
-        "Introduced guard against missed quitf() in checker or readEof() in validators",
-        "Supported readStrictReal/readStrictDouble - to use in validators to check strictly float numbers",
-        "Supported registerInteraction(argc, argv)",
-        "Print checker message to the stderr instead of stdout",
-        "Supported TResult _points to output calculated score, use quitp(...) functions",
-        "Fixed to be compilable on Mac",
-        "PC_BASE_EXIT_CODE=50 in case of defined TESTSYS",
-        "Fixed issues 19-21, added __attribute__ format printf",
-        "Some bug fixes",
-        "ouf.readInt(1, 100) and similar calls return WA",
-        "Modified random_t to avoid integer overflow",
-        "Truncated checker output [patch by Stepan Gatilov]",
-        "Renamed class random -> class random_t",
-        "Supported name parameter for read-and-validation methods, like readInt(1, 2, \"n\")",
-        "Fixed bug in readDouble()",
-        "Improved ensuref(), fixed nextLine to work in case of EOF, added startTest()",
-        "Supported \"partially correct\", example: quitf(_pc(13), \"result=%d\", result)",
-        "Added shuffle(begin, end), use it instead of random_shuffle(begin, end)",
-        "Added readLine(const string& ptrn), fixed the logic of readLine() in the validation mode",
-        "Package extended with samples of generators and validators",
-        "Written the documentation for classes and public methods in testlib.h",
-        "Implemented random routine to support generators, use registerGen() to switch it on",
-        "Implemented strict mode to validate tests, use registerValidation() to switch it on",
-        "Now ncmp.cpp and wcmp.cpp are return WA if answer is suffix or prefix of the output",
-        "Added InStream::readLong() and removed InStream::readLongint()",
-        "Now no footer added to each report by default (use directive FOOTER to switch on)",
-        "Now every checker has a name, use setName(const char* format, ...) to set it",
-        "Now it is compatible with TTS (by Kittens Computing)",
-        "Added \'ensure(condition, message = \"\")\' feature, it works like assert()",
-        "Fixed compatibility with MS C++ 7.1",
-        "Added footer with exit code information",
-        "Added compatibility with EJUDGE (compile with EJUDGE directive)",
-        "Added compatibility with Contester (compile with CONTESTER directive)"
+    "deleted all unnecessary features"
 };
 
 #ifdef _MSC_VER
@@ -570,15 +480,15 @@ static std::string vtos(const T &t, std::true_type) {
     if (t == 0)
         return "0";
     else {
-        T n(t);
-        bool negative = n < 0;
+        T nodes(t);
+        bool negative = nodes < 0;
         std::string s;
-        while (n != 0) {
-            T digit = n % 10;
+        while (nodes != 0) {
+            T digit = nodes % 10;
             if (digit < 0)
                 digit = -digit;
             s += char('0' + digit);
-            n /= 10;
+            nodes /= 10;
         }
         std::reverse(s.begin(), s.end());
         return negative ? "-" + s : s;
@@ -603,11 +513,11 @@ static std::string vtos(const T &t) {
 
 /* signed case. */
 template<typename T>
-static std::string toHumanReadableString(const T &n, std::false_type) {
-    if (n == 0)
-        return vtos(n);
+static std::string toHumanReadableString(const T &nodes, std::false_type) {
+    if (nodes == 0)
+        return vtos(nodes);
     int trailingZeroCount = 0;
-    T n_ = n;
+    T n_ = nodes;
     while (n_ % 10 == 0)
         n_ /= 10, trailingZeroCount++;
     if (trailingZeroCount >= 7) {
@@ -618,16 +528,16 @@ static std::string toHumanReadableString(const T &n, std::false_type) {
         else
             return vtos(n_) + "*10^" + vtos(trailingZeroCount);
     } else
-        return vtos(n);
+        return vtos(nodes);
 }
 
 /* unsigned case. */
 template<typename T>
-static std::string toHumanReadableString(const T &n, std::true_type) {
-    if (n == 0)
-        return vtos(n);
+static std::string toHumanReadableString(const T &nodes, std::true_type) {
+    if (nodes == 0)
+        return vtos(nodes);
     int trailingZeroCount = 0;
-    T n_ = n;
+    T n_ = nodes;
     while (n_ % 10 == 0)
         n_ /= 10, trailingZeroCount++;
     if (trailingZeroCount >= 7) {
@@ -636,12 +546,12 @@ static std::string toHumanReadableString(const T &n, std::true_type) {
         else
             return vtos(n_) + "*10^" + vtos(trailingZeroCount);
     } else
-        return vtos(n);
+        return vtos(nodes);
 }
 
 template<typename T>
-static std::string toHumanReadableString(const T &n) {
-    return toHumanReadableString(n, std::is_unsigned<T>());
+static std::string toHumanReadableString(const T &nodes) {
+    return toHumanReadableString(nodes, std::is_unsigned<T>());
 }
 #else
 template<typename T>
@@ -657,8 +567,8 @@ static std::string vtos(const T& t)
 }
 
 template<typename T>
-static std::string toHumanReadableString(const T &n) {
-    return vtos(n);
+static std::string toHumanReadableString(const T &nodes) {
+    return vtos(nodes);
 }
 #endif
 
@@ -666,11 +576,6 @@ template<typename T>
 static std::string toString(const T &t) {
     return vtos(t);
 }
-
-#if __cplusplus > 199711L || defined(_MSC_VER)
-/* opts */
-void prepareOpts(int argc, char* argv[]);
-#endif
 
 /*
  * Very simple regex-like pattern.
@@ -759,7 +664,7 @@ private:
             return (long long) (seed >> (48 - bits));
         } else {
             if (bits > 63)
-                __testlib_fail("random_t::nextBits(int bits): n must be less than 64");
+                __testlib_fail("random_t::nextBits(int bits): nodes must be less than 64");
 
             int lowerBitCount = (random_t::version == 0 ? 31 : 32);
 
@@ -816,63 +721,63 @@ public:
     }
 #endif
 
-    /* Random value in range [0, n-1]. */
-    int next(int n) {
-        if (n <= 0)
-            __testlib_fail("random_t::next(int n): n must be positive");
+    /* Random value in range [0, nodes-1]. */
+    int next(int nodes) {
+        if (nodes <= 0)
+            __testlib_fail("random_t::next(int nodes): nodes must be positive");
 
-        if ((n & -n) == n)  // n is a power of 2
-            return (int) ((n * (long long) nextBits(31)) >> 31);
+        if ((nodes & -nodes) == nodes)  // nodes is a power of 2
+            return (int) ((nodes * (long long) nextBits(31)) >> 31);
 
-        const long long limit = INT_MAX / n * n;
+        const long long limit = INT_MAX / nodes * nodes;
 
         long long bits;
         do {
             bits = nextBits(31);
         } while (bits >= limit);
 
-        return int(bits % n);
+        return int(bits % nodes);
     }
 
-    /* Random value in range [0, n-1]. */
-    unsigned int next(unsigned int n) {
-        if (n >= INT_MAX)
-            __testlib_fail("random_t::next(unsigned int n): n must be less INT_MAX");
-        return (unsigned int) next(int(n));
+    /* Random value in range [0, nodes-1]. */
+    unsigned int next(unsigned int nodes) {
+        if (nodes >= INT_MAX)
+            __testlib_fail("random_t::next(unsigned int nodes): nodes must be less INT_MAX");
+        return (unsigned int) next(int(nodes));
     }
 
-    /* Random value in range [0, n-1]. */
-    long long next(long long n) {
-        if (n <= 0)
-            __testlib_fail("random_t::next(long long n): n must be positive");
+    /* Random value in range [0, nodes-1]. */
+    long long next(long long nodes) {
+        if (nodes <= 0)
+            __testlib_fail("random_t::next(long long nodes): nodes must be positive");
 
-        const long long limit = __TESTLIB_LONGLONG_MAX / n * n;
+        const long long limit = __TESTLIB_LONGLONG_MAX / nodes * nodes;
 
         long long bits;
         do {
             bits = nextBits(63);
         } while (bits >= limit);
 
-        return bits % n;
+        return bits % nodes;
     }
 
-    /* Random value in range [0, n-1]. */
-    unsigned long long next(unsigned long long n) {
-        if (n >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
-            __testlib_fail("random_t::next(unsigned long long n): n must be less LONGLONG_MAX");
-        return (unsigned long long) next((long long) (n));
+    /* Random value in range [0, nodes-1]. */
+    unsigned long long next(unsigned long long nodes) {
+        if (nodes >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
+            __testlib_fail("random_t::next(unsigned long long nodes): nodes must be less LONGLONG_MAX");
+        return (unsigned long long) next((long long) (nodes));
     }
 
-    /* Random value in range [0, n-1]. */
-    long next(long n) {
-        return (long) next((long long) (n));
+    /* Random value in range [0, nodes-1]. */
+    long next(long nodes) {
+        return (long) next((long long) (nodes));
     }
 
-    /* Random value in range [0, n-1]. */
-    unsigned long next(unsigned long n) {
-        if (n >= (unsigned long) (LONG_MAX))
-            __testlib_fail("random_t::next(unsigned long n): n must be less LONG_MAX");
-        return (unsigned long) next((unsigned long long) (n));
+    /* Random value in range [0, nodes-1]. */
+    unsigned long next(unsigned long nodes) {
+        if (nodes >= (unsigned long) (LONG_MAX))
+            __testlib_fail("random_t::next(unsigned long nodes): nodes must be less LONG_MAX");
+        return (unsigned long) next((unsigned long long) (nodes));
     }
 
     /* Returns random value in range [from,to]. */
@@ -916,11 +821,11 @@ public:
         return __testlib_crop((double) (left + right) / (double) (1LL << 53), 0.0, 1.0);
     }
 
-    /* Random double value in range [0, n). */
-    double next(double n) {
-        if (n <= 0.0)
-            __testlib_fail("random_t::next(double): n should be positive");
-        return __testlib_crop(n * next(), 0.0, n);
+    /* Random double value in range [0, nodes). */
+    double next(double nodes) {
+        if (nodes <= 0.0)
+            __testlib_fail("random_t::next(double): nodes should be positive");
+        return __testlib_crop(nodes * next(), 0.0, nodes);
     }
 
     /* Random double value in range [from, to). */
@@ -969,18 +874,18 @@ public:
      *
      * If type < 0, than "max" function replaces with "min".
      */
-    int wnext(int n, int type) {
-        if (n <= 0)
-            __testlib_fail("random_t::wnext(int n, int type): n must be positive");
+    int wnext(int nodes, int type) {
+        if (nodes <= 0)
+            __testlib_fail("random_t::wnext(int nodes, int type): nodes must be positive");
 
         if (abs(type) < random_t::lim) {
-            int result = next(n);
+            int result = next(nodes);
 
             for (int i = 0; i < +type; i++)
-                result = __testlib_max(result, next(n));
+                result = __testlib_max(result, next(nodes));
 
             for (int i = 0; i < -type; i++)
-                result = __testlib_min(result, next(n));
+                result = __testlib_min(result, next(nodes));
 
             return result;
         } else {
@@ -991,23 +896,23 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return __testlib_crop((int) (double(n) * p), 0, n);
+            return __testlib_crop((int) (double(nodes) * p), 0, nodes);
         }
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    long long wnext(long long n, int type) {
-        if (n <= 0)
-            __testlib_fail("random_t::wnext(long long n, int type): n must be positive");
+    long long wnext(long long nodes, int type) {
+        if (nodes <= 0)
+            __testlib_fail("random_t::wnext(long long nodes, int type): nodes must be positive");
 
         if (abs(type) < random_t::lim) {
-            long long result = next(n);
+            long long result = next(nodes);
 
             for (int i = 0; i < +type; i++)
-                result = __testlib_max(result, next(n));
+                result = __testlib_max(result, next(nodes));
 
             for (int i = 0; i < -type; i++)
-                result = __testlib_min(result, next(n));
+                result = __testlib_min(result, next(nodes));
 
             return result;
         } else {
@@ -1018,14 +923,14 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return __testlib_crop((long long) (double(n) * p), 0LL, n);
+            return __testlib_crop((long long) (double(nodes) * p), 0LL, nodes);
         }
     }
 
-    /* Returns value in [0, n). See wnext(int, int). It uses the same algorithms. */
-    double wnext(double n, int type) {
-        if (n <= 0)
-            __testlib_fail("random_t::wnext(double n, int type): n must be positive");
+    /* Returns value in [0, nodes). See wnext(int, int). It uses the same algorithms. */
+    double wnext(double nodes, int type) {
+        if (nodes <= 0)
+            __testlib_fail("random_t::wnext(double nodes, int type): nodes must be positive");
 
         if (abs(type) < random_t::lim) {
             double result = next();
@@ -1036,7 +941,7 @@ public:
             for (int i = 0; i < -type; i++)
                 result = __testlib_min(result, next());
 
-            return n * result;
+            return nodes * result;
         } else {
             double p;
 
@@ -1045,7 +950,7 @@ public:
             else
                 p = 1 - std::pow(next() + 0.0, 1.0 / (-type + 1));
 
-            return __testlib_crop(n * p, 0.0, n);
+            return __testlib_crop(nodes * p, 0.0, nodes);
         }
     }
 
@@ -1055,31 +960,31 @@ public:
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    unsigned int wnext(unsigned int n, int type) {
-        if (n >= INT_MAX)
-            __testlib_fail("random_t::wnext(unsigned int n, int type): n must be less INT_MAX");
-        return (unsigned int) wnext(int(n), type);
+    unsigned int wnext(unsigned int nodes, int type) {
+        if (nodes >= INT_MAX)
+            __testlib_fail("random_t::wnext(unsigned int nodes, int type): nodes must be less INT_MAX");
+        return (unsigned int) wnext(int(nodes), type);
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    unsigned long long wnext(unsigned long long n, int type) {
-        if (n >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
-            __testlib_fail("random_t::wnext(unsigned long long n, int type): n must be less LONGLONG_MAX");
+    unsigned long long wnext(unsigned long long nodes, int type) {
+        if (nodes >= (unsigned long long) (__TESTLIB_LONGLONG_MAX))
+            __testlib_fail("random_t::wnext(unsigned long long nodes, int type): nodes must be less LONGLONG_MAX");
 
-        return (unsigned long long) wnext((long long) (n), type);
+        return (unsigned long long) wnext((long long) (nodes), type);
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    long wnext(long n, int type) {
-        return (long) wnext((long long) (n), type);
+    long wnext(long nodes, int type) {
+        return (long) wnext((long long) (nodes), type);
     }
 
     /* See wnext(int, int). It uses the same algorithms. */
-    unsigned long wnext(unsigned long n, int type) {
-        if (n >= (unsigned long) (LONG_MAX))
-            __testlib_fail("random_t::wnext(unsigned long n, int type): n must be less LONG_MAX");
+    unsigned long wnext(unsigned long nodes, int type) {
+        if (nodes >= (unsigned long) (LONG_MAX))
+            __testlib_fail("random_t::wnext(unsigned long nodes, int type): nodes must be less LONG_MAX");
 
-        return (unsigned long) wnext((unsigned long long) (n), type);
+        return (unsigned long) wnext((unsigned long long) (nodes), type);
     }
 
     /* Returns weighted random value in range [from, to]. */
@@ -1191,15 +1096,15 @@ public:
         if (size < 0)
             __testlib_fail("random_t::distinct expected size >= 0");
 
-        uint64_t n = to - from + 1;
-        if (uint64_t(size) > n)
+        uint64_t nodes = to - from + 1;
+        if (uint64_t(size) > nodes)
             __testlib_fail("random_t::distinct expected size <= to - from + 1");
 
         double expected = 0.0;
         for (int i = 1; i <= size; i++)
-            expected += double(n) / double(n - i + 1);
+            expected += double(nodes) / double(nodes - i + 1);
 
-        if (expected < double(n)) {
+        if (expected < double(nodes)) {
             std::set<T> vals;
             while (int(vals.size()) < size) {
                 T x = T(next(from, to));
@@ -1207,9 +1112,9 @@ public:
                     result.push_back(x);
             }
         } else {
-            if (n > 1000000000)
+            if (nodes > 1000000000)
                 __testlib_fail("random_t::distinct here expected to - from + 1 <= 1000000000");
-            std::vector<T> p(perm(int(n), from));
+            std::vector<T> p(perm(int(nodes), from));
             result.insert(result.end(), p.begin(), p.begin() + size);
         }
 
@@ -2527,7 +2432,7 @@ public:
                 result += " min-value-hit";
             if (i->second.maxHit)
                 result += " max-value-hit";
-            result += "\n";
+            result += "\nodes";
         }
         return result;
     }
@@ -2540,7 +2445,7 @@ public:
             result += "feature \"" + *i + "\":";
             if (_hitFeatures.count(*i))
                 result += " hit";
-            result += "\n";
+            result += "\nodes";
         }
         return result;
     }
@@ -2702,8 +2607,6 @@ struct TestlibFinalizeGuard {
             if (testlibMode == _validator && readEofCount == 0 && quitCount == 0)
                 __testlib_fail("Validator must end with readEof call.");
 
-            /* opts */
-            autoEnsureNoUnusedOpts();
 
             if (!registered)
                 __testlib_fail("Call register-function in the first line of the main (registerTestlibCmd or other similar)");
@@ -2715,10 +2618,6 @@ struct TestlibFinalizeGuard {
             validator.writeTestCase();
         }
     }
-
-private:
-    /* opts */
-    void autoEnsureNoUnusedOpts();
 };
 
 bool TestlibFinalizeGuard::alive = true;
@@ -2883,8 +2782,8 @@ public:
 NORETURN void halt(int exitCode) {
 #ifdef FOOTER
     InStream::textColor(InStream::LightGray);
-    std::fprintf(stderr, "Checker: \"%s\"\n", checkerName.c_str());
-    std::fprintf(stderr, "Exit code: %d\n", exitCode);
+    std::fprintf(stderr, "Checker: \"%s\"\nodes", checkerName.c_str());
+    std::fprintf(stderr, "Exit code: %d\nodes", exitCode);
     InStream::textColor(InStream::LightGray);
 #endif
     __testlib_exitCode = exitCode;
@@ -3071,7 +2970,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
                 }
             }
             xmlSafeWrite(resultFile, __testlib_toPrintableMessage(message).c_str());
-            std::fprintf(resultFile, "</result>\n");
+            std::fprintf(resultFile, "</result>\nodes");
         } else
             std::fprintf(resultFile, "%s", __testlib_toPrintableMessage(message).c_str());
         if (NULL == resultFile || fclose(resultFile) != 0) {
@@ -3081,7 +2980,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     }
 
     quitscr(LightGray, __testlib_toPrintableMessage(message).c_str());
-    std::fprintf(stderr, "\n");
+    std::fprintf(stderr, "\nodes");
 
     inf.close();
     ouf.close();
@@ -3092,7 +2991,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     textColor(LightGray);
 
     if (resultName != "")
-        std::fprintf(stderr, "See file to check exit message\n");
+        std::fprintf(stderr, "See file to check exit message\nodes");
 
     halt(resultExitCode(result));
 }
@@ -4355,26 +4254,26 @@ void quitif(bool condition, TResult result, const char *format, ...) {
     }
 }
 
-NORETURN void __testlib_help() {
-    InStream::textColor(InStream::LightCyan);
-    std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2020\n");
-    std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
-    InStream::textColor(InStream::LightGray);
+// NORETURN void __testlib_help() {
+//     InStream::textColor(InStream::LightCyan);
+//     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
+//     std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2020\nodes");
+//     std::fprintf(stderr, "Checker name: \"%s\"\nodes", checkerName.c_str());
+//     InStream::textColor(InStream::LightGray);
 
-    std::fprintf(stderr, "\n");
-    std::fprintf(stderr, "Latest features: \n");
-    for (size_t i = 0; i < sizeof(latestFeatures) / sizeof(char *); i++) {
-        std::fprintf(stderr, "*) %s\n", latestFeatures[i]);
-    }
-    std::fprintf(stderr, "\n");
+//     std::fprintf(stderr, "\nodes");
+//     std::fprintf(stderr, "Latest features: \nodes");
+//     for (size_t i = 0; i < sizeof(latestFeatures) / sizeof(char *); i++) {
+//         std::fprintf(stderr, "*) %s\nodes", latestFeatures[i]);
+//     }
+//     std::fprintf(stderr, "\nodes");
 
-    std::fprintf(stderr, "Program must be run with the following arguments: \n");
-    std::fprintf(stderr, "    [--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\n\n");
+//     std::fprintf(stderr, "Program must be run with the following arguments: \nodes");
+//     std::fprintf(stderr, "    [--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]\nodes\nodes");
 
-    __testlib_exitCode = FAIL_EXIT_CODE;
-    std::exit(FAIL_EXIT_CODE);
-}
+//     __testlib_exitCode = FAIL_EXIT_CODE;
+//     std::exit(FAIL_EXIT_CODE);
+// }
 
 static void __testlib_ensuresPreconditions() {
     // testlib assumes: sizeof(int) = 4.
@@ -4396,402 +4295,312 @@ static void __testlib_ensuresPreconditions() {
         quit(_fail, "Function __testlib_isNaN is not working correctly: possible reason is '-ffast-math'");
 }
 
-std::string __testlib_testset;
+// std::string __testlib_testset;
 
-std::string getTestset() {
-    return __testlib_testset;
-}
+// std::string getTestset() {
+//     return __testlib_testset;
+// }
 
-std::string __testlib_group;
+// std::string __testlib_group;
 
-std::string getGroup() {
-    return __testlib_group;
-}
+// std::string getGroup() {
+//     return __testlib_group;
+// }
 
-static void __testlib_set_testset_and_group(int argc, char* argv[]) {
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp("--testset", argv[i])) {
-            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
-                __testlib_testset = argv[++i];
-            else
-                quit(_fail, std::string("Expected non-empty testset after --testset command line parameter"));
-        } else if (!strcmp("--group", argv[i])) {
-            if (i + 1 < argc)
-                __testlib_group = argv[++i];
-            else
-                quit(_fail, std::string("Expected group after --group command line parameter"));
-        }
-    }
-}
+// static void __testlib_set_testset_and_group(int argc, char* argv[]) {
+//     for (int i = 1; i < argc; i++) {
+//         if (!strcmp("--testset", argv[i])) {
+//             if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+//                 __testlib_testset = argv[++i];
+//             else
+//                 quit(_fail, std::string("Expected non-empty testset after --testset command line parameter"));
+//         } else if (!strcmp("--group", argv[i])) {
+//             if (i + 1 < argc)
+//                 __testlib_group = argv[++i];
+//             else
+//                 quit(_fail, std::string("Expected group after --group command line parameter"));
+//         }
+//     }
+// }
 
-void registerGen(int argc, char *argv[], int randomGeneratorVersion) {
-    if (randomGeneratorVersion < 0 || randomGeneratorVersion > 1)
-        quitf(_fail, "Random generator version is expected to be 0 or 1.");
-    random_t::version = randomGeneratorVersion;
+void registerGen(long long seed) {
+    random_t::version = 1;
 
     __testlib_ensuresPreconditions();
     TestlibFinalizeGuard::registered = true;
 
     testlibMode = _generator;
     __testlib_set_binary(stdin);
-    rnd.setSeed(argc, argv);
-
-#if __cplusplus > 199711L || defined(_MSC_VER)
-    prepareOpts(argc, argv);
-#endif
+    rnd.setSeed(seed);
 }
 
-#ifdef USE_RND_AS_BEFORE_087
-void registerGen(int argc, char* argv[])
-{
-    registerGen(argc, argv, 0);
-}
-#else
-#ifdef __GNUC__
-#if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 4))
-__attribute__ ((deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
-" The third parameter stands for the random generator version."
-" If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
-" Version 1 has been released on Spring, 2013. Use it to write new generators.")))
-#else
-__attribute__ ((deprecated))
-#endif
-#endif
-#ifdef _MSC_VER
-__declspec(deprecated("Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
-        " The third parameter stands for the random generator version."
-        " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
-        " Version 1 has been released on Spring, 2013. Use it to write new generators."))
-#endif
-void registerGen(int argc, char *argv[]) {
-    std::fprintf(stderr, "Use registerGen(argc, argv, 0) or registerGen(argc, argv, 1)."
-                         " The third parameter stands for the random generator version."
-                         " If you are trying to compile old generator use macro -DUSE_RND_AS_BEFORE_087 or registerGen(argc, argv, 0)."
-                         " Version 1 has been released on Spring, 2013. Use it to write new generators.\n\n");
-    registerGen(argc, argv, 0);
-}
-#endif
-
-void setAppesModeEncoding(std::string appesModeEncoding) {
-    static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
-"iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
-"iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
-"windows-1256", "windows-1257", "windows-1258", "gb2312", "gbk", "gb18030", "big5", "shift-jis", "euc-jp", "euc-kr", 
-"euc-cn", "euc-tw", "koi8-r", "koi8-u", "tis-620", "ibm437", "ibm850", "ibm852", "ibm855", "ibm857", 
-"ibm860", "ibm861", "ibm862", "ibm863", "ibm865", "ibm866", "ibm869", "macroman", "maccentraleurope", "maciceland", 
-"maccroatian", "macromania", "maccyrillic", "macukraine", "macgreek", "macturkish", "machebrew", "macarabic", "macthai", "hz-gb-2312", 
-"iso-2022-jp", "iso-2022-kr", "iso-2022-cn", "armscii-8", "tscii", "iscii", "viscii", "geostd8", "cp949", "cp874", 
-"cp1006", "cp775", "cp858", "cp737", "cp853", "cp856", "cp922", "cp1046", "cp1125", "cp1131", 
-"ptcp154", "koi8-t", "koi8-ru", "mulelao-1", "cp1133", "iso-ir-166", "tcvn", "iso-ir-14", "iso-ir-87", "iso-ir-159"};
+// void setAppesModeEncoding(std::string appesModeEncoding) {
+//     static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
+// "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
+// "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
+// "windows-1256", "windows-1257", "windows-1258", "gb2312", "gbk", "gb18030", "big5", "shift-jis", "euc-jp", "euc-kr", 
+// "euc-cn", "euc-tw", "koi8-r", "koi8-u", "tis-620", "ibm437", "ibm850", "ibm852", "ibm855", "ibm857", 
+// "ibm860", "ibm861", "ibm862", "ibm863", "ibm865", "ibm866", "ibm869", "macroman", "maccentraleurope", "maciceland", 
+// "maccroatian", "macromania", "maccyrillic", "macukraine", "macgreek", "macturkish", "machebrew", "macarabic", "macthai", "hz-gb-2312", 
+// "iso-2022-jp", "iso-2022-kr", "iso-2022-cn", "armscii-8", "tscii", "iscii", "viscii", "geostd8", "cp949", "cp874", 
+// "cp1006", "cp775", "cp858", "cp737", "cp853", "cp856", "cp922", "cp1046", "cp1125", "cp1131", 
+// "ptcp154", "koi8-t", "koi8-ru", "mulelao-1", "cp1133", "iso-ir-166", "tcvn", "iso-ir-14", "iso-ir-87", "iso-ir-159"};
     
-    appesModeEncoding = lowerCase(appesModeEncoding);
-    bool valid = false;
-    for (size_t i = 0; i < sizeof(ENCODINGS) / sizeof(ENCODINGS[0]); i++)
-        if (appesModeEncoding == ENCODINGS[i]) {
-            valid = true;
-            break;
-        }
-    if (!valid)
-        quit(_fail, "Unexpected encoding for setAppesModeEncoding(encoding)");
-    ::appesModeEncoding = appesModeEncoding;
-}
+//     appesModeEncoding = lowerCase(appesModeEncoding);
+//     bool valid = false;
+//     for (size_t i = 0; i < sizeof(ENCODINGS) / sizeof(ENCODINGS[0]); i++)
+//         if (appesModeEncoding == ENCODINGS[i]) {
+//             valid = true;
+//             break;
+//         }
+//     if (!valid)
+//         quit(_fail, "Unexpected encoding for setAppesModeEncoding(encoding)");
+//     ::appesModeEncoding = appesModeEncoding;
+// }
 
-void registerInteraction(int argc, char *argv[]) {
-    __testlib_ensuresPreconditions();
-    __testlib_set_testset_and_group(argc, argv);
-    TestlibFinalizeGuard::registered = true;
+// void registerValidation() {
+//     __testlib_ensuresPreconditions();
+//     TestlibFinalizeGuard::registered = true;
 
-    testlibMode = _interactor;
-    __testlib_set_binary(stdin);
+//     testlibMode = _validator;
 
-    if (argc > 1 && !strcmp("--help", argv[1]))
-        __testlib_help();
+//     __testlib_set_binary(stdin);
+//     __testlib_set_binary(stdout);
+//     __testlib_set_binary(stderr);
 
-    if (argc < 3 || argc > 6) {
-        quit(_fail, std::string("Program must be run with the following arguments: ") +
-                    std::string("<input-file> <output-file> [<answer-file> [<report-file> [<-appes>]]]") +
-                    "\nUse \"--help\" to get help information");
-    }
+//     inf.init(stdin, _input);
+//     inf.strict = true;
+// }
 
-    if (argc <= 4) {
-        resultName = "";
-        appesMode = false;
-    }
+// void registerValidation(int argc, char *argv[]) {
+//     registerValidation();
+//     __testlib_set_testset_and_group(argc, argv);
 
-#ifndef EJUDGE
-    if (argc == 5) {
-        resultName = argv[4];
-        appesMode = false;
-    }
+//     validator.initialize();
+//     TestlibFinalizeGuard::registered = true;
 
-    if (argc == 6) {
-        if (strcmp("-APPES", argv[5]) && strcmp("-appes", argv[5])) {
-            quit(_fail, std::string("Program must be run with the following arguments: ") +
-                        "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
-        } else {
-            resultName = argv[4];
-            appesMode = true;
-        }
-    }
-#endif
+//     std::string comment = "Validator must be run with the following arguments:"
+//                             " [--testset testset]"
+//                             " [--group group]"
+//                             " [--testOverviewLogFileName fileName]"
+//                             " [--testMarkupFileName fileName]"
+//                             " [--testCase testCase]"
+//                             " [--testCaseFileName fileName]"
+//                             ;
 
-    inf.init(argv[1], _input);
+//     for (int i = 1; i < argc; i++) {
+//         if (!strcmp("--testset", argv[i])) {
+//             if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+//                 validator.setTestset(argv[++i]);
+//             else
+//                 quit(_fail, comment);
+//         }
+//         if (!strcmp("--group", argv[i])) {
+//             if (i + 1 < argc)
+//                 validator.setGroup(argv[++i]);
+//             else
+//                 quit(_fail, comment);
+//         }
+//         if (!strcmp("--testOverviewLogFileName", argv[i])) {
+//             if (i + 1 < argc)
+//                 validator.setTestOverviewLogFileName(argv[++i]);
+//             else
+//                 quit(_fail, comment);
+//         }
+//         if (!strcmp("--testMarkupFileName", argv[i])) {
+//             if (i + 1 < argc)
+//                 validator.setTestMarkupFileName(argv[++i]);
+//             else
+//                 quit(_fail, comment);
+//         }
+//         if (!strcmp("--testCase", argv[i])) {
+//             if (i + 1 < argc) {
+//                 long long testCase = stringToLongLong(inf, argv[++i]);
+//                 if (testCase < 1 || testCase >= __TESTLIB_MAX_TEST_CASE)
+//                     quit(_fail, format("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
+//                         + toString(testCase) + " found");
+//                 validator.setTestCase(int(testCase));
+//             } else
+//                 quit(_fail, comment);
+//         }
+//         if (!strcmp("--testCaseFileName", argv[i])) {
+//             if (i + 1 < argc) {
+//                 validator.setTestCaseFileName(argv[++i]);
+//             } else
+//                 quit(_fail, comment);
+//         }
+//     }
+// }
 
-    tout.open(argv[2], std::ios_base::out);
-    if (tout.fail() || !tout.is_open())
-        quit(_fail, std::string("Can not write to the test-output-file '") + argv[2] + std::string("'"));
+// void addFeature(const std::string &feature) {
+//     if (testlibMode != _validator)
+//         quit(_fail, "Features are supported in validators only.");
+//     validator.addFeature(feature);
+// }
 
-    ouf.init(stdin, _output);
+// void feature(const std::string &feature) {
+//     if (testlibMode != _validator)
+//         quit(_fail, "Features are supported in validators only.");
+//     validator.feature(feature);
+// }
 
-    if (argc >= 4)
-        ans.init(argv[3], _answer);
-    else
-        ans.name = "unopened answer stream";
-}
+// class Checker {
+// private:
+//     bool _initialized;
+//     std::string _testset;
+//     std::string _group;
 
-void registerValidation() {
-    __testlib_ensuresPreconditions();
-    TestlibFinalizeGuard::registered = true;
+// public:
+//     Checker() : _initialized(false), _testset("tests"), _group() {
+//     }
 
-    testlibMode = _validator;
+//     void initialize() {
+//         _initialized = true;
+//     }
 
-    __testlib_set_binary(stdin);
-    __testlib_set_binary(stdout);
-    __testlib_set_binary(stderr);
+//     std::string testset() const {
+//         if (!_initialized)
+//             __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.testset()");
+//         return _testset;
+//     }
 
-    inf.init(stdin, _input);
-    inf.strict = true;
-}
+//     std::string group() const {
+//         if (!_initialized)
+//             __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.group()");
+//         return _group;
+//     }
 
-void registerValidation(int argc, char *argv[]) {
-    registerValidation();
-    __testlib_set_testset_and_group(argc, argv);
+//     void setTestset(const char *const testset) {
+//         _testset = testset;
+//     }
 
-    validator.initialize();
-    TestlibFinalizeGuard::registered = true;
+//     void setGroup(const char *const group) {
+//         _group = group;
+//     }
+// } checker;
 
-    std::string comment = "Validator must be run with the following arguments:"
-                            " [--testset testset]"
-                            " [--group group]"
-                            " [--testOverviewLogFileName fileName]"
-                            " [--testMarkupFileName fileName]"
-                            " [--testCase testCase]"
-                            " [--testCaseFileName fileName]"
-                            ;
+// void registerTestlibCmd(int argc, char *argv[]) {
+//     __testlib_ensuresPreconditions();
+//     __testlib_set_testset_and_group(argc, argv);
+//     TestlibFinalizeGuard::registered = true;
 
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp("--testset", argv[i])) {
-            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
-                validator.setTestset(argv[++i]);
-            else
-                quit(_fail, comment);
-        }
-        if (!strcmp("--group", argv[i])) {
-            if (i + 1 < argc)
-                validator.setGroup(argv[++i]);
-            else
-                quit(_fail, comment);
-        }
-        if (!strcmp("--testOverviewLogFileName", argv[i])) {
-            if (i + 1 < argc)
-                validator.setTestOverviewLogFileName(argv[++i]);
-            else
-                quit(_fail, comment);
-        }
-        if (!strcmp("--testMarkupFileName", argv[i])) {
-            if (i + 1 < argc)
-                validator.setTestMarkupFileName(argv[++i]);
-            else
-                quit(_fail, comment);
-        }
-        if (!strcmp("--testCase", argv[i])) {
-            if (i + 1 < argc) {
-                long long testCase = stringToLongLong(inf, argv[++i]);
-                if (testCase < 1 || testCase >= __TESTLIB_MAX_TEST_CASE)
-                    quit(_fail, format("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
-                        + toString(testCase) + " found");
-                validator.setTestCase(int(testCase));
-            } else
-                quit(_fail, comment);
-        }
-        if (!strcmp("--testCaseFileName", argv[i])) {
-            if (i + 1 < argc) {
-                validator.setTestCaseFileName(argv[++i]);
-            } else
-                quit(_fail, comment);
-        }
-    }
-}
+//     testlibMode = _checker;
+//     __testlib_set_binary(stdin);
 
-void addFeature(const std::string &feature) {
-    if (testlibMode != _validator)
-        quit(_fail, "Features are supported in validators only.");
-    validator.addFeature(feature);
-}
+//     std::vector<std::string> args(1, argv[0]);
+//     checker.initialize();
 
-void feature(const std::string &feature) {
-    if (testlibMode != _validator)
-        quit(_fail, "Features are supported in validators only.");
-    validator.feature(feature);
-}
+//     for (int i = 1; i < argc; i++) {
+//         if (!strcmp("--testset", argv[i])) {
+//             if (i + 1 < argc && strlen(argv[i + 1]) > 0)
+//                 checker.setTestset(argv[++i]);
+//             else
+//                 quit(_fail, std::string("Expected testset after --testset command line parameter"));
+//         } else if (!strcmp("--group", argv[i])) {
+//             if (i + 1 < argc)
+//                 checker.setGroup(argv[++i]);
+//             else
+//                 quit(_fail, std::string("Expected group after --group command line parameter"));
+//         } else
+//             args.push_back(argv[i]);
+//     }
 
-class Checker {
-private:
-    bool _initialized;
-    std::string _testset;
-    std::string _group;
+//     argc = int(args.size());
+//     if (argc > 1 && "--help" == args[1])
+//         __testlib_help();
 
-public:
-    Checker() : _initialized(false), _testset("tests"), _group() {
-    }
+//     if (argc < 4 || argc > 6) {
+//         quit(_fail, std::string("Program must be run with the following arguments: ") +
+//                     std::string("[--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
+//                     "\nUse \"--help\" to get help information");
+//     }
 
-    void initialize() {
-        _initialized = true;
-    }
+//     if (argc == 4) {
+//         resultName = "";
+//         appesMode = false;
+//     }
 
-    std::string testset() const {
-        if (!_initialized)
-            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.testset()");
-        return _testset;
-    }
+// #ifndef EJUDGE
+//     if (argc == 5) {
+//         resultName = args[4];
+//         appesMode = false;
+//     }
 
-    std::string group() const {
-        if (!_initialized)
-            __testlib_fail("Checker should be initialized with registerTestlibCmd(argc, argv) instead of registerTestlibCmd() to support checker.group()");
-        return _group;
-    }
+//     if (argc == 6) {
+//         if ("-APPES" != args[5] && "-appes" != args[5]) {
+//             quit(_fail, std::string("Program must be run with the following arguments: ") +
+//                         "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
+//         } else {
+//             resultName = args[4];
+//             appesMode = true;
+//         }
+//     }
+// #endif
 
-    void setTestset(const char *const testset) {
-        _testset = testset;
-    }
+//     inf.init(args[1], _input);
+//     ouf.init(args[2], _output);
+//     ouf.skipBom();
+//     ans.init(args[3], _answer);
+// }
 
-    void setGroup(const char *const group) {
-        _group = group;
-    }
-} checker;
+// void registerTestlib(int argc, ...) {
+//     if (argc < 3 || argc > 5)
+//         quit(_fail, std::string("Program must be run with the following arguments: ") +
+//                     "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
 
-void registerTestlibCmd(int argc, char *argv[]) {
-    __testlib_ensuresPreconditions();
-    __testlib_set_testset_and_group(argc, argv);
-    TestlibFinalizeGuard::registered = true;
+//     char **argv = new char *[argc + 1];
 
-    testlibMode = _checker;
-    __testlib_set_binary(stdin);
+//     va_list ap;
+//     va_start(ap, argc);
+//     argv[0] = NULL;
+//     for (int i = 0; i < argc; i++) {
+//         argv[i + 1] = va_arg(ap, char*);
+//     }
+//     va_end(ap);
 
-    std::vector<std::string> args(1, argv[0]);
-    checker.initialize();
+//     registerTestlibCmd(argc + 1, argv);
+//     delete[] argv;
+// }
 
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp("--testset", argv[i])) {
-            if (i + 1 < argc && strlen(argv[i + 1]) > 0)
-                checker.setTestset(argv[++i]);
-            else
-                quit(_fail, std::string("Expected testset after --testset command line parameter"));
-        } else if (!strcmp("--group", argv[i])) {
-            if (i + 1 < argc)
-                checker.setGroup(argv[++i]);
-            else
-                quit(_fail, std::string("Expected group after --group command line parameter"));
-        } else
-            args.push_back(argv[i]);
-    }
+// static inline void __testlib_ensure(bool cond, const std::string &msg) {
+//     if (!cond)
+//         quit(_fail, msg.c_str());
+// }
 
-    argc = int(args.size());
-    if (argc > 1 && "--help" == args[1])
-        __testlib_help();
+// #ifdef __GNUC__
+// __attribute__((unused))
+// #endif
+// static inline void __testlib_ensure(bool cond, const char *msg) {
+//     if (!cond)
+//         quit(_fail, msg);
+// }
 
-    if (argc < 4 || argc > 6) {
-        quit(_fail, std::string("Program must be run with the following arguments: ") +
-                    std::string("[--testset testset] [--group group] <input-file> <output-file> <answer-file> [<report-file> [<-appes>]]") +
-                    "\nUse \"--help\" to get help information");
-    }
+// #define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
+// #define STRINGIZE_DETAIL(x) #x
+// #define STRINGIZE(x) STRINGIZE_DETAIL(x)
+// #define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
-    if (argc == 4) {
-        resultName = "";
-        appesMode = false;
-    }
-
-#ifndef EJUDGE
-    if (argc == 5) {
-        resultName = args[4];
-        appesMode = false;
-    }
-
-    if (argc == 6) {
-        if ("-APPES" != args[5] && "-appes" != args[5]) {
-            quit(_fail, std::string("Program must be run with the following arguments: ") +
-                        "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
-        } else {
-            resultName = args[4];
-            appesMode = true;
-        }
-    }
-#endif
-
-    inf.init(args[1], _input);
-    ouf.init(args[2], _output);
-    ouf.skipBom();
-    ans.init(args[3], _answer);
-}
-
-void registerTestlib(int argc, ...) {
-    if (argc < 3 || argc > 5)
-        quit(_fail, std::string("Program must be run with the following arguments: ") +
-                    "<input-file> <output-file> <answer-file> [<report-file> [<-appes>]]");
-
-    char **argv = new char *[argc + 1];
-
-    va_list ap;
-    va_start(ap, argc);
-    argv[0] = NULL;
-    for (int i = 0; i < argc; i++) {
-        argv[i + 1] = va_arg(ap, char*);
-    }
-    va_end(ap);
-
-    registerTestlibCmd(argc + 1, argv);
-    delete[] argv;
-}
-
-static inline void __testlib_ensure(bool cond, const std::string &msg) {
-    if (!cond)
-        quit(_fail, msg.c_str());
-}
-
-#ifdef __GNUC__
-__attribute__((unused))
-#endif
-static inline void __testlib_ensure(bool cond, const char *msg) {
-    if (!cond)
-        quit(_fail, msg);
-}
-
-#define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
-#define STRINGIZE_DETAIL(x) #x
-#define STRINGIZE(x) STRINGIZE_DETAIL(x)
-#define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
-
-#ifdef __GNUC__
-__attribute__ ((format (printf, 2, 3)))
-#endif
-inline void ensuref(bool cond, const char *format, ...) {
-    if (!cond) {
-        FMT_TO_RESULT(format, format, message);
-        __testlib_ensure(cond, message);
-    }
-}
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 2, 3)))
+// #endif
+// inline void ensuref(bool cond, const char *format, ...) {
+//     if (!cond) {
+//         FMT_TO_RESULT(format, format, message);
+//         __testlib_ensure(cond, message);
+//     }
+// }
 
 NORETURN static void __testlib_fail(const std::string &message) {
     quitf(_fail, "%s", message.c_str());
 }
 
-#ifdef __GNUC__
-__attribute__ ((format (printf, 1, 2)))
-#endif
-void setName(const char *format, ...) {
-    FMT_TO_RESULT(format, format, name);
-    checkerName = name;
-}
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 1, 2)))
+// #endif
+// void setName(const char *format, ...) {
+//     FMT_TO_RESULT(format, format, name);
+//     checkerName = name;
+// }
 
 /*
  * Do not use random_shuffle, because it will produce different result
@@ -4855,11 +4664,11 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
                  "is randomGeneratorVersion (currently the latest is 1) [ignored seed=%u].", seed);
 }
 
-void startTest(int test) {
-    const std::string testFileName = vtos(test);
-    if (NULL == freopen(testFileName.c_str(), "wt", stdout))
-        __testlib_fail("Unable to write file '" + testFileName + "'");
-}
+// void startTest(int test) {
+//     const std::string testFileName = vtos(test);
+//     if (NULL == freopen(testFileName.c_str(), "wt", stdout))
+//         __testlib_fail("Unable to write file '" + testFileName + "'");
+// }
 
 #ifdef __GNUC__
 __attribute__((const))
@@ -4868,21 +4677,21 @@ inline std::string compress(const std::string &s) {
     return __testlib_part(s);
 }
 
-#ifdef __GNUC__
-__attribute__((const))
-#endif
-inline std::string englishEnding(int x) {
-    x %= 100;
-    if (x / 10 == 1)
-        return "th";
-    if (x % 10 == 1)
-        return "st";
-    if (x % 10 == 2)
-        return "nd";
-    if (x % 10 == 3)
-        return "rd";
-    return "th";
-}
+// #ifdef __GNUC__
+// __attribute__((const))
+// #endif
+// inline std::string englishEnding(int x) {
+//     x %= 100;
+//     if (x / 10 == 1)
+//         return "th";
+//     if (x % 10 == 1)
+//         return "st";
+//     if (x % 10 == 2)
+//         return "nd";
+//     if (x % 10 == 3)
+//         return "rd";
+//     return "th";
+// }
 
 template<typename _ForwardIterator, typename _Separator>
 #ifdef __GNUC__
@@ -5023,84 +4832,84 @@ std::vector<std::string> tokenize(const std::string &s, const std::string &separ
     return result;
 }
 
-NORETURN void __testlib_expectedButFound(TResult result, std::string expected, std::string found, const char *prepend) {
-    std::string message;
-    if (strlen(prepend) != 0)
-        message = format("%s: expected '%s', but found '%s'",
-                         compress(prepend).c_str(), compress(expected).c_str(), compress(found).c_str());
-    else
-        message = format("expected '%s', but found '%s'",
-                         compress(expected).c_str(), compress(found).c_str());
-    quit(result, message);
-}
+// NORETURN void __testlib_expectedButFound(TResult result, std::string expected, std::string found, const char *prepend) {
+//     std::string message;
+//     if (strlen(prepend) != 0)
+//         message = format("%s: expected '%s', but found '%s'",
+//                          compress(prepend).c_str(), compress(expected).c_str(), compress(found).c_str());
+//     else
+//         message = format("expected '%s', but found '%s'",
+//                          compress(expected).c_str(), compress(found).c_str());
+//     quit(result, message);
+// }
 
-NORETURN void __testlib_expectedButFound(TResult result, double expected, double found, const char *prepend) {
-    std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
-    std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
-    __testlib_expectedButFound(result, expectedString, foundString, prepend);
-}
+// NORETURN void __testlib_expectedButFound(TResult result, double expected, double found, const char *prepend) {
+//     std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
+//     std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
+//     __testlib_expectedButFound(result, expectedString, foundString, prepend);
+// }
 
-template<typename T>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void expectedButFound(TResult result, T expected, T found, const char *prependFormat = "", ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    std::string expectedString = vtos(expected);
-    std::string foundString = vtos(found);
-    __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
-}
+// template<typename T>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void expectedButFound(TResult result, T expected, T found, const char *prependFormat = "", ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     std::string expectedString = vtos(expected);
+//     std::string foundString = vtos(found);
+//     __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
+// }
 
-template<>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void
-expectedButFound<std::string>(TResult result, std::string expected, std::string found, const char *prependFormat, ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    __testlib_expectedButFound(result, expected, found, prepend.c_str());
-}
+// template<>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void
+// expectedButFound<std::string>(TResult result, std::string expected, std::string found, const char *prependFormat, ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     __testlib_expectedButFound(result, expected, found, prepend.c_str());
+// }
 
-template<>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void expectedButFound<double>(TResult result, double expected, double found, const char *prependFormat, ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
-    std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
-    __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
-}
+// template<>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void expectedButFound<double>(TResult result, double expected, double found, const char *prependFormat, ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
+//     std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
+//     __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
+// }
 
-template<>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void
-expectedButFound<const char *>(TResult result, const char *expected, const char *found, const char *prependFormat,
-                               ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    __testlib_expectedButFound(result, std::string(expected), std::string(found), prepend.c_str());
-}
+// template<>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void
+// expectedButFound<const char *>(TResult result, const char *expected, const char *found, const char *prependFormat,
+//                                ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     __testlib_expectedButFound(result, std::string(expected), std::string(found), prepend.c_str());
+// }
 
-template<>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void expectedButFound<float>(TResult result, float expected, float found, const char *prependFormat, ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
-}
+// template<>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void expectedButFound<float>(TResult result, float expected, float found, const char *prependFormat, ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
+// }
 
-template<>
-#ifdef __GNUC__
-__attribute__ ((format (printf, 4, 5)))
-#endif
-NORETURN void
-expectedButFound<long double>(TResult result, long double expected, long double found, const char *prependFormat, ...) {
-    FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
-}
+// template<>
+// #ifdef __GNUC__
+// __attribute__ ((format (printf, 4, 5)))
+// #endif
+// NORETURN void
+// expectedButFound<long double>(TResult result, long double expected, long double found, const char *prependFormat, ...) {
+//     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
+//     __testlib_expectedButFound(result, double(expected), double(found), prepend.c_str());
+// }
 
 #if __cplusplus > 199711L || defined(_MSC_VER)
 template<typename T>
@@ -5213,852 +5022,254 @@ void println(const T &x) {
     std::cout << std::endl;
 }
 
-template<typename A, typename B, typename C>
-void println(const A &a, const B &b, const C &c) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << std::endl;
+template<typename... Args>
+void println(Args&&... args) {
+	((__testlib_print_one(args), std::cout << ' '), ...);
+	std::cout << '\n';
 }
 
-template<typename A, typename B, typename C, typename D>
-void println(const A &a, const B &b, const C &c, const D &d) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << std::endl;
-}
+// /* Scorer started. */
 
-template<typename A, typename B, typename C, typename D, typename E>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << std::endl;
-}
+// enum TestResultVerdict {
+//     SKIPPED,
+//     OK,
+//     WRONG_ANSWER,
+//     RUNTIME_ERROR,
+//     TIME_LIMIT_EXCEEDED,
+//     IDLENESS_LIMIT_EXCEEDED,
+//     MEMORY_LIMIT_EXCEEDED,
+//     COMPILATION_ERROR,
+//     CRASHED,
+//     FAILED
+// };
 
-template<typename A, typename B, typename C, typename D, typename E, typename F>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
-    std::cout << std::endl;
-}
+// std::string serializeVerdict(TestResultVerdict verdict) {
+//     switch (verdict) {
+//         case SKIPPED: return "SKIPPED";
+//         case OK: return "OK";
+//         case WRONG_ANSWER: return "WRONG_ANSWER";
+//         case RUNTIME_ERROR: return "RUNTIME_ERROR";
+//         case TIME_LIMIT_EXCEEDED: return "TIME_LIMIT_EXCEEDED";
+//         case IDLENESS_LIMIT_EXCEEDED: return "IDLENESS_LIMIT_EXCEEDED";
+//         case MEMORY_LIMIT_EXCEEDED: return "MEMORY_LIMIT_EXCEEDED";
+//         case COMPILATION_ERROR: return "COMPILATION_ERROR";
+//         case CRASHED: return "CRASHED";
+//         case FAILED: return "FAILED";
+//     }
+//     throw "Unexpected verdict";
+// }
 
-template<typename A, typename B, typename C, typename D, typename E, typename F, typename G>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
-    std::cout << " ";
-    __testlib_print_one(g);
-    std::cout << std::endl;
-}
+// TestResultVerdict deserializeTestResultVerdict(std::string s) {
+//     if (s == "SKIPPED")
+//         return SKIPPED;
+//     else if (s == "OK")
+//         return OK;
+//     else if (s == "WRONG_ANSWER")
+//         return WRONG_ANSWER;
+//     else if (s == "RUNTIME_ERROR")
+//         return RUNTIME_ERROR;
+//     else if (s == "TIME_LIMIT_EXCEEDED")
+//         return TIME_LIMIT_EXCEEDED;
+//     else if (s == "IDLENESS_LIMIT_EXCEEDED")
+//         return IDLENESS_LIMIT_EXCEEDED;
+//     else if (s == "MEMORY_LIMIT_EXCEEDED")
+//         return MEMORY_LIMIT_EXCEEDED;
+//     else if (s == "COMPILATION_ERROR")
+//         return COMPILATION_ERROR;
+//     else if (s == "CRASHED")
+//         return CRASHED;
+//     else if (s == "FAILED")
+//         return FAILED;
+//     ensuref(false, "Unexpected serialized TestResultVerdict");
+//     // No return actually.
+//     return FAILED;
+// }
 
-/* opts */
+// struct TestResult {
+//     int testIndex;
+//     std::string testset;
+//     std::string group;
+//     TestResultVerdict verdict;
+//     double points;
+//     long long timeConsumed;
+//     long long memoryConsumed;
+//     std::string input;
+//     std::string output;
+//     std::string answer;
+//     int exitCode;
+//     std::string checkerComment;
+// };
 
-/**
- * A struct for a singular testlib opt, containing the raw string value,
- * and a boolean value for marking whether the opt is used.
- */
-struct TestlibOpt {
-    std::string value;
-    bool used;
+// std::string serializePoints(double points) {
+//     if (std::isnan(points))
+//         return "";
+//     else {
+//         char c[64];
+//         snprintf(c, 64, "%.03lf", points);
+//         return c;
+//     }
+// }
 
-    TestlibOpt() : value(), used(false) {}
-};
+// double deserializePoints(std::string s) {
+//     if (s.empty())
+//         return std::numeric_limits<double>::quiet_NaN();
+//     else {
+//         double result;
+//         ensuref(sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+//         return result;
+//     }                                              
+// }
 
-/**
- * Get the type of opt based on the number of `-` at the beginning and the
- * _validity_ of the key name.
- * 
- * A valid key name must start with an alphabetical character.
- * 
- * Returns: 1 if s has one `-` at the beginning, that is, "-keyName".
- *          2 if s has two `-` at the beginning, that is, "--keyName".
- *          0 otherwise. That is, if s has no `-` at the beginning, or has more
- *          than 2 at the beginning ("---keyName", "----keyName", ...), or the
- *          keyName is invalid (the first character is not an alphabetical
- *          character).
- */
-size_t getOptType(char *s) {
-    if (!s || strlen(s) <= 1)
-        return 0;
+// std::string escapeTestResultString(std::string s) {
+//     std::string result;
+//     for (size_t i = 0; i < s.length(); i++) {
+//         if (s[i] == '\r')
+//             continue;
+//         if (s[i] == '\n') {
+//             result += "\\nodes";
+//             continue;
+//         }
+//         if (s[i] == '\\' || s[i] == ';')
+//             result += '\\';
+//         result += s[i];
+//     }
+//     return result;
+// }
 
-    if (s[0] == '-') {
-        if (isalpha(s[1]))
-            return 1;
-        else if (s[1] == '-')
-            return isalpha(s[2]) ? 2 : 0;
-    }
+// std::string unescapeTestResultString(std::string s) {
+//     std::string result;
+//     for (size_t i = 0; i < s.length(); i++) {
+//         if (s[i] == '\\' && i + 1 < s.length()) {
+//             if (s[i + 1] == 'n') {
+//                 result += '\n';
+//                 i++;
+//                 continue;
+//             } else if (s[i + 1] == ';' || s[i + 1] == '\\') {
+//                 result += s[i + 1];
+//                 i++;
+//                 continue;
+//             }
+//         }
+//         result += s[i];
+//     }
+//     return result;
+// }
 
-    return 0;
-}
+// std::string serializeTestResult(TestResult tr) {
+//     std::string result;
+//     result += std::to_string(tr.testIndex);
+//     result += ";";
+//     result += escapeTestResultString(tr.testset);
+//     result += ";";
+//     result += escapeTestResultString(tr.group);
+//     result += ";";
+//     result += serializeVerdict(tr.verdict);
+//     result += ";";
+//     result += serializePoints(tr.points);
+//     result += ";";
+//     result += std::to_string(tr.timeConsumed);
+//     result += ";";
+//     result += std::to_string(tr.memoryConsumed);
+//     result += ";";
+//     result += escapeTestResultString(tr.input);
+//     result += ";";
+//     result += escapeTestResultString(tr.output);
+//     result += ";";
+//     result += escapeTestResultString(tr.answer);
+//     result += ";";
+//     result += std::to_string(tr.exitCode);
+//     result += ";";
+//     result += escapeTestResultString(tr.checkerComment);
+//     return result;
+// }
 
-/**
- * Parse the opt at a given index, and put it into the opts maps.
- * 
- * An opt can has the following form:
- * 1) -keyName=value or --keyName=value     (ex. -n=10 --test-count=20)
- * 2) -keyName value or --keyName value     (ex. -n 10 --test-count 20)
- * 3) -kNumval       or --kNumval           (ex. -n10  --t20)
- * 4) -boolProperty  or --boolProperty      (ex. -sorted --tree-only)
- * 
- * Only the second form consumes 2 arguments. The other consumes only 1
- * argument.
- * 
- * In the third form, the key is a single character, and after the key is the
- * value. The value _should_ be a number.
- * 
- * In the forth form, the value is true.
- * 
- * Params:
- * - argc and argv: the number of command line arguments and the command line
- *   arguments themselves.
- * - index: the starting index of the opts.
- * - opts: the map containing the resulting opt.
- *  
- * Returns: the number of consumed arguments to parse the opt.
- *          0 if there is no arguments to parse.
- * 
- * Algorithm details:
- * TODO. Please refer to the implementation to see how the code handles the 3rd and 4th forms separately.
- */
-size_t parseOpt(size_t argc, char *argv[], size_t index, std::map<std::string, TestlibOpt> &opts) {
-    if (index >= argc)
-        return 0;
+// TestResult deserializeTestResult(std::string s) {
+//     std::vector<std::string> items;
+//     std::string t;
+//     for (size_t i = 0; i < s.length(); i++) {
+//         if (s[i] == '\\') {
+//             t += s[i];
+//             if (i + 1 < s.length())
+//                 t += s[i + 1];
+//             i++;
+//             continue;
+//         } else {
+//             if (s[i] == ';') {
+//                 items.push_back(t);
+//                 t = "";
+//             } else
+//                 t += s[i];
+//         }
+//     }
+//     items.push_back(t);
 
-    size_t type = getOptType(argv[index]), inc = 1;
-    if (type > 0) {
-        std::string key(argv[index] + type), val;
-        size_t sep = key.find('=');
-        if (sep != std::string::npos) {
-            val = key.substr(sep + 1);
-            key = key.substr(0, sep);
-        } else {
-            if (index + 1 < argc && getOptType(argv[index + 1]) == 0) {
-                val = argv[index + 1];
-                inc = 2;
-            } else {
-                if (key.length() > 1 && isdigit(key[1])) {
-                    val = key.substr(1);
-                    key = key.substr(0, 1);
-                } else {
-                    val = "true";
-                }
-            }
-        }
-        opts[key].value = val;
-    } else {
-        return inc;
-    }
-
-    return inc;
-}
-
-/**
- * Global list containing all the arguments in the order given in the command line.
- */
-std::vector<std::string> __testlib_argv;
-
-/**
- * Global dictionary containing all the parsed opts.
- */
-std::map<std::string, TestlibOpt> __testlib_opts;
-
-/**
- * Whether automatic no unused opts ensurement should be done. This flag will
- * be turned on when `has_opt` or `opt(key, default_value)` is called.
- * 
- * The automatic ensurement can be suppressed when
- * __testlib_ensureNoUnusedOptsSuppressed is true.
- */
-bool __testlib_ensureNoUnusedOptsFlag = false;
-
-/**
- * Suppress no unused opts automatic ensurement. Can be set to true with
- * `suppressEnsureNoUnusedOpts()`.
- */
-bool __testlib_ensureNoUnusedOptsSuppressed = false;
-
-/**
- * Parse command line arguments into opts.
- * The results are stored into __testlib_argv and __testlib_opts.
- */
-void prepareOpts(int argc, char *argv[]) {
-    if (argc <= 0)
-        __testlib_fail("Opts: expected argc>=0 but found " + toString(argc));
-    size_t n = static_cast<size_t>(argc); // NOLINT(hicpp-use-auto,modernize-use-auto)
-    __testlib_opts = std::map<std::string, TestlibOpt>();
-    for (size_t index = 1; index < n; index += parseOpt(n, argv, index, __testlib_opts));
-    __testlib_argv = std::vector<std::string>(n);
-    for (size_t index = 0; index < n; index++)
-        __testlib_argv[index] = argv[index];
-}
-
-/**
- * An utility function to get the argument with a given index. This function
- * also print a readable message when no arguments are found.
- */
-std::string __testlib_indexToArgv(int index) {
-    if (index < 0 || index >= int(__testlib_argv.size()))
-        __testlib_fail("Opts: index '" + toString(index) + "' is out of range [0,"
-            + toString(__testlib_argv.size()) + ")");
-    return __testlib_argv[size_t(index)];
-}
-
-/**
- * An utility function to get the opt with a given key . This function
- * also print a readable message when no opts are found.
- */
-std::string __testlib_keyToOpts(const std::string &key) {
-    auto it = __testlib_opts.find(key);
-    if (it == __testlib_opts.end())
-        __testlib_fail("Opts: unknown key '" + compress(key) + "'");
-    it->second.used = true;
-    return it->second.value;
-}
-
-template<typename T>
-T optValueToIntegral(const std::string &s, bool nonnegative);
-
-long double optValueToLongDouble(const std::string &s);
-
-std::string parseExponentialOptValue(const std::string &s) {
-    size_t pos = std::string::npos;
-    for (size_t i = 0; i < s.length(); i++)
-        if (s[i] == 'e' || s[i] == 'E') {
-            if (pos != std::string::npos)
-                __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
-            pos = i;
-        }
-    if (pos == std::string::npos)
-        return s;
-    std::string e = s.substr(pos + 1);
-    if (!e.empty() && e[0] == '+')
-        e = e.substr(1);
-    if (e.empty())
-        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
-    if (e.length() > 20)
-        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
-    int ne = optValueToIntegral<int>(e, false);
-    std::string num = s.substr(0, pos);
-    if (num.length() > 20)
-        __testlib_fail("Opts: expected typical exponential notation but '" + compress(s) + "' found");
-    if (!num.empty() && num[0] == '+')
-        num = num.substr(1);
-    optValueToLongDouble(num);
-    bool minus = false;
-    if (num[0] == '-') {
-        minus = true;
-        num = num.substr(1);
-    }
-    for (int i = 0; i < +ne; i++) {
-        size_t sep = num.find('.');
-        if (sep == std::string::npos)
-            num += '0';
-        else {
-            if (sep + 1 == num.length())
-                num[sep] = '0';
-            else
-                std::swap(num[sep], num[sep + 1]);
-        }
-    }
-    for (int i = 0; i < -ne; i++) {
-        size_t sep = num.find('.');
-        if (sep == std::string::npos)
-            num.insert(num.begin() + int(num.length()) - 1, '.');
-        else {
-            if (sep == 0)
-                num.insert(num.begin() + 1, '0');
-            else
-                std::swap(num[sep - 1], num[sep]);
-        }
-    }
-    while (!num.empty() && num[0] == '0')
-        num = num.substr(1);
-    while (num.find('.') != std::string::npos && num.back() == '0')
-        num = num.substr(0, num.length() - 1);
-    if (!num.empty() && num.back() == '.')
-        num = num.substr(0, num.length() - 1);
-    if ((!num.empty() && num[0] == '.') || num.empty())
-        num.insert(num.begin(), '0');
-    return (minus ? "-" : "") + num;
-}
-
-template<typename T>
-T optValueToIntegral(const std::string &s_, bool nonnegative) {
-    std::string s(parseExponentialOptValue(s_));
-    if (s.empty())
-        __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
-    T value = 0;
-    long double about = 0.0;
-    signed char sign = +1;
-    size_t pos = 0;
-    if (s[pos] == '-') {
-        if (nonnegative)
-            __testlib_fail("Opts: expected non-negative integer but '" + compress(s_) + "' found");
-        sign = -1;
-        pos++;
-    }
-    for (size_t i = pos; i < s.length(); i++) {
-        if (s[i] < '0' || s[i] > '9')
-            __testlib_fail("Opts: expected integer but '" + compress(s_) + "' found");
-        value = T(value * 10 + s[i] - '0');
-        about = about * 10 + s[i] - '0';
-    }
-    value *= sign;
-    about *= sign;
-    if (fabsl(value - about) > 0.1)
-        __testlib_fail("Opts: integer overflow: expected integer but '" + compress(s_) + "' found");
-    return value;
-}
-
-long double optValueToLongDouble(const std::string &s_) {
-    std::string s(parseExponentialOptValue(s_));
-    if (s.empty())
-        __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
-    long double value = 0.0;
-    signed char sign = +1;
-    size_t pos = 0;
-    if (s[pos] == '-') {
-        sign = -1;
-        pos++;
-    }
-    bool period = false;
-    long double mul = 1.0;
-    for (size_t i = pos; i < s.length(); i++) {
-        if (s[i] == '.') {
-            if (period)
-                __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
-            else {
-                period = true;
-                continue;
-            }
-        }
-        if (period)
-            mul *= 10.0;
-        if (s[i] < '0' || s[i] > '9')
-            __testlib_fail("Opts: expected float number but '" + compress(s_) + "' found");
-        if (period)
-            value += (s[i] - '0') / mul;
-        else
-            value = value * 10 + s[i] - '0';
-    }
-    value *= sign;
-    return value;
-}
-
-/**
- * Return true if there is an opt with a given key.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
- * turn it off.
- */
-bool has_opt(const std::string &key) {
-    __testlib_ensureNoUnusedOptsFlag = true;
-    return __testlib_opts.count(key) != 0;
-}
-
-/* About the following part for opt with 2 and 3 arguments.
- * 
- * To parse the argv/opts correctly for a give type (integer, floating point or
- * string), some meta programming must be done to determine the type of
- * the type, and use the correct parsing function accordingly.
- * 
- * The pseudo algorithm for determining the type of T and parse it accordingly
- * is as follows:
- * 
- * if (T is integral type) {
- *   if (T is unsigned) {
- *     parse the argv/opt as an **unsigned integer** of type T.
- *   } else {
- *     parse the argv/opt as an **signed integer** of type T.
- * } else {
- *   if (T is floating point type) {
- *     parse the argv/opt as an **floating point** of type T.
- *   } else {
- *     // T should be std::string
- *     just the raw content of the argv/opts.
- *   }
- * }
- * 
- * To help with meta programming, some `opt` function with 2 or 3 arguments are
- * defined.
- * 
- * Opt with 3 arguments:    T opt(true/false is_integral, true/false is_unsigned, index/key)
- * 
- *   + The first argument is for determining whether the type T is an integral
- *   type. That is, the result of std::is_integral<T>() should be passed to
- *   this argument. When false, the type _should_ be either floating point or a
- *   std::string.
- *   
- *   + The second argument is for determining whether the signedness of the type
- *   T (if it is unsigned or signed). That is, the result of
- *   std::is_unsigned<T>() should be passed to this argument. This argument can
- *   be ignored if the first one is false, because it only applies to integer.
- *
- * Opt with 2 arguments:    T opt(true/false is_floating_point, index/key)
- *   + The first argument is for determining whether the type T is a floating
- *   point type. That is, the result of std::is_floating_point<T>() should be
- *   passed to this argument. When false, the type _should_ be a std::string.
- */
-
-template<typename T>
-T opt(std::false_type is_floating_point, int index);
-
-template<>
-std::string opt(std::false_type /*is_floating_point*/, int index) {
-    return __testlib_indexToArgv(index);
-}
-
-template<typename T>
-T opt(std::true_type /*is_floating_point*/, int index) {
-    return T(optValueToLongDouble(__testlib_indexToArgv(index)));
-}
-
-template<typename T, typename U>
-T opt(std::false_type /*is_integral*/, U /*is_unsigned*/, int index) {
-    return opt<T>(std::is_floating_point<T>(), index);
-}
-
-template<typename T>
-T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, int index) {
-    return optValueToIntegral<T>(__testlib_indexToArgv(index), false);
-}
-
-template<typename T>
-T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
-    return optValueToIntegral<T>(__testlib_indexToArgv(index), true);
-}
-
-template<>
-bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, int index) {
-    std::string value = __testlib_indexToArgv(index);
-    if (value == "true" || value == "1")
-        return true;
-    if (value == "false" || value == "0")
-        return false;
-    __testlib_fail("Opts: opt by index '" + toString(index) + "': expected bool true/false or 0/1 but '"
-            + compress(value) + "' found");
-}
-
-/**
- * Return the parsed argv by a given index.
- */
-template<typename T>
-T opt(int index) {
-    return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), index);
-}
-
-/**
- * Return the raw string value of an argv by a given index.
- */
-std::string opt(int index) {
-    return opt<std::string>(index);
-}
-
-/**
- * Return the parsed argv by a given index. If the index is bigger than
- * the number of argv, return the given default_value.
- */
-template<typename T>
-T opt(int index, const T &default_value) {
-    if (index >= int(__testlib_argv.size())) {
-        return default_value;
-    }
-    return opt<T>(index);
-}
-
-/**
- * Return the raw string value of an argv by a given index. If the index is
- * bigger than the number of argv, return the given default_value.
- */
-std::string opt(int index, const std::string &default_value) {
-    return opt<std::string>(index, default_value);
-}
-
-template<typename T>
-T opt(std::false_type is_floating_point, const std::string &key);
-
-template<>
-std::string opt(std::false_type /*is_floating_point*/, const std::string &key) {
-    return __testlib_keyToOpts(key);
-}
-
-template<typename T>
-T opt(std::true_type /*is_integral*/, const std::string &key) {
-    return T(optValueToLongDouble(__testlib_keyToOpts(key)));
-}
-
-template<typename T, typename U>
-T opt(std::false_type /*is_integral*/, U, const std::string &key) {
-    return opt<T>(std::is_floating_point<T>(), key);
-}
-
-template<typename T>
-T opt(std::true_type /*is_integral*/, std::false_type /*is_unsigned*/, const std::string &key) {
-    return optValueToIntegral<T>(__testlib_keyToOpts(key), false);
-}
-
-template<typename T>
-T opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
-    return optValueToIntegral<T>(__testlib_keyToOpts(key), true);
-}
-
-template<>
-bool opt(std::true_type /*is_integral*/, std::true_type /*is_unsigned*/, const std::string &key) {
-    if (!has_opt(key))
-        return false;
-    std::string value = __testlib_keyToOpts(key);
-    if (value == "true" || value == "1")
-        return true;
-    if (value == "false" || value == "0")
-        return false;
-    __testlib_fail("Opts: key '" + compress(key) + "': expected bool true/false or 0/1 but '"
-        + compress(value) + "' found");
-}
-
-/**
- * Return the parsed opt by a given key.
- */
-template<typename T>
-T opt(const std::string &key) {
-    return opt<T>(std::is_integral<T>(), std::is_unsigned<T>(), key);
-}
-
-/**
- * Return the raw string value of an opt by a given key
- */
-std::string opt(const std::string &key) {
-    return opt<std::string>(key);
-}
-
-/* Scorer started. */
-
-enum TestResultVerdict {
-    SKIPPED,
-    OK,
-    WRONG_ANSWER,
-    RUNTIME_ERROR,
-    TIME_LIMIT_EXCEEDED,
-    IDLENESS_LIMIT_EXCEEDED,
-    MEMORY_LIMIT_EXCEEDED,
-    COMPILATION_ERROR,
-    CRASHED,
-    FAILED
-};
-
-std::string serializeVerdict(TestResultVerdict verdict) {
-    switch (verdict) {
-        case SKIPPED: return "SKIPPED";
-        case OK: return "OK";
-        case WRONG_ANSWER: return "WRONG_ANSWER";
-        case RUNTIME_ERROR: return "RUNTIME_ERROR";
-        case TIME_LIMIT_EXCEEDED: return "TIME_LIMIT_EXCEEDED";
-        case IDLENESS_LIMIT_EXCEEDED: return "IDLENESS_LIMIT_EXCEEDED";
-        case MEMORY_LIMIT_EXCEEDED: return "MEMORY_LIMIT_EXCEEDED";
-        case COMPILATION_ERROR: return "COMPILATION_ERROR";
-        case CRASHED: return "CRASHED";
-        case FAILED: return "FAILED";
-    }
-    throw "Unexpected verdict";
-}
-
-TestResultVerdict deserializeTestResultVerdict(std::string s) {
-    if (s == "SKIPPED")
-        return SKIPPED;
-    else if (s == "OK")
-        return OK;
-    else if (s == "WRONG_ANSWER")
-        return WRONG_ANSWER;
-    else if (s == "RUNTIME_ERROR")
-        return RUNTIME_ERROR;
-    else if (s == "TIME_LIMIT_EXCEEDED")
-        return TIME_LIMIT_EXCEEDED;
-    else if (s == "IDLENESS_LIMIT_EXCEEDED")
-        return IDLENESS_LIMIT_EXCEEDED;
-    else if (s == "MEMORY_LIMIT_EXCEEDED")
-        return MEMORY_LIMIT_EXCEEDED;
-    else if (s == "COMPILATION_ERROR")
-        return COMPILATION_ERROR;
-    else if (s == "CRASHED")
-        return CRASHED;
-    else if (s == "FAILED")
-        return FAILED;
-    ensuref(false, "Unexpected serialized TestResultVerdict");
-    // No return actually.
-    return FAILED;
-}
-
-struct TestResult {
-    int testIndex;
-    std::string testset;
-    std::string group;
-    TestResultVerdict verdict;
-    double points;
-    long long timeConsumed;
-    long long memoryConsumed;
-    std::string input;
-    std::string output;
-    std::string answer;
-    int exitCode;
-    std::string checkerComment;
-};
-
-std::string serializePoints(double points) {
-    if (std::isnan(points))
-        return "";
-    else {
-        char c[64];
-        snprintf(c, 64, "%.03lf", points);
-        return c;
-    }
-}
-
-double deserializePoints(std::string s) {
-    if (s.empty())
-        return std::numeric_limits<double>::quiet_NaN();
-    else {
-        double result;
-        ensuref(sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
-        return result;
-    }                                              
-}
-
-std::string escapeTestResultString(std::string s) {
-    std::string result;
-    for (size_t i = 0; i < s.length(); i++) {
-        if (s[i] == '\r')
-            continue;
-        if (s[i] == '\n') {
-            result += "\\n";
-            continue;
-        }
-        if (s[i] == '\\' || s[i] == ';')
-            result += '\\';
-        result += s[i];
-    }
-    return result;
-}
-
-std::string unescapeTestResultString(std::string s) {
-    std::string result;
-    for (size_t i = 0; i < s.length(); i++) {
-        if (s[i] == '\\' && i + 1 < s.length()) {
-            if (s[i + 1] == 'n') {
-                result += '\n';
-                i++;
-                continue;
-            } else if (s[i + 1] == ';' || s[i + 1] == '\\') {
-                result += s[i + 1];
-                i++;
-                continue;
-            }
-        }
-        result += s[i];
-    }
-    return result;
-}
-
-std::string serializeTestResult(TestResult tr) {
-    std::string result;
-    result += std::to_string(tr.testIndex);
-    result += ";";
-    result += escapeTestResultString(tr.testset);
-    result += ";";
-    result += escapeTestResultString(tr.group);
-    result += ";";
-    result += serializeVerdict(tr.verdict);
-    result += ";";
-    result += serializePoints(tr.points);
-    result += ";";
-    result += std::to_string(tr.timeConsumed);
-    result += ";";
-    result += std::to_string(tr.memoryConsumed);
-    result += ";";
-    result += escapeTestResultString(tr.input);
-    result += ";";
-    result += escapeTestResultString(tr.output);
-    result += ";";
-    result += escapeTestResultString(tr.answer);
-    result += ";";
-    result += std::to_string(tr.exitCode);
-    result += ";";
-    result += escapeTestResultString(tr.checkerComment);
-    return result;
-}
-
-TestResult deserializeTestResult(std::string s) {
-    std::vector<std::string> items;
-    std::string t;
-    for (size_t i = 0; i < s.length(); i++) {
-        if (s[i] == '\\') {
-            t += s[i];
-            if (i + 1 < s.length())
-                t += s[i + 1];
-            i++;
-            continue;
-        } else {
-            if (s[i] == ';') {
-                items.push_back(t);
-                t = "";
-            } else
-                t += s[i];
-        }
-    }
-    items.push_back(t);
-
-    ensuref(items.size() == 12, "Invalid TestResult serialization: expected exactly 12 items");
+//     ensuref(items.size() == 12, "Invalid TestResult serialization: expected exactly 12 items");
     
-    TestResult tr;
-    size_t pos = 0;
-    tr.testIndex = stoi(items[pos++]);
-    tr.testset = unescapeTestResultString(items[pos++]);
-    tr.group = unescapeTestResultString(items[pos++]);
-    tr.verdict = deserializeTestResultVerdict(items[pos++]);
-    tr.points = deserializePoints(items[pos++]);
-    tr.timeConsumed = stoll(items[pos++]);
-    tr.memoryConsumed = stoll(items[pos++]);
-    tr.input = unescapeTestResultString(items[pos++]);
-    tr.output = unescapeTestResultString(items[pos++]);
-    tr.answer = unescapeTestResultString(items[pos++]);
-    tr.exitCode = stoi(items[pos++]);
-    tr.checkerComment = unescapeTestResultString(items[pos++]);
+//     TestResult tr;
+//     size_t pos = 0;
+//     tr.testIndex = stoi(items[pos++]);
+//     tr.testset = unescapeTestResultString(items[pos++]);
+//     tr.group = unescapeTestResultString(items[pos++]);
+//     tr.verdict = deserializeTestResultVerdict(items[pos++]);
+//     tr.points = deserializePoints(items[pos++]);
+//     tr.timeConsumed = stoll(items[pos++]);
+//     tr.memoryConsumed = stoll(items[pos++]);
+//     tr.input = unescapeTestResultString(items[pos++]);
+//     tr.output = unescapeTestResultString(items[pos++]);
+//     tr.answer = unescapeTestResultString(items[pos++]);
+//     tr.exitCode = stoi(items[pos++]);
+//     tr.checkerComment = unescapeTestResultString(items[pos++]);
     
-    return tr;
-}
+//     return tr;
+// }
 
-std::vector<TestResult> readTestResults(std::string fileName) {
-    std::ifstream stream;
-    stream.open(fileName.c_str(), std::ios::in);
-    ensuref(stream.is_open(), "Can't read test results file '%s'", fileName.c_str());
-    std::vector<TestResult> result;
-    std::string line;
-    while (getline(stream, line))
-        if (!line.empty())
-            result.push_back(deserializeTestResult(line));
-    stream.close();
-    return result;
-}
+// std::vector<TestResult> readTestResults(std::string fileName) {
+//     std::ifstream stream;
+//     stream.open(fileName.c_str(), std::ios::in);
+//     ensuref(stream.is_open(), "Can't read test results file '%s'", fileName.c_str());
+//     std::vector<TestResult> result;
+//     std::string line;
+//     while (getline(stream, line))
+//         if (!line.empty())
+//             result.push_back(deserializeTestResult(line));
+//     stream.close();
+//     return result;
+// }
 
-std::function<double(std::vector<TestResult>)> __testlib_scorer;
+// std::function<double(std::vector<TestResult>)> __testlib_scorer;
 
-struct TestlibScorerGuard {
-    ~TestlibScorerGuard() {
-        if (testlibMode == _scorer) {
-            std::vector<TestResult> testResults;
-            while (!inf.eof()) {
-                std::string line = inf.readLine();
-                if (!line.empty())
-                    testResults.push_back(deserializeTestResult(line));
-            }
-            inf.readEof();
-            printf("%.3f\n", __testlib_scorer(testResults));
-        }
-    }
-} __testlib_scorer_guard;
+// struct TestlibScorerGuard {
+//     ~TestlibScorerGuard() {
+//         if (testlibMode == _scorer) {
+//             std::vector<TestResult> testResults;
+//             while (!inf.eof()) {
+//                 std::string line = inf.readLine();
+//                 if (!line.empty())
+//                     testResults.push_back(deserializeTestResult(line));
+//             }
+//             inf.readEof();
+//             printf("%.3f\nodes", __testlib_scorer(testResults));
+//         }
+//     }
+// } __testlib_scorer_guard;
 
-void registerScorer(int argc, char *argv[], std::function<double(std::vector<TestResult>)> scorer) {
-    /* Suppress unused. */
-    (void)(argc), (void)(argv);
+// void registerScorer(int argc, char *argv[], std::function<double(std::vector<TestResult>)> scorer) {
+//     /* Suppress unused. */
+//     (void)(argc), (void)(argv);
 
-    __testlib_ensuresPreconditions();
+//     __testlib_ensuresPreconditions();
 
-    testlibMode = _scorer;
-    __testlib_set_binary(stdin);
+//     testlibMode = _scorer;
+//     __testlib_set_binary(stdin);
 
-    inf.init(stdin, _input);
-    inf.strict = false;
+//     inf.init(stdin, _input);
+//     inf.strict = false;
 
-    __testlib_scorer = scorer;
-}
+//     __testlib_scorer = scorer;
+// }
 
-/* Scorer ended. */
-
-/**
- * Return the parsed opt by a given key. If no opts with the given key are
- * found, return the given default_value.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
- * turn it off.
- */
-template<typename T>
-T opt(const std::string &key, const T &default_value) {
-    if (!has_opt(key)) {
-        return default_value;
-    }
-    return opt<T>(key);
-}
-
-/**
- * Return the raw string value of an opt by a given key. If no opts with the
- * given key are found, return the given default_value.
- * 
- * By calling this function, automatic ensurement for no unused opts will be
- * done when the program is finalized. Call suppressEnsureNoUnusedOpts() to
- * turn it off.
- */
-std::string opt(const std::string &key, const std::string &default_value) {
-    return opt<std::string>(key, default_value);
-}
-
-/**
- * Check if all opts are used. If not, __testlib_fail is called.
- * Should be used after calling all opt() function calls.
- * 
- * This function is useful when opt() with default_value for checking typos
- * in the opt's key.
- */
-void ensureNoUnusedOpts() {
-    for (const auto &opt: __testlib_opts) {
-        if (!opt.second.used) {
-            __testlib_fail(format("Opts: unused key '%s'", compress(opt.first).c_str()));
-        }
-    }
-}
-
-void suppressEnsureNoUnusedOpts() {
-    __testlib_ensureNoUnusedOptsSuppressed = true;
-}
-
-void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
-    if (__testlib_ensureNoUnusedOptsFlag && !__testlib_ensureNoUnusedOptsSuppressed) {
-        ensureNoUnusedOpts();
-    }
-}
+// /* Scorer ended. */
 
 TestlibFinalizeGuard testlibFinalizeGuard;
-
 #endif
 #endif

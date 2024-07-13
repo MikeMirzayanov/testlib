@@ -1,5 +1,36 @@
 # Testlib
 
+toString - liczba na string
+toHumanReadableString - liczba na string w naukowym
+rnd.next(n) -> [0, n-1]
+rnd.next(a,b) -> [a, b]
+rnd.wnext(n, k) -> [0, n-1] z dystrybucji x^{sgn(k) \* (abs(k) + 1)} (losujemy k razy bierzemy maksa, jeśli k < 0 to mina)
+
+rnd.any(begin, end) -> random wartość z przedziału
+rnd.wany(begin, end) -> random wartość z przedziału (ważona - jak wyżej)
+rnd.perm(n, first=0) -> permutacja wielkości n (numerujemy od first)
+
+rnd.distinct(n, a, b) -> n różnych wartości z przedziału [a, b]
+rnd.distinct(n, lim) -> n różnych wartości z przedziału [0, lim-1]
+rnd.partition(n, sum, mini) -> n liczb sumujących się do sum nie większych niż mini
+rnd.partition(n, sum) -> n liczb sumujących się do sum
+
+pattern:
+
+- next(rnd) -> generated string matching pattern
+- matches(str) -> check if matches
+
+trim(str) -> string with trimed whitespace
+
+registerGen -> inicializacja gena (version 1)
+split(str, separators) -> splituje string w miejscach gdzie występuje znak z stringa separators
+
+println(x) -> cout << x << endl;
+println(a,b) -> cout << a << ' ' << b << endl;
+itd.
+
+println(begin, end) -> wypisuje rzeczy z przedziału iteratorów [begin, end)
+
 ## Intro
 
 This project contains a C++ implementation of testlib. It is already being used in many programming contests in Russia, such as the Russian National Olympiad in Informatics and different stages of ICPC. Join!
@@ -99,7 +130,7 @@ This generator outputs a random permutation; the size is equal to the first comm
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
-    
+
     int n = opt<int>(1);
     println(n);
     println(rnd.perm(n, 1));

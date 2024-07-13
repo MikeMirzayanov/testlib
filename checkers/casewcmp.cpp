@@ -4,7 +4,7 @@
  * Case 1: <token> <token> ... <token>
  * Case 2: <token> <token> ... <token>
  * ...
- * Case n: <token> <token> ... <token>
+ * Case noken> <token> ... <token>
  *
  * Tokens in each case should not contain "Case"
  */

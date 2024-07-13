@@ -1,1 +1,0 @@
-FAIL Token parameter [name=s] equals to "asbacabazwetyuiopasdfghjklxcvb...bnmegeeekdddabacabazwetyuiopa.a", doesn't correspond to pattern "[a-z]{1,100}" (stdin, line 1)
