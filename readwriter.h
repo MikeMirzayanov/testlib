@@ -399,7 +399,10 @@ public:
 
 void setupDirectories() {
     for (const auto& dir : dirs) {
-        std::filesystem::create_directory(dir.second);
+        if(!std::filesystem::create_directory(dir.second)) {
+            // Only warning, because you can fail to create a directory if it exists.
+            std::cerr << "Warning: Could not create directory " << dir << std::endl;
+        }
     }
 }
 
