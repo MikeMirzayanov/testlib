@@ -3,22 +3,26 @@
 
 #include "testlib.h"
 #include "bits/stdc++.h"
+#include <filesystem>
+
+enum PrintFormat {
+    Prompt,
+    Solution
+};
+
+
+// map for keeping the names of directories
+// promptInputDirectory - directory for in files formatted for prompt
+// promptInputDirectory - directory for in files formatted for the solution
+const std::map<std::string, std::string> dirs = {
+    {"promptInputDirectory", "in"},
+    {"solutionInputDirectory", "solution-in"}
+};
 
 template <typename F, typename S>
 std::ostream &operator<<(std::ostream &os, const std::pair<F, S> &p)
 {
     return os << "(" << p.first << ", " << p.second << ")";
-}
-
-std::ostream &operator<<(std::ostream &os, const std::ranges::range auto R)
-{
-    for(auto&& it : R) {
-        if(it != begin(R)) {
-            os << ' ';
-        }
-        os << (*it) << ' ';
-    }
-    return os;
 }
 
 template <typename T>
@@ -66,6 +70,19 @@ public:
             )
         ) {}
 
+    bool operator==(const Graph& other) const {
+        if (numberOfNodes != other.numberOfNodes) {
+            return false;
+        }
+
+        for(int node = 0; node < numberOfNodes ; ++node) {
+            if(graph[node] != other.graph[node]) {
+                return false;
+            }
+        }
+        return true;        
+    }
+
     Graph& relabelNodes() {
         auto perm = rnd.perm(numberOfNodes);
         std::vector<int> inv_perm(numberOfNodes);
@@ -90,43 +107,49 @@ public:
         return edges;
     }
     
-    void printForPrompt() {
-        std::cout << "{";
+    std::string toStringForPrompt() {
+        std::ostringstream oss;
+        oss << "{";
         for (int i = 0; i < numberOfNodes; ++i) {
-            std::cout << "{";
+            oss << "{";
             for (int j = 0; j < graph[i].size(); ++j) {
-                std::cout << graph[i][j];
+                oss << graph[i][j];
                 if (j != graph[i].size() - 1) {
-                    std::cout << ",";
+                    oss << ",";
                 }
             }
-            std::cout << "}";
+            oss << "}";
             if (i != numberOfNodes - 1) {
-                std::cout << ",";
+                oss << ",";
             }
         }
-        std::cout << "}\n";
+        oss <<  "}\n";
+        return oss.str();
     }
 
-     void printForSolution() {
+    std::string toStringForSolution() {
+        std::ostringstream oss;
         auto edges = getEdges();
 
-        std::cout << numberOfNodes << " " << edges.size() << "\n";
+        oss << numberOfNodes << " " << edges.size() << "\n";
         for(auto edge: edges) {
-            std::cout << edge.first << " " << edge.second << "\n";
+            oss << edge.first << " " << edge.second << "\n";
         }
+        return oss.str();
     }
 
-    void print(int format) {
-        if (format == 0) {
-            printForPrompt();
-        }
-        else if(format == 1) {
-            printForSolution();
-        }
-        else {
-            std::cerr<<"Format is expected to be 0 or 1.";
-            exit(1);
+    std::string toString(PrintFormat format) {
+        switch (format) {
+            case Prompt:
+                return toStringForPrompt();
+                break;
+            case Solution:
+                return toStringForSolution();
+                break;
+        
+            default:
+                std::cerr<<"Format is expected to be 0 or 1.";
+                exit(1);
         }
     }
 
@@ -374,11 +397,23 @@ public:
     }    
 };
 
-class Tree : Graph {
-    
+void setupDirectories() {
+    for (const auto& dir : dirs) {
+        if(!std::filesystem::create_directory(dir.second)) {
+            // Only warning, because you can fail to create a directory if it exists.
+            std::cerr << "Warning: Could not create directory " << dir << std::endl;
+        }
+    }
+}
 
-
-
-};
+void printToFile(const std::string& content, std::string filePath) {
+    std::ofstream outFile(filePath);
+    if (!outFile) {
+        std::cerr << "Error: Could not open the file " << filePath << std::endl;
+        exit(1);
+    }
+    outFile << content;
+    outFile.close();
+}
 
 #endif
