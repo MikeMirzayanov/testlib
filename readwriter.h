@@ -107,7 +107,7 @@ public:
         return edges;
     }
     
-    std::string toStringForPrompt() {
+    std::string toStringForPrompt() const {
         std::ostringstream oss;
         oss << "{";
         for (int i = 0; i < numberOfNodes; ++i) {
@@ -127,7 +127,7 @@ public:
         return oss.str();
     }
 
-    std::string toStringForSolution() {
+    std::string toStringForSolution() const {
         std::ostringstream oss;
         auto edges = getEdges();
 
@@ -138,7 +138,7 @@ public:
         return oss.str();
     }
 
-    std::string toString(PrintFormat format) {
+    std::string toString(PrintFormat format) const {
         switch (format) {
             case Prompt:
                 return toStringForPrompt();
@@ -335,7 +335,8 @@ public:
         std::vector<std::vector<int>> g(nodes);
         std::vector<int> vec(nodes); std::iota(begin(vec), end(vec), 0);
         std::deque<int> availableLeaves(std::begin(vec), std::end(vec));
-        std::queue<int> inTree; inTree.push(0);
+        std::queue<int> inTree; 
+        availableLeaves.pop_front(); inTree.push(0); // move 0 from availableLeaves to inTree
         while(!availableLeaves.empty() && !inTree.empty()) {
             int currentNode = inTree.front(); inTree.pop();
             int degree = rnd.next(minDegree, std::min(maxDegree, (int)availableLeaves.size()));
