@@ -349,7 +349,15 @@ public:
         return Graph(nodes, g).relabelNodes();
     }
     
+    // fixme: placeholder
     static Graph construct_sparse_graph(int nodes) {
+        std::vector<std::vector<int>> g;
+        g.resize(nodes);
+        return Graph(nodes, g);
+    }
+
+    // fixme: placeholder
+    static Graph construct_dense_graph(int nodes) {
         std::vector<std::vector<int>> g;
         g.resize(nodes);
         return Graph(nodes, g);
