@@ -99,7 +99,7 @@ public:
         return *this;
     }
 
-    std::vector<std::pair<int,int>> getEdges() {
+    std::vector<std::pair<int,int>> getEdges() const {
         std::vector<std::pair<int,int>> edges;
         for(int v = 0; v < numberOfNodes; ++v)
             for(int u : graph[v])
@@ -339,7 +339,7 @@ public:
         availableLeaves.pop_front(); inTree.push(0); // move 0 from availableLeaves to inTree
         while(!availableLeaves.empty() && !inTree.empty()) {
             int currentNode = inTree.front(); inTree.pop();
-            int degree = rnd.next(minDegree, std::min(maxDegree, (int)availableLeaves.size()));
+            int degree = rnd.next(std::min(minDegree, (int)availableLeaves.size()), std::min(maxDegree, (int)availableLeaves.size()));
             while(degree--) {
                 int nextNode = availableLeaves.front(); availableLeaves.pop_front();
                 inTree.push(nextNode);
