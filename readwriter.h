@@ -55,6 +55,34 @@ public:
     std::vector<std::vector<int>> graph;
     int numberOfEdges;
 
+private:
+    void printForPromptTo(std::ofstream &outputStream) const {
+        outputStream << "{";
+        for (int i = 0; i < numberOfNodes; ++i) {
+            outputStream << "{";
+            for (int j = 0; j < graph[i].size(); ++j) {
+                outputStream << graph[i][j];
+                if (j != graph[i].size() - 1) {
+                    outputStream << ",";
+                }
+            }
+            outputStream << "}";
+            if (i != numberOfNodes - 1) {
+                outputStream << ",";
+            }
+        }
+        outputStream <<  "}\n";
+    }
+
+    void printForSolutionTo(std::ofstream &outputStream) const {
+        auto edges = getEdges();
+
+        outputStream << numberOfNodes << " " << edges.size() << "\n";
+        for(auto edge: edges) {
+            outputStream << edge.first << " " << edge.second << "\n";
+        }
+    }
+
 public:
     Graph(int nodes, std::vector<std::vector<int>> g, bool directed = false)
         : directed(directed),
@@ -107,49 +135,14 @@ public:
         return edges;
     }
     
-    std::string toStringForPrompt() const {
-        std::ostringstream oss;
-        oss << "{";
-        for (int i = 0; i < numberOfNodes; ++i) {
-            oss << "{";
-            for (int j = 0; j < graph[i].size(); ++j) {
-                oss << graph[i][j];
-                if (j != graph[i].size() - 1) {
-                    oss << ",";
-                }
-            }
-            oss << "}";
-            if (i != numberOfNodes - 1) {
-                oss << ",";
-            }
-        }
-        oss <<  "}\n";
-        return oss.str();
-    }
-
-    std::string toStringForSolution() const {
-        std::ostringstream oss;
-        auto edges = getEdges();
-
-        oss << numberOfNodes << " " << edges.size() << "\n";
-        for(auto edge: edges) {
-            oss << edge.first << " " << edge.second << "\n";
-        }
-        return oss.str();
-    }
-
-    std::string toString(PrintFormat format) const {
+    void printTo(std::ofstream &outputStream, PrintFormat format) const {
         switch (format) {
             case Prompt:
-                return toStringForPrompt();
+                printForPromptTo(outputStream);
                 break;
             case Solution:
-                return toStringForSolution();
+                printForSolutionTo(outputStream);
                 break;
-        
-            default:
-                std::cerr<<"Format is expected to be 0 or 1.";
-                exit(1);
         }
     }
 
@@ -417,14 +410,21 @@ void setupDirectories() {
     }
 }
 
-void printToFile(const std::string& content, std::string filePath) {
-    std::ofstream outFile(filePath);
-    if (!outFile) {
-        std::cerr << "Error: Could not open the file " << filePath << std::endl;
+// returns 2 streams: for solution input files and for prompt out
+std::pair<std::ofstream, std::ofstream> setupTest(int testNumber) {
+    std::string promptInPath = format("%s/%d.in", dirs.at("promptInputDirectory").c_str(), testNumber);
+    std::string solutionInPath = format("%s/%d.in", dirs.at("solutionInputDirectory").c_str(), testNumber);
+
+    std::ofstream promptInFile(promptInPath);
+    if (!promptInFile) {
+        std::cerr << "Error: Could not open the file " << promptInPath << std::endl;
         exit(1);
     }
-    outFile << content;
-    outFile.close();
+    std::ofstream solutionInFile(solutionInPath);
+    if (!solutionInFile) {
+        std::cerr << "Error: Could not open the file " << solutionInPath << std::endl;
+        exit(1);
+    }
+    return {std::move(promptInFile), std::move(solutionInFile)};
 }
-
 #endif
