@@ -226,6 +226,8 @@ public:
                 continue;
             } 
             if(currentNodes == 2) {
+                g[root].push_back(root + 1);
+                g[root + 1].push_back(root);
                 root += 2;
                 continue;
             }
