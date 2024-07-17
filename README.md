@@ -1,138 +1,79 @@
 # Testlib
 
-toString - liczba na string
-toHumanReadableString - liczba na string w naukowym
-rnd.next(n) -> [0, n-1]
-rnd.next(a,b) -> [a, b]
-rnd.wnext(n, k) -> [0, n-1] z dystrybucji x^{sgn(k) \* (abs(k) + 1)} (losujemy k razy bierzemy maksa, jeśli k < 0 to mina)
+`toString` - number to string
 
-rnd.any(begin, end) -> random wartość z przedziału
-rnd.wany(begin, end) -> random wartość z przedziału (ważona - jak wyżej)
-rnd.perm(n, first=0) -> permutacja wielkości n (numerujemy od first)
+`toHumanReadableString` - number to string in human readable (scientific) notation
 
-rnd.distinct(n, a, b) -> n różnych wartości z przedziału [a, b]
-rnd.distinct(n, lim) -> n różnych wartości z przedziału [0, lim-1]
-rnd.partition(n, sum, mini) -> n liczb sumujących się do sum nie większych niż mini
-rnd.partition(n, sum) -> n liczb sumujących się do sum
+`rnd.next(n)` -> random number from interval $[0, n-1]$
+
+`rnd.next(a,b)` -> random number from interval $[a, b]$
+
+`rnd.wnext(n, k)` -> random number from interval $[0, n-1]$ with distribution $x^{sgn(k) * (abs(k) + 1)}$ (take max (or min depenending on the sign) from $abs(k)$ generations)
+
+`rnd.any(begin, end)` -> random value from iterator interval
+
+`rnd.wany(begin, end)` -> random value from iterator interval (with distribution, simililar to `rnd.wnext`)
+
+`rnd.perm(n, first)` -> permutation of size $n$ (starts from $first$)
+
+`rnd.distinct(n, a, b)` -> $n$ distinct values from the interval $[a, b]$
+
+`rnd.distinct(n, lim)` -> $n$ distinct values from the interval $[0, lim-1]$
+
+`rnd.partition(n, sum, mini)` -> $n$ numbers, with the sum equal to $sum$, each not less than $mini$
+
+`rnd.partition(n, sum)` -> $n$ numbers, with the sum equal to $sum$
 
 pattern:
 
-- next(rnd) -> generated string matching pattern
-- matches(str) -> check if matches
+- `next(rnd)` -> generated string matching pattern
+- `matches(str)` -> check if matches
 
-trim(str) -> string with trimed whitespace
+`trim(str)` -> string with trimed whitespace
 
-registerGen -> inicializacja gena (version 1)
-split(str, separators) -> splituje string w miejscach gdzie występuje znak z stringa separators
+`registerGen(seed)` -> register generator with seed equal to $seed$
 
-println(x) -> cout << x << endl;
-println(a,b) -> cout << a << ' ' << b << endl;
+`split(str, separators)` -> splits string on every occurance of a character in $seperators$
+
+`println(x)` -> `cout << x << endl;`
+
+`println(a,b)` -> `cout << a << ' ' << b << endl;`
 itd.
 
-println(begin, end) -> wypisuje rzeczy z przedziału iteratorów [begin, end)
+`println(begin, end)` -> prints values from a interval of iterators
 
-## Intro
+# Readwriter
 
-This project contains a C++ implementation of testlib. It is already being used in many programming contests in Russia, such as the Russian National Olympiad in Informatics and different stages of ICPC. Join!
+## Graph
 
-The library's C++ code is tested for compatibility with standard C++11 and higher on different versions of `g++`, `clang++`, and Microsoft Visual C++.
+Class for graph structure
 
-This code has been used many times in Codeforces contests.
+- construction of random graphs
+  - clique
+  - silkworm
+  - jellyfish
+  - forest (trivial and prufer codes)
+  - paths
+  - starfish
+  - bounded degree trees
+- formatting and printing
+- some helper functions
 
-## Samples
+# Samples
 
-### Checker
+## Generator
 
-This sample checker expects the same integer in the output and the answer. It ignores all white-spaces. See more examples in the package.
-
-```c++
-#include "testlib.h"
-
-int main(int argc, char * argv[]) {
-    setName("compares two signed integers");
-    registerTestlibCmd(argc, argv);
-    int ja = ans.readInt();
-    int pa = ouf.readInt();
-    if (ja != pa)
-        quitf(_wa, "expected %d, found %d", ja, pa);
-    quitf(_ok, "answer is %d", ja);
-}
-```
-
-### Interactor
-
-This sample interactor reads pairs of numbers from the input file, sends them to another program, reads
-the result, and writes it to an output file (to be verified later). Another option could be to terminate
-the interactor with `quitf(_wa, <comment>)`.
-
-```c++
-#include "testlib.h"
-#include <iostream>
-
+```cpp
+#include "testlib/readwriter.h"
 using namespace std;
 
-int main(int argc, char* argv[]) {
-    setName("Interactor A+B");
-    registerInteraction(argc, argv);
-
-    // reads number of queries from test (input) file
-    int n = inf.readInt();
-    for (int i = 0; i < n; i++) {
-        // reads query from test (input) file
-        int a = inf.readInt();
-        int b = inf.readInt();
-
-        // writes query to the solution, endl makes flush
-        cout << a << " " << b << endl;
-
-        // writes output file to be verified by checker later
-        tout << ouf.readInt() << endl;
-    }
-
-    // just message
-    quitf(_ok, "%d queries processed", n);
-}
-```
-
-### Validator
-
-This code reads input from the standard input and checks that it contains only one integer between 1 and 100, inclusive. It also validates that the file ends with EOLN and EOF. On Windows, it expects #13#10 as EOLN, and it expects #10 as EOLN on other platforms. It does not ignore white-spaces, so it works very strictly. It will return a non-zero code in the case of illegal input and write a message to the standard output. See more examples in the package.
-
-```c++
-#include "testlib.h"
-
-int main(int argc, char* argv[]) {
-    registerValidation(argc, argv);
-    inf.readInt(1, 100, "n");
-    inf.readEoln();
-    inf.readEof();
-}
-```
-
-### Generator
-
-This generator outputs a random token to the standard output, containing Latin letters or digits. The length of the token will be between 1 and 1000, inclusive. It will use a uniformly distributed random generator. To generate different values, call it with different command-line parameters. It is typical behavior for a testlib generator to set up randseed by command line. See more examples in the package.
-
-```c++
-#include "testlib.h"
-
-int main(int argc, char* argv[]) {
-    registerGen(argc, argv, 1);
-    println(rnd.next(1, 10)); /* Random number in the range [1,10]. */
-    println(rnd.next("[a-zA-Z0-9]{1,1000}")); /* Random word of length [1,1000]. */
-}
-```
-
-This generator outputs a random permutation; the size is equal to the first command-line argument.
-
-```c++
-#include "testlib.h"
-
-int main(int argc, char* argv[]) {
-    registerGen(argc, argv, 1);
-
-    int n = opt<int>(1);
-    println(n);
-    println(rnd.perm(n, 1));
+int main() {
+    int seed;
+    cin >> seed;
+    registerGen(seed);
+    int numOfNodes = rnd.next(10, 15);
+    int numberOfTrees = rnd.next(3, 4);
+    Graph g = Graph::construct_forest_graph(numOfNodes, numberOfTrees);
+    cout << g.toString(Solution) << endl;
 }
 ```
