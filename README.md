@@ -74,6 +74,6 @@ int main() {
     int numOfNodes = rnd.next(10, 15);
     int numberOfTrees = rnd.next(3, 4);
     Graph g = Graph::construct_forest_graph(numOfNodes, numberOfTrees);
-    cout << g.toString(Solution) << endl;
+    g.printTo(cout, Solution);
 }
 ```

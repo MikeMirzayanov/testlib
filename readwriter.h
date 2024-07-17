@@ -55,6 +55,34 @@ public:
     std::vector<std::vector<int>> graph;
     int numberOfEdges;
 
+private:
+    void printForPromptTo(std::ostream &outputStream) const {
+        outputStream << "{";
+        for (int i = 0; i < numberOfNodes; ++i) {
+            outputStream << "{";
+            for (int j = 0; j < graph[i].size(); ++j) {
+                outputStream << graph[i][j];
+                if (j != graph[i].size() - 1) {
+                    outputStream << ",";
+                }
+            }
+            outputStream << "}";
+            if (i != numberOfNodes - 1) {
+                outputStream << ",";
+            }
+        }
+        outputStream <<  "}\n";
+    }
+
+    void printForSolutionTo(std::ostream &outputStream) const {
+        auto edges = getEdges();
+
+        outputStream << numberOfNodes << " " << edges.size() << "\n";
+        for(auto edge: edges) {
+            outputStream << edge.first << " " << edge.second << "\n";
+        }
+    }
+
 public:
     Graph(int nodes, std::vector<std::vector<int>> g, bool directed = false)
         : directed(directed),
@@ -99,7 +127,7 @@ public:
         return *this;
     }
 
-    std::vector<std::pair<int,int>> getEdges() {
+    std::vector<std::pair<int,int>> getEdges() const {
         std::vector<std::pair<int,int>> edges;
         for(int v = 0; v < numberOfNodes; ++v)
             for(int u : graph[v])
@@ -107,49 +135,14 @@ public:
         return edges;
     }
     
-    std::string toStringForPrompt() {
-        std::ostringstream oss;
-        oss << "{";
-        for (int i = 0; i < numberOfNodes; ++i) {
-            oss << "{";
-            for (int j = 0; j < graph[i].size(); ++j) {
-                oss << graph[i][j];
-                if (j != graph[i].size() - 1) {
-                    oss << ",";
-                }
-            }
-            oss << "}";
-            if (i != numberOfNodes - 1) {
-                oss << ",";
-            }
-        }
-        oss <<  "}\n";
-        return oss.str();
-    }
-
-    std::string toStringForSolution() {
-        std::ostringstream oss;
-        auto edges = getEdges();
-
-        oss << numberOfNodes << " " << edges.size() << "\n";
-        for(auto edge: edges) {
-            oss << edge.first << " " << edge.second << "\n";
-        }
-        return oss.str();
-    }
-
-    std::string toString(PrintFormat format) {
+    void printTo(std::ostream &outputStream, PrintFormat format) const {
         switch (format) {
             case Prompt:
-                return toStringForPrompt();
+                printForPromptTo(outputStream);
                 break;
             case Solution:
-                return toStringForSolution();
+                printForSolutionTo(outputStream);
                 break;
-        
-            default:
-                std::cerr<<"Format is expected to be 0 or 1.";
-                exit(1);
         }
     }
 
@@ -226,6 +219,8 @@ public:
                 continue;
             } 
             if(currentNodes == 2) {
+                g[root].push_back(root + 1);
+                g[root + 1].push_back(root);
                 root += 2;
                 continue;
             }
@@ -335,10 +330,11 @@ public:
         std::vector<std::vector<int>> g(nodes);
         std::vector<int> vec(nodes); std::iota(begin(vec), end(vec), 0);
         std::deque<int> availableLeaves(std::begin(vec), std::end(vec));
-        std::queue<int> inTree; inTree.push(0);
+        std::queue<int> inTree; 
+        availableLeaves.pop_front(); inTree.push(0); // move 0 from availableLeaves to inTree
         while(!availableLeaves.empty() && !inTree.empty()) {
             int currentNode = inTree.front(); inTree.pop();
-            int degree = rnd.next(minDegree, std::min(maxDegree, (int)availableLeaves.size()));
+            int degree = rnd.next(std::min(minDegree, (int)availableLeaves.size()), std::min(maxDegree, (int)availableLeaves.size()));
             while(degree--) {
                 int nextNode = availableLeaves.front(); availableLeaves.pop_front();
                 inTree.push(nextNode);
@@ -348,7 +344,15 @@ public:
         return Graph(nodes, g).relabelNodes();
     }
     
+    // fixme: placeholder
     static Graph construct_sparse_graph(int nodes) {
+        std::vector<std::vector<int>> g;
+        g.resize(nodes);
+        return Graph(nodes, g);
+    }
+
+    // fixme: placeholder
+    static Graph construct_dense_graph(int nodes) {
         std::vector<std::vector<int>> g;
         g.resize(nodes);
         return Graph(nodes, g);
@@ -406,14 +410,26 @@ void setupDirectories() {
     }
 }
 
-void printToFile(const std::string& content, std::string filePath) {
-    std::ofstream outFile(filePath);
-    if (!outFile) {
-        std::cerr << "Error: Could not open the file " << filePath << std::endl;
+/** 
+ * @brief Returns 2 streams: for prompt input files and for solution input files.
+ * 
+ * @note The caller is responsible for closing the file streams using its close() method.
+ */
+std::pair<std::ofstream, std::ofstream> setupTest(int testNumber) {
+    std::string promptInPath = format("%s/%d.in", dirs.at("promptInputDirectory").c_str(), testNumber);
+    std::string solutionInPath = format("%s/%d.in", dirs.at("solutionInputDirectory").c_str(), testNumber);
+
+    std::ofstream promptInFile(promptInPath);
+    if (!promptInFile) {
+        std::cerr << "Error: Could not open the file " << promptInPath << std::endl;
         exit(1);
     }
-    outFile << content;
-    outFile.close();
+    std::ofstream solutionInFile(solutionInPath);
+    if (!solutionInFile) {
+        std::cerr << "Error: Could not open the file " << solutionInPath << std::endl;
+        exit(1);
+    }
+    return {std::move(promptInFile), std::move(solutionInFile)};
 }
 
 #endif
