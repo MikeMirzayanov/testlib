@@ -77,3 +77,19 @@ int main() {
     g.printTo(cout, Solution);
 }
 ```
+
+## Solution
+
+```cpp
+#include "testlib/graph.h"
+using namespace std;
+
+int numberOfNodes(vector<vector<int>> graph) {
+    return (int)graph.size();
+}
+
+int main() {
+    Graph g = Graph::read_graph(cin);
+    cout << numberOfNodes(g) << '\n';
+}
+```
