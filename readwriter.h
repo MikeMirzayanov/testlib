@@ -4,6 +4,7 @@
 #include "testlib.h"
 #include "utils.h"
 #include "graph.h"
+#include <queue>
 
 Graph &Graph::relabelNodes() {
     auto perm = rnd.perm(numberOfNodes);

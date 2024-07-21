@@ -2,15 +2,17 @@
 #define GRAPH_H_
 
 #include "utils.h"
+#include <numeric>
+#include <functional>
 
 class Graph {
-   public:
+public:
     bool directed = false;
     int numberOfNodes;
     std::vector<std::vector<int>> graph;
     int numberOfEdges;
 
-   private:
+private:
     void printForPromptTo(std::ostream &outputStream) const {
         outputStream << "{";
         for (int i = 0; i < numberOfNodes; ++i) {
@@ -38,7 +40,7 @@ class Graph {
         }
     }
 
-   public:
+public:
     Graph(std::vector<std::vector<int>> g, bool directed = false)
         : directed(directed),
           numberOfNodes(g.size()),
