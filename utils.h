@@ -60,4 +60,13 @@ int64_t changeVectorToInt64_t(std::vector<T> &v) {
     return result;
 }
 
+template<ConvertibleToInt64_t T>
+int64_t changeVectorToInt64_t(std::vector<std::pair<T, T>> &v) {
+    int64_t result = 0;
+    for (int64_t i = 0; i < v.size(); i++) {
+        result += (2*i + 1) * v[i].first + (2*i + 2) * v[i].second;
+    }
+    return result;
+}
+
 #endif
