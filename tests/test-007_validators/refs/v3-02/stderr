@@ -3,3 +3,13 @@
 "n": min-value-hit max-value-hit
 "r":
 "t": min-value-hit max-value-hit
+constant-bounds "a": 1 ?
+constant-bounds "l": -2 2
+constant-bounds "n": 1 4
+constant-bounds "r": -5 5
+constant-bounds "t": 1 3
+variable "a"
+variable "l"
+variable "n"
+variable "r"
+variable "t"

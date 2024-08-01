@@ -90,6 +90,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run tests
         run: |
+          sudo apt-get update
           sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
@@ -106,6 +107,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run tests
         run: |
+          sudo apt-get update
           sudo apt-get install gcc-multilib g++-multilib
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
@@ -122,6 +124,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run tests
         run: |
+          sudo apt-get update
           sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
@@ -138,6 +141,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run tests
         run: |
+          sudo apt-get update
           sudo apt-get install gcc-multilib g++-multilib
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
