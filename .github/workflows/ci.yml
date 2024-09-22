@@ -204,6 +204,35 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
+  tests-macos14-gpp:
+    strategy:
+      matrix:
+        os: [macos-14]
+        compiler: [g++]
+        version: [12, 13, 14]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-macos14-clang:
+    strategy:
+      matrix:
+        os: [macos-14]
+        compiler: [clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
+
   tests-windows-2019:
     strategy:
       matrix:
