@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
 
     int n = inf.readInt(1, 1000, "n");
     inf.readSpace();
-    int m = inf.readInt(0, 100'000, "m");
+    int m = inf.readInt(0, 100000, "m");
     inf.readEoln();
 
     set<pair<int, int>> edges;
