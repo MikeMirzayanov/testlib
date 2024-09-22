@@ -6225,20 +6225,10 @@ std::string testlib_format_(const std::string fmt, ...) {
     return result;
 }
 
-#if __cplusplus >= 202002L && __has_include(<format>)
+#if (__cplusplus >= 202002L && __has_include(<format>)) || __cpp_lib_format
 #   include <format>
-#else
-#   ifndef __cpp_lib_format
-    std::string format(const char *fmt, ...) {
-        FMT_TO_RESULT(fmt, fmt, result);
-        return result;
-    }
+#endif
 
-    std::string format(const std::string fmt, ...) {
-        FMT_TO_RESULT(fmt, fmt.c_str(), result);
-        return result;
-    }
-#endif
-#endif
+#define format testlib_format_
 
 #endif
