@@ -4916,10 +4916,10 @@ static inline void __testlib_ensure(bool cond, const char *msg) {
         quit(_fail, msg);
 }
 
-#define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
+#define ensure(cond) __testlib_ensure((cond), "Condition failed: \"" #cond "\"")
 #define STRINGIZE_DETAIL(x) #x
-#define STRINGIZE(x) STRINGIZE_DETAIL(x)
-#define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
+#define STRINGIZE(x) STRINGIZE_DETAIL((x))
+#define ensure_ext(cond) __testlib_ensure((cond), "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
@@ -6209,7 +6209,6 @@ void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
 }
 
 TestlibFinalizeGuard testlibFinalizeGuard;
-
 #endif
 
 #ifdef __GNUC__
@@ -6226,9 +6225,34 @@ std::string testlib_format_(const std::string fmt, ...) {
 }
 
 #if (__cplusplus >= 202002L && __has_include(<format>)) || __cpp_lib_format
-#   include <format>
-#endif
+template <typename... Args>
+std::string format(const char* fmt, Args&&... args) {
+    size_t size = size_t(std::snprintf(nullptr, 0, fmt, args...) + 1);
+    std::vector<char> buffer(size);
+    std::snprintf(buffer.data(), size, fmt, args...);
+    return std::string(buffer.data());
+}
 
-#define format testlib_format_
+template <typename... Args>
+std::string format(const std::string fmt, Args&&... args) {
+    size_t size = size_t(std::snprintf(nullptr, 0, fmt.c_str(), args...) + 1);
+    std::vector<char> buffer(size);
+    std::snprintf(buffer.data(), size, fmt.c_str(), args...);
+    return std::string(buffer.data());
+}
+#else
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string format(const char *fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt, result);
+    return result;
+}
+
+std::string format(const std::string fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    return result;
+}
+#endif
 
 #endif
