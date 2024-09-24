@@ -4917,7 +4917,7 @@ static inline void __testlib_ensure(bool cond, const char *msg) {
 }
 
 #define ensure(cond) __testlib_ensure((cond), "Condition failed: \"" #cond "\"")
-#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE_DETAIL(x) (#x)
 #define STRINGIZE(x) STRINGIZE_DETAIL((x))
 #define ensure_ext(cond) __testlib_ensure((cond), "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
