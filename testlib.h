@@ -667,6 +667,30 @@ static std::string toString(const T &t) {
 void prepareOpts(int argc, char* argv[]);
 #endif
 
+FILE* testlib_fopen_(const char* path, const char* mode) {
+#ifdef _MSC_VER
+    FILE* result = NULL;
+    if (fopen_s(&result, path, mode) != 0)
+        return NULL;
+    else
+        return result;
+#else
+        return std::fopen(path, mode);
+#endif
+}
+
+FILE* testlib_freopen_(const char* path, const char* mode, FILE* file) {
+#ifdef _MSC_VER
+    FILE* result = NULL;
+    if (freopen_s(&result, path, mode, file) != 0)
+        return NULL;
+    else
+        return result;
+#else
+    return std::freopen(path, mode, file);
+#endif
+}
+
 /*
  * Very simple regex-like pattern.
  * It used for two purposes: validation and generation.
@@ -1417,7 +1441,11 @@ static void __pattern_scanCounts(const std::string &s, size_t &pos, int &from, i
             if (parts[i].length() == 0)
                 __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             int number;
+#ifdef _MSC_VER
+            if (sscanf_s(parts[i].c_str(), "%d", &number) != 1)
+#else
             if (std::sscanf(parts[i].c_str(), "%d", &number) != 1)
+#endif
                 __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             numbers.push_back(number);
         }
@@ -2633,7 +2661,7 @@ public:
             else if (fileName == "stderr")
                 f = stderr, standard_file = true;
             else {
-                f = fopen(fileName.c_str(), "wb");
+                f = testlib_fopen_(fileName.c_str(), "wb");
                 if (NULL == f)
                     __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
             }
@@ -2676,7 +2704,7 @@ public:
                 else if (_testMarkupFileName == "stderr")
                     f = stderr, standard_file = true;
                 else {
-                    f = fopen(_testMarkupFileName.c_str(), "wb");
+                    f = testlib_fopen_(_testMarkupFileName.c_str(), "wb");
                     if (NULL == f)
                         __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + _testMarkupFileName + ")");
                 }
@@ -2723,7 +2751,7 @@ public:
                     else if (_testCaseFileName == "stderr")
                         f = stderr, standard_file = true;
                     else {
-                        f = fopen(_testCaseFileName.c_str(), "wb");
+                        f = testlib_fopen_(_testCaseFileName.c_str(), "wb");
                         if (NULL == f)
                             __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
                     }
@@ -3129,7 +3157,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     }
 
     if (resultName != "") {
-        resultFile = std::fopen(resultName.c_str(), "w");
+        resultFile = testlib_fopen_(resultName.c_str(), "w");
         if (resultFile == NULL) {
             resultName = "";
             quit(_fail, "Can not write to the result file");
@@ -3246,7 +3274,7 @@ void InStream::reset(std::FILE *file) {
         close();
 
     if (!stdfile && NULL == file)
-        if (NULL == (file = std::fopen(name.c_str(), "rb"))) {
+        if (NULL == (file = testlib_fopen_(name.c_str(), "rb"))) {
             if (mode == _output)
                 quits(_pe, std::string("Output file not found: \"") + name + "\"");
 
@@ -3651,7 +3679,12 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+    int scanned;
+#ifdef _MSC_VER
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, length + 1);
+#else
+    scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+#endif
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
@@ -3728,7 +3761,12 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+    int scanned;
+#ifdef _MSC_VER
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, length + 1);
+#else
+    scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+#endif
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
@@ -5007,7 +5045,7 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
 
 void startTest(int test) {
     const std::string testFileName = vtos(test);
-    if (NULL == freopen(testFileName.c_str(), "wt", stdout))
+    if (NULL == testlib_freopen_(testFileName.c_str(), "wt", stdout))
         __testlib_fail("Unable to write file '" + testFileName + "'");
 }
 
@@ -6000,7 +6038,11 @@ double deserializePoints(std::string s) {
         return std::numeric_limits<double>::quiet_NaN();
     else {
         double result;
-        ensuref(sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#ifdef _MSC_VER
+        ensuref(sscanf_s(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#else
+        ensuref(std::sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#endif
         return result;
     }                                              
 }
