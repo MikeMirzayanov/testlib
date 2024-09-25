@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2024
  */
 
-#define VERSION "0.9.43"
+#define VERSION "0.9.44"
 
 /*
  * Mike Mirzayanov
@@ -330,6 +330,12 @@ static int __testlib_format_buffer_usage_count = 0;
             result = std::string(__testlib_format_buffer);                                 \
             __testlib_format_buffer_usage_count--;                                         \
 
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string testlib_format_(const char *fmt, ...);
+std::string testlib_format_(const std::string fmt, ...);
+
 const long long __TESTLIB_LONGLONG_MAX = 9223372036854775807LL;
 const int __TESTLIB_MAX_TEST_CASE = 1073741823;
 
@@ -428,19 +434,6 @@ inline std::string lowerCase(std::string s) {
         if ('A' <= s[i] && s[i] <= 'Z')
             s[i] = char(s[i] - 'A' + 'a');
     return s;
-}
-
-#ifdef __GNUC__
-__attribute__ ((format (printf, 1, 2)))
-#endif
-std::string format(const char *fmt, ...) {
-    FMT_TO_RESULT(fmt, fmt, result);
-    return result;
-}
-
-std::string format(const std::string fmt, ...) {
-    FMT_TO_RESULT(fmt, fmt.c_str(), result);
-    return result;
 }
 
 #ifdef __GNUC__
@@ -672,6 +665,30 @@ static std::string toString(const T &t) {
 /* opts */
 void prepareOpts(int argc, char* argv[]);
 #endif
+
+FILE* testlib_fopen_(const char* path, const char* mode) {
+#ifdef _MSC_VER
+    FILE* result = NULL;
+    if (fopen_s(&result, path, mode) != 0)
+        return NULL;
+    else
+        return result;
+#else
+        return std::fopen(path, mode);
+#endif
+}
+
+FILE* testlib_freopen_(const char* path, const char* mode, FILE* file) {
+#ifdef _MSC_VER
+    FILE* result = NULL;
+    if (freopen_s(&result, path, mode, file) != 0)
+        return NULL;
+    else
+        return result;
+#else
+    return std::freopen(path, mode, file);
+#endif
+}
 
 /*
  * Very simple regex-like pattern.
@@ -1423,7 +1440,11 @@ static void __pattern_scanCounts(const std::string &s, size_t &pos, int &from, i
             if (parts[i].length() == 0)
                 __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             int number;
+#ifdef _MSC_VER
+            if (sscanf_s(parts[i].c_str(), "%d", &number) != 1)
+#else
             if (std::sscanf(parts[i].c_str(), "%d", &number) != 1)
+#endif
                 __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
             numbers.push_back(number);
         }
@@ -1805,7 +1826,7 @@ public:
 
     void setTestCase(int testCase) {
         if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
-            __testlib_fail(format("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
+            __testlib_fail(testlib_format_("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
         readChars.push_back(testCase + 256);
     }
 
@@ -2639,7 +2660,7 @@ public:
             else if (fileName == "stderr")
                 f = stderr, standard_file = true;
             else {
-                f = fopen(fileName.c_str(), "wb");
+                f = testlib_fopen_(fileName.c_str(), "wb");
                 if (NULL == f)
                     __testlib_fail("Validator::writeTestOverviewLog: can't write test overview log to (" + fileName + ")");
             }
@@ -2682,7 +2703,7 @@ public:
                 else if (_testMarkupFileName == "stderr")
                     f = stderr, standard_file = true;
                 else {
-                    f = fopen(_testMarkupFileName.c_str(), "wb");
+                    f = testlib_fopen_(_testMarkupFileName.c_str(), "wb");
                     if (NULL == f)
                         __testlib_fail("Validator::writeTestMarkup: can't write test markup to (" + _testMarkupFileName + ")");
                 }
@@ -2729,7 +2750,7 @@ public:
                     else if (_testCaseFileName == "stderr")
                         f = stderr, standard_file = true;
                     else {
-                        f = fopen(_testCaseFileName.c_str(), "wb");
+                        f = testlib_fopen_(_testCaseFileName.c_str(), "wb");
                         if (NULL == f)
                             __testlib_fail("Validator::writeTestCase: can't write test case to (" + _testCaseFileName + ")");
                     }
@@ -3127,7 +3148,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
             break;
         default:
             if (result >= _partially) {
-                errorName = format("partially correct (%d) ", pctype);
+                errorName = testlib_format_("partially correct (%d) ", pctype);
                 isPartial = true;
                 quitscrS(LightYellow, errorName);
             } else
@@ -3135,7 +3156,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     }
 
     if (resultName != "") {
-        resultFile = std::fopen(resultName.c_str(), "w");
+        resultFile = testlib_fopen_(resultName.c_str(), "w");
         if (resultFile == NULL) {
             resultName = "";
             quit(_fail, "Can not write to the result file");
@@ -3151,7 +3172,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
                 else {
                     if (__testlib_points == std::numeric_limits<float>::infinity())
                         quit(_fail, "Expected points, but infinity found");
-                    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", __testlib_points));
+                    std::string stringPoints = removeDoubleTrailingZeroes(testlib_format_("%.10f", __testlib_points));
                     std::fprintf(resultFile, "<result outcome = \"%s\" points = \"%s\">",
                                  outcomes[(int) result].c_str(), stringPoints.c_str());
                 }
@@ -3252,7 +3273,7 @@ void InStream::reset(std::FILE *file) {
         close();
 
     if (!stdfile && NULL == file)
-        if (NULL == (file = std::fopen(name.c_str(), "rb"))) {
+        if (NULL == (file = testlib_fopen_(name.c_str(), "rb"))) {
             if (mode == _output)
                 quits(_pe, std::string("Output file not found: \"") + name + "\"");
 
@@ -3483,9 +3504,9 @@ std::string InStream::readWord(const pattern &p, const std::string &variableName
 
 std::vector<std::string>
 InStream::readWords(int size, const pattern &p, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
 }
 
 std::vector<std::string> InStream::readWords(int size, int indexBase) {
@@ -3499,9 +3520,9 @@ std::string InStream::readWord(const std::string &ptrn, const std::string &varia
 std::vector<std::string>
 InStream::readWords(int size, const std::string &ptrn, const std::string &variablesName, int indexBase) {
     pattern p(ptrn);
-    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readWords, readWord(p, variablesName), std::string, true);
 }
 
 std::string InStream::readToken(const pattern &p, const std::string &variableName) {
@@ -3510,9 +3531,9 @@ std::string InStream::readToken(const pattern &p, const std::string &variableNam
 
 std::vector<std::string>
 InStream::readTokens(int size, const pattern &p, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readTokens, readToken(p, variablesName), std::string, true);
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readTokens, readToken(p, variablesName), std::string, true);
 }
 
 std::vector<std::string> InStream::readTokens(int size, int indexBase) {
@@ -3526,9 +3547,9 @@ std::string InStream::readToken(const std::string &ptrn, const std::string &vari
 std::vector<std::string>
 InStream::readTokens(int size, const std::string &ptrn, const std::string &variablesName, int indexBase) {
     pattern p(ptrn);
-    __testlib_readMany(readTokens, readWord(p, variablesName), std::string, true);
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readTokens, readWord(p, variablesName), std::string, true);
 }
 
 void InStream::readWordTo(std::string &result, const pattern &p, const std::string &variableName) {
@@ -3657,7 +3678,12 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+    int scanned;
+#ifdef _MSC_VER
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, (unsigned int)(length + 1));
+#else
+    scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+#endif
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
@@ -3734,7 +3760,12 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
 
     char *suffix = new char[length + 1];
     std::memset(suffix, 0, length + 1);
-    int scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+    int scanned;
+#ifdef _MSC_VER
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, (unsigned int)(length + 1));
+#else
+    scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
+#endif
     bool empty = strlen(suffix) == 0;
     delete[] suffix;
 
@@ -3893,9 +3924,9 @@ long long InStream::readLong(long long minv, long long maxv, const std::string &
 
 std::vector<long long>
 InStream::readLongs(int size, long long minv, long long maxv, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readLongs, readLong(minv, maxv, variablesName), long long, true)
 }
 
 std::vector<long long> InStream::readLongs(int size, int indexBase) {
@@ -3939,9 +3970,9 @@ InStream::readUnsignedLong(unsigned long long minv, unsigned long long maxv, con
 
 std::vector<unsigned long long> InStream::readUnsignedLongs(int size, unsigned long long minv, unsigned long long maxv,
                                                             const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readUnsignedLongs, readUnsignedLong(minv, maxv, variablesName), unsigned long long, true)
 }
 
 std::vector<unsigned long long> InStream::readUnsignedLongs(int size, int indexBase) {
@@ -3993,9 +4024,9 @@ int InStream::readInteger(int minv, int maxv, const std::string &variableName) {
 }
 
 std::vector<int> InStream::readInts(int size, int minv, int maxv, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readInts, readInt(minv, maxv, variablesName), int, true)
 }
 
 std::vector<int> InStream::readInts(int size, int indexBase) {
@@ -4003,9 +4034,9 @@ std::vector<int> InStream::readInts(int size, int indexBase) {
 }
 
 std::vector<int> InStream::readIntegers(int size, int minv, int maxv, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readIntegers, readInt(minv, maxv, variablesName), int, true)
 }
 
 std::vector<int> InStream::readIntegers(int size, int indexBase) {
@@ -4059,9 +4090,9 @@ double InStream::readReal(double minv, double maxv, const std::string &variableN
 
 std::vector<double>
 InStream::readReals(int size, double minv, double maxv, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readReals, readReal(minv, maxv, variablesName), double, true)
 }
 
 std::vector<double> InStream::readReals(int size, int indexBase) {
@@ -4074,9 +4105,9 @@ double InStream::readDouble(double minv, double maxv, const std::string &variabl
 
 std::vector<double>
 InStream::readDoubles(int size, double minv, double maxv, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double, true)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readDoubles, readDouble(minv, maxv, variablesName), double, true)
 }
 
 std::vector<double> InStream::readDoubles(int size, int indexBase) {
@@ -4126,11 +4157,11 @@ double InStream::readStrictReal(double minv, double maxv,
 std::vector<double> InStream::readStrictReals(int size, double minv, double maxv,
                                               int minAfterPointDigitCount, int maxAfterPointDigitCount,
                                               const std::string &variablesName, int indexBase) {
+    if (strict && !variablesName.empty())
+        validator.addVariable(variablesName);
     __testlib_readMany(readStrictReals,
                        readStrictReal(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName),
                        double, true)
-    if (strict && !variablesName.empty())
-        validator.addVariable(variablesName);
 }
 
 double InStream::readStrictDouble(double minv, double maxv,
@@ -4144,11 +4175,11 @@ double InStream::readStrictDouble(double minv, double maxv,
 std::vector<double> InStream::readStrictDoubles(int size, double minv, double maxv,
                                                 int minAfterPointDigitCount, int maxAfterPointDigitCount,
                                                 const std::string &variablesName, int indexBase) {
+    if (strict && !variablesName.empty())
+        validator.addVariable(variablesName);
     __testlib_readMany(readStrictDoubles,
                        readStrictDouble(minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName),
                        double, true)
-    if (strict && !variablesName.empty())
-        validator.addVariable(variablesName);
 }
 
 bool InStream::eof() {
@@ -4322,9 +4353,9 @@ std::string InStream::readString(const pattern &p, const std::string &variableNa
 
 std::vector<std::string>
 InStream::readStrings(int size, const pattern &p, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
 }
 
 std::string InStream::readString(const std::string &ptrn, const std::string &variableName) {
@@ -4335,9 +4366,9 @@ std::string InStream::readString(const std::string &ptrn, const std::string &var
 std::vector<std::string>
 InStream::readStrings(int size, const std::string &ptrn, const std::string &variablesName, int indexBase) {
     pattern p(ptrn);
-    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readStrings, readString(p, variablesName), std::string, false)
 }
 
 void InStream::readLineTo(std::string &result) {
@@ -4366,9 +4397,9 @@ std::string InStream::readLine(const pattern &p, const std::string &variableName
 
 std::vector<std::string>
 InStream::readLines(int size, const pattern &p, const std::string &variablesName, int indexBase) {
-    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
 }
 
 std::string InStream::readLine(const std::string &ptrn, const std::string &variableName) {
@@ -4378,9 +4409,9 @@ std::string InStream::readLine(const std::string &ptrn, const std::string &varia
 std::vector<std::string>
 InStream::readLines(int size, const std::string &ptrn, const std::string &variablesName, int indexBase) {
     pattern p(ptrn);
-    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
     if (strict && !variablesName.empty())
         validator.addVariable(variablesName);
+    __testlib_readMany(readLines, readString(p, variablesName), std::string, false)
 }
 
 #ifdef __GNUC__
@@ -4435,7 +4466,7 @@ double __testlib_preparePoints(double points_) {
 
 NORETURN void __testlib_quitp(double points, const char *message) {
     __testlib_points = __testlib_preparePoints(points);
-    std::string stringPoints = removeDoubleTrailingZeroes(format("%.10f", __testlib_points));
+    std::string stringPoints = removeDoubleTrailingZeroes(testlib_format_("%.10f", __testlib_points));
 
     std::string quitMessage;
     if (NULL == message || 0 == strlen(message))
@@ -4448,7 +4479,7 @@ NORETURN void __testlib_quitp(double points, const char *message) {
 
 NORETURN void __testlib_quitp(int points, const char *message) {
     __testlib_points = __testlib_preparePoints(points);
-    std::string stringPoints = format("%d", points);
+    std::string stringPoints = testlib_format_("%d", points);
 
     std::string quitMessage;
     if (NULL == message || 0 == strlen(message))
@@ -4764,7 +4795,7 @@ void registerValidation(int argc, char *argv[]) {
             if (i + 1 < argc) {
                 long long testCase = stringToLongLong(inf, argv[++i]);
                 if (testCase < 1 || testCase >= __TESTLIB_MAX_TEST_CASE)
-                    quit(_fail, format("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
+                    quit(_fail, testlib_format_("Argument testCase should be between 1 and %d, but ", __TESTLIB_MAX_TEST_CASE)
                         + toString(testCase) + " found");
                 validator.setTestCase(int(testCase));
             } else
@@ -4922,10 +4953,10 @@ static inline void __testlib_ensure(bool cond, const char *msg) {
         quit(_fail, msg);
 }
 
-#define ensure(cond) __testlib_ensure(cond, "Condition failed: \"" #cond "\"")
-#define STRINGIZE_DETAIL(x) #x
-#define STRINGIZE(x) STRINGIZE_DETAIL(x)
-#define ensure_ext(cond) __testlib_ensure(cond, "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
+#define ensure(cond) __testlib_ensure((cond), "Condition failed: \"" #cond "\"")
+#define STRINGIZE_DETAIL(x) (#x)
+#define STRINGIZE(x) STRINGIZE_DETAIL((x))
+#define ensure_ext(cond) __testlib_ensure((cond), "Line " STRINGIZE(__LINE__) ": Condition failed: \"" #cond "\"")
 
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
@@ -5013,7 +5044,7 @@ void srand(unsigned int seed) RAND_THROW_STATEMENT
 
 void startTest(int test) {
     const std::string testFileName = vtos(test);
-    if (NULL == freopen(testFileName.c_str(), "wt", stdout))
+    if (NULL == testlib_freopen_(testFileName.c_str(), "wt", stdout))
         __testlib_fail("Unable to write file '" + testFileName + "'");
 }
 
@@ -5182,17 +5213,17 @@ std::vector<std::string> tokenize(const std::string &s, const std::string &separ
 NORETURN void __testlib_expectedButFound(TResult result, std::string expected, std::string found, const char *prepend) {
     std::string message;
     if (strlen(prepend) != 0)
-        message = format("%s: expected '%s', but found '%s'",
+        message = testlib_format_("%s: expected '%s', but found '%s'",
                          compress(prepend).c_str(), compress(expected).c_str(), compress(found).c_str());
     else
-        message = format("expected '%s', but found '%s'",
+        message = testlib_format_("expected '%s', but found '%s'",
                          compress(expected).c_str(), compress(found).c_str());
     quit(result, message);
 }
 
 NORETURN void __testlib_expectedButFound(TResult result, double expected, double found, const char *prepend) {
-    std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
-    std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
+    std::string expectedString = removeDoubleTrailingZeroes(testlib_format_("%.12f", expected));
+    std::string foundString = removeDoubleTrailingZeroes(testlib_format_("%.12f", found));
     __testlib_expectedButFound(result, expectedString, foundString, prepend);
 }
 
@@ -5223,8 +5254,8 @@ __attribute__ ((format (printf, 4, 5)))
 #endif
 NORETURN void expectedButFound<double>(TResult result, double expected, double found, const char *prependFormat, ...) {
     FMT_TO_RESULT(prependFormat, prependFormat, prepend);
-    std::string expectedString = removeDoubleTrailingZeroes(format("%.12f", expected));
-    std::string foundString = removeDoubleTrailingZeroes(format("%.12f", found));
+    std::string expectedString = removeDoubleTrailingZeroes(testlib_format_("%.12f", expected));
+    std::string foundString = removeDoubleTrailingZeroes(testlib_format_("%.12f", found));
     __testlib_expectedButFound(result, expectedString, foundString, prepend.c_str());
 }
 
@@ -6006,7 +6037,11 @@ double deserializePoints(std::string s) {
         return std::numeric_limits<double>::quiet_NaN();
     else {
         double result;
-        ensuref(sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#ifdef _MSC_VER
+        ensuref(sscanf_s(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#else
+        ensuref(std::sscanf(s.c_str(), "%lf", &result) == 1, "Invalid serialized points");
+#endif
         return result;
     }                                              
 }
@@ -6199,7 +6234,7 @@ std::string opt(const std::string &key, const std::string &default_value) {
 void ensureNoUnusedOpts() {
     for (const auto &opt: __testlib_opts) {
         if (!opt.second.used) {
-            __testlib_fail(format("Opts: unused key '%s'", compress(opt.first).c_str()));
+            __testlib_fail(testlib_format_("Opts: unused key '%s'", compress(opt.first).c_str()));
         }
     }
 }
@@ -6215,6 +6250,50 @@ void TestlibFinalizeGuard::autoEnsureNoUnusedOpts() {
 }
 
 TestlibFinalizeGuard testlibFinalizeGuard;
-
 #endif
+
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string testlib_format_(const char *fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt, result);
+    return result;
+}
+
+std::string testlib_format_(const std::string fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    return result;
+}
+
+#if (__cplusplus >= 202002L && __has_include(<format>)) || __cpp_lib_format
+template <typename... Args>
+std::string format(const char* fmt, Args&&... args) {
+    size_t size = size_t(std::snprintf(nullptr, 0, fmt, args...) + 1);
+    std::vector<char> buffer(size);
+    std::snprintf(buffer.data(), size, fmt, args...);
+    return std::string(buffer.data());
+}
+
+template <typename... Args>
+std::string format(const std::string fmt, Args&&... args) {
+    size_t size = size_t(std::snprintf(nullptr, 0, fmt.c_str(), args...) + 1);
+    std::vector<char> buffer(size);
+    std::snprintf(buffer.data(), size, fmt.c_str(), args...);
+    return std::string(buffer.data());
+}
+#else
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+std::string format(const char *fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt, result);
+    return result;
+}
+
+std::string format(const std::string fmt, ...) {
+    FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    return result;
+}
+#endif
+
 #endif
