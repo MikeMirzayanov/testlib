@@ -63,7 +63,6 @@
  */
 
 const char *latestFeatures[] = {
-        "Fallback to std::format for c++20, fixed some warns",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
         "rnd.any/wany use distance/advance instead of -/+: now they support sets/multisets",
