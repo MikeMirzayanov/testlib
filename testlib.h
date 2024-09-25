@@ -3681,7 +3681,7 @@ static inline double stringToDouble(InStream &in, const char *buffer) {
     std::memset(suffix, 0, length + 1);
     int scanned;
 #ifdef _MSC_VER
-    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, length + 1);
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, (unsigned int)(length + 1));
 #else
     scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
 #endif
@@ -3763,7 +3763,7 @@ static inline double stringToStrictDouble(InStream &in, const char *buffer,
     std::memset(suffix, 0, length + 1);
     int scanned;
 #ifdef _MSC_VER
-    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, length + 1);
+    scanned = sscanf_s(buffer, "%lf%s", &result, suffix, (unsigned int)(length + 1));
 #else
     scanned = std::sscanf(buffer, "%lf%s", &result, suffix);
 #endif
