@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2024
+ * Copyright (c) 2005-2025
  */
 
-#define VERSION "0.9.44"
+#define VERSION "0.9.45"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Fix test cases message for quitp/_points",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
         "rnd.any/wany use distance/advance instead of -/+: now they support sets/multisets",
@@ -3072,7 +3073,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     message = trim(message);
 
     if (__testlib_hasTestCase) {
-        if (result != _ok)
+        if (result != _ok && result != _points)
             message = __testlib_appendMessage(message, "test case " + vtos(__testlib_testCase));
         else {
             if (__testlib_testCase == 1)
