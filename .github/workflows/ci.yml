@@ -18,36 +18,6 @@ env:
   TEST_REF_FORBID_GEN_REFS: true
 
 jobs:
-  tests-ubuntu2004-gpp:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        compiler: [g++]
-        version: [9, 10]
-    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
-
-  tests-ubuntu2004-clang:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        compiler: [clang++]
-        version: [10, 11, 12]
-    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
-
   tests-ubuntu2204-gpp:
     strategy:
       matrix:
@@ -77,40 +47,6 @@ jobs:
         run: |
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
-
-  tests-ubuntu2004-gpp-32:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        compiler: [g++]
-        version: [9, 10]
-    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          sudo apt-get update
-          sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
-
-  tests-ubuntu2004-clang-32:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        compiler: [clang++]
-        version: [10, 11, 12]
-    name: Use ${{ matrix.compiler }}-${{ matrix.version }} -m32 on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          sudo apt-get update
-          sudo apt-get install gcc-multilib g++-multilib
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
   tests-ubuntu2204-gpp-32:
     strategy:
@@ -146,12 +82,12 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
-  tests-macos12-gpp:
+  tests-ubuntu2404-gpp:
     strategy:
       matrix:
-        os: [macos-12]
+        os: [ubuntu-24.04]
         compiler: [g++]
-        version: [12, 13, 14]
+        version: [13]
     name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -161,19 +97,20 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
-  tests-macos12-clang:
+  tests-ubuntu2404-clang:
     strategy:
       matrix:
-        os: [macos-12]
+        os: [ubuntu-24.04]
         compiler: [clang++]
-    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+        version: [16]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-macos13-gpp:
     strategy:
@@ -233,11 +170,26 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
-  tests-windows-2019:
+  tests-macos15-gpp:
     strategy:
       matrix:
-        os: [windows-2019]
-        compiler: [msvc, g++, clang++]
+        os: [macos-15]
+        compiler: [g++]
+        version: [12, 13, 14]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-macos15-clang:
+    strategy:
+      matrix:
+        os: [macos-15]
+        compiler: [clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -251,6 +203,20 @@ jobs:
     strategy:
       matrix:
         os: [windows-2022]
+        compiler: [msvc, g++, clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
+
+  tests-windows-2025:
+    strategy:
+      matrix:
+        os: [windows-2025]
         compiler: [msvc, g++, clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
