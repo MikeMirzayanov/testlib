@@ -5400,26 +5400,26 @@ void println(const T &x) {
     std::cout << std::endl;
 }
 
+
 template<class T1, class T2, class ... Args>
-void println(const T1 &x, const T2 &y, Args &&... args) {
-    if constexpr(
-        is_iterator<T1>::value &&
-        is_iterator<T2>::value &&
-        std::is_convertible<T1, T2>::value
-    ) {
-        T2 i = static_cast<T2>(x);
-        while(i != y) {
-            __testlib_print_one(*i);
-            std::cout << " ";
-            i++;
-        }
+typename __testlib_enable_if<(is_iterator<T1>::value && is_iterator<T2>::value && std::is_convertible<T1, T2>::value), void>::type
+println(const T1 &x, const T2 &y, Args &&... args) {
+    T2 i = static_cast<T2>(x);
+    while(i != y) {
+        __testlib_print_one(*i);
         std::cout << " ";
-        println(args...);
-    } else {
-        __testlib_print_one(x);
-        std::cout << " ";
-        println(y, args...);
+        i++;
     }
+    std::cout << " ";
+    println(args...);
+}
+
+template<class T1, class T2, class ... Args>
+typename __testlib_enable_if<!(is_iterator<T1>::value && is_iterator<T2>::value && std::is_convertible<T1, T2>::value), void>::type
+println(const T1 &x, const T2 &y, Args &&... args) {
+    __testlib_print_one(x);
+    std::cout << " ";
+    println(y, args...);
 }
 
 /* opts */
