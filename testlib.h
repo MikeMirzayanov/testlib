@@ -5407,7 +5407,11 @@ void println(const T1 &x, const T2 &y, Args &&... args) {
         is_iterator<T2>::value &&
         std::is_convertible<T1, T2>::value
     ) {
-        __println_range(x, y);
+        T2 i = static_cast<T2>(x);
+        while(i != y) {
+            __testlib_print_one(*i);
+            i++;
+        }
         std::cout << " ";
         println(args...);
     } else {
