@@ -5400,74 +5400,21 @@ void println(const T &x) {
     std::cout << std::endl;
 }
 
-template<typename A, typename B, typename C>
-void println(const A &a, const B &b, const C &c) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << std::endl;
-}
-
-template<typename A, typename B, typename C, typename D>
-void println(const A &a, const B &b, const C &c, const D &d) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << std::endl;
-}
-
-template<typename A, typename B, typename C, typename D, typename E>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << std::endl;
-}
-
-template<typename A, typename B, typename C, typename D, typename E, typename F>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
-    std::cout << std::endl;
-}
-
-template<typename A, typename B, typename C, typename D, typename E, typename F, typename G>
-void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
-    std::cout << " ";
-    __testlib_print_one(g);
-    std::cout << std::endl;
+template<class T1, class T2, class ... Args>
+void println(const T1 &x, const T2 &y, Args &&... args) {
+    if constexpr(
+        is_iterator<T1>::value &&
+        is_iterator<T2>::value &&
+        std::is_convertible<T1, T2>::value
+    ) {
+        __println_range(x, y);
+        std::cout << " ";
+        println(args...);
+    } else {
+        __testlib_print_one(x);
+        std::cout << " ";
+        println(y, args...);
+    }
 }
 
 /* opts */
