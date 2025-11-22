@@ -5410,6 +5410,7 @@ void println(const T1 &x, const T2 &y, Args &&... args) {
         T2 i = static_cast<T2>(x);
         while(i != y) {
             __testlib_print_one(*i);
+            std::cout << " ";
             i++;
         }
         std::cout << " ";
