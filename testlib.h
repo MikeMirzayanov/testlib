@@ -5327,6 +5327,24 @@ typename __testlib_enable_if<is_iterable<T>::value, void>::type __testlib_print_
     }
 }
 
+template<typename T, std::size_t N>
+void __testlib_print_one(const T (&arr)[N]) {
+    const T *end = arr + N;
+    bool first = true;
+    for (const T *i = arr; i != end; i++) {
+        if (first)
+            first = false;
+        else
+            std::cout << " ";
+        std::cout << *i;
+    }
+}
+
+template<std::size_t N>
+void __testlib_print_one(const char (&str)[N]) {
+    std::cout << str;
+}
+
 template<>
 typename __testlib_enable_if<is_iterable<std::string>::value, void>::type
 __testlib_print_one<std::string>(const std::string &t) {
@@ -5400,23 +5418,44 @@ void println(const T &x) {
     std::cout << std::endl;
 }
 
+template<typename T1, typename T2>
+struct is_range {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = is_iterator<rcv_T1>::value && is_iterator<rcv_T2>::value
+                              && std::is_convertible<rcv_T1, rcv_T2>::value;
+};
 
-template<class T1, class T2, class ... Args>
-typename __testlib_enable_if<(is_iterator<T1>::value && is_iterator<T2>::value && std::is_convertible<T1, T2>::value), void>::type
-println(const T1 &x, const T2 &y, Args &&... args) {
-    T2 i = static_cast<T2>(x);
-    while(i != y) {
+template<typename T1, typename T2>
+struct is_range<T1 *, T2 *> {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
+};
+
+template<typename T1, typename T2, std::size_t N>
+struct is_range<T1 [N], T2 *> {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
+};
+
+template<typename T1, typename T2, typename... Args>
+typename __testlib_enable_if<!is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args);
+
+template<typename T1, typename T2, typename... Args>
+typename __testlib_enable_if<is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
+    T2 i = T2(x);
+    while (i != y) {
         __testlib_print_one(*i);
         std::cout << " ";
         i++;
     }
-    std::cout << " ";
     println(args...);
 }
 
-template<class T1, class T2, class ... Args>
-typename __testlib_enable_if<!(is_iterator<T1>::value && is_iterator<T2>::value && std::is_convertible<T1, T2>::value), void>::type
-println(const T1 &x, const T2 &y, Args &&... args) {
+template<typename T1, typename T2, typename... Args>
+typename __testlib_enable_if<!is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
     __testlib_print_one(x);
     std::cout << " ";
     println(y, args...);
