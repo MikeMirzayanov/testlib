@@ -5435,6 +5435,11 @@ struct is_range<T1[N], T2 *> {
     static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
 };
 
+template<typename T1, typename T2, std::size_t N1, std::size_t N2>
+struct is_range<T1[N1], T2[N2]> {
+    static const bool value = false;
+};
+
 template<typename... Args>
 struct is_not_empty_pack {
 	static const bool value = sizeof...(Args) > 0;
