@@ -3,6 +3,9 @@
 #include <array>
 using namespace std;
 
+typedef int C_array[5];
+static_assert(!is_range<C_array, C_array>::value, "C array should not be a range");
+
 int main(int argc, char** argv) {
     registerGen(argc, argv, 1);
 

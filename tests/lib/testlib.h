@@ -5369,8 +5369,11 @@ struct is_range {
 
 template<typename T1, typename T2>
 struct is_range<T1, T2,
-    __testlib_void_t<typename std::iterator_traits<T1>::value_type,
-                     typename std::iterator_traits<T2>::value_type>> {
+    __testlib_void_t<
+    typename __testlib_enable_if<!std::is_array<T1>::value &&
+                                 !std::is_array<T2>::value>::type,
+                         typename std::iterator_traits<T1>::iterator_category,
+                         typename std::iterator_traits<T2>::iterator_category>> {
     typedef typename std::remove_cv<typename std::iterator_traits<T1>::value_type>::type val_T1;
     typedef typename std::remove_cv<typename std::iterator_traits<T2>::value_type>::type val_T2;
     static const bool value = std::is_same<val_T1, val_T2>::value;
