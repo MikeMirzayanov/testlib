@@ -5302,8 +5302,7 @@ struct is_iterable {
 };
 
 template<bool B, class T = void>
-struct __testlib_enable_if {
-};
+struct __testlib_enable_if {};
 
 template<class T>
 struct __testlib_enable_if<true, T> {
@@ -5318,8 +5317,8 @@ typename __testlib_enable_if<!is_iterable<T>::value, void>::type __testlib_print
 template<typename T>
 typename __testlib_enable_if<is_iterable<T>::value, void>::type __testlib_print_one(const T &t) {
     bool first = true;
-    for (typename T::const_iterator i = t.begin(); i != t.end(); i++) {
-        if (first)
+    for(typename T::const_iterator i = t.begin(); i != t.end(); i++) {
+        if(first)
             first = false;
         else
             std::cout << " ";
@@ -5328,11 +5327,11 @@ typename __testlib_enable_if<is_iterable<T>::value, void>::type __testlib_print_
 }
 
 template<typename T, std::size_t N>
-void __testlib_print_one(const T (&arr)[N]) {
+void __testlib_print_one(const T(&arr)[N]) {
     const T *end = arr + N;
     bool first = true;
-    for (const T *i = arr; i != end; i++) {
-        if (first)
+    for(const T *i = arr; i != end; i++) {
+        if(first)
             first = false;
         else
             std::cout << " ";
@@ -5341,7 +5340,7 @@ void __testlib_print_one(const T (&arr)[N]) {
 }
 
 template<std::size_t N>
-void __testlib_print_one(const char (&str)[N]) {
+void __testlib_print_one(const char(&str)[N]) {
     std::cout << str;
 }
 
@@ -5354,8 +5353,8 @@ __testlib_print_one<std::string>(const std::string &t) {
 template<typename A, typename B>
 void __println_range(A begin, B end) {
     bool first = true;
-    for (B i = B(begin); i != end; i++) {
-        if (first)
+    for(B i = B(begin); i != end; i++) {
+        if(first)
             first = false;
         else
             std::cout << " ";
@@ -5423,7 +5422,7 @@ struct is_range {
     typedef std::remove_cv<T1> rcv_T1;
     typedef std::remove_cv<T2> rcv_T2;
     static const bool value = is_iterator<rcv_T1>::value && is_iterator<rcv_T2>::value
-                              && std::is_convertible<rcv_T1, rcv_T2>::value;
+        && std::is_convertible<rcv_T1, rcv_T2>::value;
 };
 
 template<typename T1, typename T2>
@@ -5434,19 +5433,24 @@ struct is_range<T1 *, T2 *> {
 };
 
 template<typename T1, typename T2, std::size_t N>
-struct is_range<T1 [N], T2 *> {
+struct is_range<T1[N], T2 *> {
     typedef std::remove_cv<T1> rcv_T1;
     typedef std::remove_cv<T2> rcv_T2;
     static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
 };
 
-template<typename T1, typename T2, typename... Args>
-typename __testlib_enable_if<!is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args);
+template<typename... Args>
+struct is_not_empty_pack {
+	static const bool value = sizeof...(Args) > 0;
+};
 
 template<typename T1, typename T2, typename... Args>
-typename __testlib_enable_if<is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
+typename __testlib_enable_if<!is_range<T1, T2>::value && is_not_empty_pack<Args...>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args);
+
+template<typename T1, typename T2, typename... Args>
+typename __testlib_enable_if<is_range<T1, T2>::value &&is_not_empty_pack<Args...>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
     T2 i = T2(x);
-    while (i != y) {
+    while(i != y) {
         __testlib_print_one(*i);
         std::cout << " ";
         i++;
@@ -5455,7 +5459,7 @@ typename __testlib_enable_if<is_range<T1, T2>::value, void>::type println(const 
 }
 
 template<typename T1, typename T2, typename... Args>
-typename __testlib_enable_if<!is_range<T1, T2>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
+typename __testlib_enable_if<!is_range<T1, T2>::value && is_not_empty_pack<Args...>::value, void>::type println(const T1 &x, const T2 &y, Args&&... args) {
     __testlib_print_one(x);
     std::cout << " ";
     println(y, args...);
