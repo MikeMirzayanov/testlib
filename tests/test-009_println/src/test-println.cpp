@@ -28,9 +28,11 @@ int main(int argc, char** argv) {
     vector<int> vec = {10, 20, 30, 50, 60};
     println(vec);
 
-    // print two arrays at the same time
-    println(a, arr);
+    // print some arrays at the same time
+    println(a, arr, vec);
     println(a, a);
+    println(arr, arr);
+    println(vec, vec);
 
     // mix with chars
     println("a:", a);
@@ -53,6 +55,6 @@ int main(int argc, char** argv) {
     println(cfKing, "form the team CF King");
     println(cfKing[1]);
 
-    return 0;
-
+    // print super-long message
+    println("This", "is", "a", "super", "long", "message", "that", "will", "make", "previous", "println", "compile", "error", "but", "now", "it", "will", "be", "safe");
 }

@@ -5381,6 +5381,33 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
+template<typename T1, typename T2>
+struct is_range {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = is_iterator<rcv_T1>::value && is_iterator<rcv_T2>::value
+                              && std::is_convertible<rcv_T1, rcv_T2>::value;
+};
+
+template<typename T1, typename T2>
+struct is_range<T1 *, T2 *> {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
+};
+
+template<typename T1, typename T2, std::size_t N>
+struct is_range<T1[N], T2 *> {
+    typedef std::remove_cv<T1> rcv_T1;
+    typedef std::remove_cv<T2> rcv_T2;
+    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
+};
+
+template<typename T1, typename T2, std::size_t N1, std::size_t N2>
+struct is_range<T1[N1], T2[N2]> {
+    static const bool value = false;
+};
+
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
@@ -5412,33 +5439,6 @@ void println(const T &x) {
     __testlib_print_one(x);
     std::cout << std::endl;
 }
-
-template<typename T1, typename T2>
-struct is_range {
-    typedef std::remove_cv<T1> rcv_T1;
-    typedef std::remove_cv<T2> rcv_T2;
-    static const bool value = is_iterator<rcv_T1>::value && is_iterator<rcv_T2>::value
-                              && std::is_convertible<rcv_T1, rcv_T2>::value;
-};
-
-template<typename T1, typename T2>
-struct is_range<T1 *, T2 *> {
-    typedef std::remove_cv<T1> rcv_T1;
-    typedef std::remove_cv<T2> rcv_T2;
-    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
-};
-
-template<typename T1, typename T2, std::size_t N>
-struct is_range<T1[N], T2 *> {
-    typedef std::remove_cv<T1> rcv_T1;
-    typedef std::remove_cv<T2> rcv_T2;
-    static const bool value = std::is_same<rcv_T1, rcv_T2>::value && !std::is_same<rcv_T1, char>::value;
-};
-
-template<typename T1, typename T2, std::size_t N1, std::size_t N2>
-struct is_range<T1[N1], T2[N2]> {
-    static const bool value = false;
-};
 
 template<typename... Args>
 struct is_not_empty_pack {
