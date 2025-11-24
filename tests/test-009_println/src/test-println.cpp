@@ -1,5 +1,6 @@
 #include "testlib.h"
-#include <bits/stdc++.h>
+#include <vector>
+#include <array>
 using namespace std;
 
 int main(int argc, char** argv) {
@@ -53,4 +54,5 @@ int main(int argc, char** argv) {
     println(cfKing[1]);
 
     return 0;
+
 }
