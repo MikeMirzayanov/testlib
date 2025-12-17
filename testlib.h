@@ -3058,7 +3058,7 @@ NORETURN void InStream::quit(TResult result, const char *msg) {
     message = trim(message);
 
     if (__testlib_hasTestCase) {
-        if (result != _ok)
+        if (result != _ok && result != _points)
             message = __testlib_appendMessage(message, "test case " + vtos(__testlib_testCase));
         else {
             if (__testlib_testCase == 1)
