@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2024
+ * Copyright (c) 2005-2025
  */
 
-#define VERSION "0.9.44"
+#define VERSION "0.9.45"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
         "rnd.any/wany use distance/advance instead of -/+: now they support sets/multisets",
