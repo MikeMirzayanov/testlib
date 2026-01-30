@@ -2861,6 +2861,7 @@ InStream::InStream(const InStream &baseStream, std::string content) {
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
+    maxBlankCount = 32 * 1024 * 1024; // 32MB.
     maxMessageLength = 32000;
 }
 
