@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2025
  */
 
-#define VERSION "0.9.45"
+#define VERSION "0.9.45-SNAPSHOT"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Added maxBlankCount to InStream to avoid infinite loops in skipBlanks()",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -2026,7 +2027,7 @@ struct InStream {
     int readManyIteration;
     size_t maxFileSize;
     size_t maxTokenLength;
-    size_t maxBlanksCount;
+    size_t maxBlankCount;
     size_t maxMessageLength;
 
     void init(std::string fileName, TMode mode);
@@ -2845,7 +2846,7 @@ InStream::InStream() {
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
-    maxBlanksCount = 32 * 1024 * 1024; // 32MB.
+    maxBlankCount = 32 * 1024 * 1024; // 32MB.
     maxMessageLength = 32000;
 }
 
@@ -3376,13 +3377,13 @@ void InStream::skipChar() {
 }
 
 void InStream::skipBlanks() {
-    size_t blanksCount = 0;
+    size_t blankCount = 0;
     while (isBlanks(reader->curChar()))
     {
-        blanksCount++;
-        // You can change maxBlanksCount.
-        // Example: 'inf.maxBlanksCount = 128 * 1024 * 1024;'.
-        if (blanksCount > maxBlanksCount)
+        blankCount++;
+        // You can change maxBlankCount.
+        // Example: 'inf.maxBlankCount = 32 * 1024 * 1024;'.
+        if (blankCount > maxBlankCount)
             quit(_pe, "Too many white-space characters skipped");
         reader->skipChar();
     }
