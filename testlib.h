@@ -2026,6 +2026,7 @@ struct InStream {
     int readManyIteration;
     size_t maxFileSize;
     size_t maxTokenLength;
+    size_t maxBlanksCount;
     size_t maxMessageLength;
 
     void init(std::string fileName, TMode mode);
@@ -2844,6 +2845,7 @@ InStream::InStream() {
     readManyIteration = NO_INDEX;
     maxFileSize = 128 * 1024 * 1024; // 128MB.
     maxTokenLength = 32 * 1024 * 1024; // 32MB.
+    maxBlanksCount = 32 * 1024 * 1024; // 32MB.
     maxMessageLength = 32000;
 }
 
@@ -3374,8 +3376,16 @@ void InStream::skipChar() {
 }
 
 void InStream::skipBlanks() {
+    size_t blanksCount = 0;
     while (isBlanks(reader->curChar()))
+    {
+        blanksCount++;
+        // You can change maxBlanksCount.
+        // Example: 'inf.maxBlanksCount = 128 * 1024 * 1024;'.
+        if (blanksCount > maxBlanksCount)
+            quit(_pe, "Too many white-space characters skipped");
         reader->skipChar();
+    }
 }
 
 std::string InStream::readWord() {
