@@ -3385,7 +3385,7 @@ void InStream::skipBlanks() {
         // You can change maxBlankCount.
         // Example: 'inf.maxBlankCount = 32 * 1024 * 1024;'.
         if (blankCount > maxBlankCount)
-            quit(_pe, "Too many white-space characters skipped");
+            quitf(_pe, "Number of redundant consecutive white-space characters exceeds the limit (%d)", int(maxBlankCount));
         reader->skipChar();
     }
 }
