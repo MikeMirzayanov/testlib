@@ -180,7 +180,7 @@ jobs:
       matrix:
         os: [macos-14]
         compiler: [g++]
-        version: [12, 13, 14]
+        version: [13, 14]
     name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
