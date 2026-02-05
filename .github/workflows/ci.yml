@@ -53,7 +53,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         compiler: [g++]
-        version: [9, 10, 11, 12]
+        version: [10, 11, 12]
     name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
