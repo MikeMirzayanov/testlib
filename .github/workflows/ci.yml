@@ -146,41 +146,12 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
-  tests-macos13-gpp:
-    strategy:
-      matrix:
-        os: [macos-13]
-        compiler: [g++]
-        version: [12, 13, 14]
-    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
-
-  tests-macos13-clang:
-    strategy:
-      matrix:
-        os: [macos-13]
-        compiler: [clang++]
-    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }}
-
   tests-macos14-gpp:
     strategy:
       matrix:
         os: [macos-14]
         compiler: [g++]
-        version: [13, 14]
+        version: [13, 14, 15]
     name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -194,6 +165,35 @@ jobs:
     strategy:
       matrix:
         os: [macos-14]
+        compiler: [clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
+
+  tests-macos26arm64-gpp:
+    strategy:
+      matrix:
+        os: [macos-26-arm64]
+        compiler: [g++]
+        version: [13, 14, 15]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-macos26arm64-clang:
+    strategy:
+      matrix:
+        os: [macos-26-arm64]
         compiler: [clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
