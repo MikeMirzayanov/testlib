@@ -176,10 +176,10 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
-  tests-macos15arm64-gpp:
+  tests-macos15-gpp:
     strategy:
       matrix:
-        os: [macos-15-arm64]
+        os: [macos-15]
         compiler: [g++]
         version: [13, 14, 15]
     name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
@@ -191,10 +191,39 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
-  tests-macos15arm64-clang:
+  tests-macos15-clang:
     strategy:
       matrix:
-        os: [macos-15-arm64]
+        os: [macos-15]
+        compiler: [clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
+
+  tests-macos26-gpp:
+    strategy:
+      matrix:
+        os: [macos-26]
+        compiler: [g++]
+        version: [13, 14, 15]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
+  tests-macos26-clang:
+    strategy:
+      matrix:
+        os: [macos-26]
         compiler: [clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
