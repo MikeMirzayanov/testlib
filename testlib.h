@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2025
+ * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.45"
+#define VERSION "0.9.46"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Dirty fixes to use testlib println/format",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -162,6 +163,14 @@ const char *latestFeatures[] = {
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NO_VA_START_VALIDATION
+#endif
+
+#if __has_include(<format>)
+    #include <format>
+#endif
+
+#if __has_include(<print>)
+    #include <print>
 #endif
 
 /* Overrides random() for Borland C++. */
@@ -5321,6 +5330,14 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
+#if defined(__cpp_lib_print) || (defined(__cplusplus) && __cplusplus >= 202302L)
+    #define TESTLIB_NEEDS_PRINTLN_FIX
+#endif
+
+#ifdef TESTLIB_NEEDS_PRINTLN_FIX
+    #define println __testlib_println_impl
+#endif
+
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
@@ -5344,6 +5361,10 @@ void println<char>(const char *a, const char *b) {
     __testlib_print_one(a);
     std::cout << " ";
     __testlib_print_one(b);
+    std::cout << std::endl;
+}
+
+void println() {
     std::cout << std::endl;
 }
 
@@ -5422,6 +5443,11 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
     __testlib_print_one(g);
     std::cout << std::endl;
 }
+
+#ifdef TESTLIB_NEEDS_PRINTLN_FIX
+    #undef println 
+    #define println(...) __testlib_println_impl(__VA_ARGS__)
+#endif
 
 /* opts */
 
@@ -6218,7 +6244,12 @@ std::string testlib_format_(const std::string fmt, ...) {
     return result;
 }
 
-#if (__cplusplus >= 202002L && __has_include(<format>)) || __cpp_lib_format
+#if defined(__cpp_lib_format) || (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+    #define TESTLIB_NEEDS_FORMAT_FIX
+#endif
+
+#ifdef TESTLIB_NEEDS_PRINTLN_FIX
+#define format __testlib_format_impl
 template <typename... Args>
 std::string format(const char* fmt, Args&&... args) {
     size_t size = size_t(std::snprintf(nullptr, 0, fmt, args...) + 1);
@@ -6247,6 +6278,10 @@ std::string format(const std::string fmt, ...) {
     FMT_TO_RESULT(fmt, fmt.c_str(), result);
     return result;
 }
+#endif
+#ifdef TESTLIB_NEEDS_FORMAT_FIX
+    #undef format 
+    #define format(...) __testlib_format_impl(__VA_ARGS__)
 #endif
 
 #endif
