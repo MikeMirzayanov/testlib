@@ -6248,7 +6248,7 @@ std::string testlib_format_(const std::string fmt, ...) {
     #define TESTLIB_NEEDS_FORMAT_FIX
 #endif
 
-#ifdef TESTLIB_NEEDS_PRINTLN_FIX
+#ifdef TESTLIB_NEEDS_FORMAT_FIX
 #define format __testlib_format_impl
 template <typename... Args>
 std::string format(const char* fmt, Args&&... args) {

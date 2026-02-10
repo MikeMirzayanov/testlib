@@ -261,3 +261,17 @@ jobs:
         run: |
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
+
+  tests-windows-2025-vs2026:
+    strategy:
+      matrix:
+        os: [windows-2025-vs2026]
+        compiler: [msvc, g++, clang++]
+    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }}
