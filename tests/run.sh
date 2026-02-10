@@ -158,7 +158,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
 
   for vs_release in "${VS_RELEASES[@]}"; do
     for program_files in "${PROGRAM_FILES[@]}"; do
-      for ((version = 2000; version <= 2100; version++)); do
+      for ((version = 1; version <= 2100; version++)); do
         vs_dir="$program_files\\Microsoft Visual Studio\\$version\\$vs_release\\VC\\Auxiliary\\Build"
         if [[ -d $vs_dir ]]; then
           for bits in 32 64; do
