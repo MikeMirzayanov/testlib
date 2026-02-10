@@ -15,14 +15,11 @@ export GREEN='\033[1;32m'
 export NC='\033[0m'
 
 ARGS_CPP=""
-ARGS_VALID_CPP_STANDARDS=",11,14,17,20,23,"
+ARGS_VALID_CPP_STANDARDS=",11,14,17,20,23,26,"
 ARGS_CPP_STANDARDS=","
 ARGS_CPP_VERSIONS=","
 ARGS_TESTS=","
 ARGS_CPP_BITS=""
-
-MSVC_INCLUDE_YEAR="2022"
-WINKIT_INCLUDE_VERSION="10.0.19041.0"
 
 for arg in "$@"; do
   if [[ "$arg" == test-* ]]; then
@@ -90,7 +87,7 @@ printf '    %s\n' "${COMPILERS[@]}"
 
 CPP_STANDARDS=()
 MSVC_CPP_STANDARDS=()
-for v in 11 14 17 20 23; do
+for v in 11 14 17 20 23 26; do
   if [[ "$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,$v,* ]]; then
     CPP_STANDARDS+=("--std=c++$v")
     MSVC_CPP_STANDARDS+=("-std:c++$v")
@@ -110,13 +107,6 @@ MSYS*) machine=Windows ;;
 *) echo "Unknown system '${uname_output}'" && exit 1 ;;
 esac
 export MACHINE="$machine"
-
-#if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "clang++") ]]; then
-#  for f in msvc-${MSVC_INCLUDE_YEAR}-include windows-kit-${WINKIT_INCLUDE_VERSION}-include; do
-#    rm -rf "${TESTS_DIR:?}"/lib/$f && mkdir -p "$TESTS_DIR"/lib/$f
-#    7z x -o"${TESTS_DIR:?}"/lib/$f "$TESTS_DIR"/lib/$f.7z
-#  done
-#fi
 
 run_tests() {
   export INVOCATION_ID=$RANDOM
@@ -258,12 +248,6 @@ for compiler in "${COMPILERS[@]}"; do
     fi
   done
 done
-
-#if [[ "$machine" == "Windows" ]]; then
-#  for f in msvc-${MSVC_INCLUDE_YEAR}-include windows-kit-${WINKIT_INCLUDE_VERSION}-include; do
-#    rm -rf "${TESTS_DIR:?}"/lib/$f
-#  done
-#fi
 
 if [[ -z "$done" ]]; then
   echo -e "${RED}[ERROR]${NC} No compilers found\n"

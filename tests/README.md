@@ -19,7 +19,7 @@ Use `tests\run.sh`. Also you can use `t.sh` (or `t.bat`) to run shortcut of `run
 ### Parameters (use can use all combinations):
 
 * `g++`, `clang++`, `msvc` - to specify compiler(s)
-* `11`, `14`, `17`, `20`, `23` - to specify standard(s)
+* `11`, `14`, `17`, `20`, `23`, `26` - to specify standard(s)
 * `vxx` (example `v10`) - to try `-10` suffix to run compilers, like `g++-10`, use `v0` to run without any suffixes
 * `test-` - to specify test(s)
 
