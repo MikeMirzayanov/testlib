@@ -1,5 +1,9 @@
 name: Image Investigation
-on: workflow_dispatch # Запуск вручную
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'fix-println-format'
 
 jobs:
   investigate:
