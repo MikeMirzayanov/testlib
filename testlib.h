@@ -4913,7 +4913,7 @@ void registerTestlib(int argc, ...) {
 
     va_list ap;
     va_start(ap, argc);
-    argv[0] = NULL;
+    argv[0] = (char*) "checker.exe";
     for (int i = 0; i < argc; i++) {
         argv[i + 1] = va_arg(ap, char*);
     }
