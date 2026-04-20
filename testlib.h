@@ -2028,9 +2028,9 @@ struct InStream {
     size_t maxTokenLength;
     size_t maxMessageLength;
 
-    void init(std::string fileName, TMode streamMode);
+    void init(std::string fileName, TMode contentMode);
 
-    void init(std::FILE *f, TMode streamMode);
+    void init(std::FILE *f, TMode contentMode);
 
     void setTestCase(int testCase);
     std::vector<int> getReadChars();
