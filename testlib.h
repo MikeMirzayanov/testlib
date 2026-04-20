@@ -730,7 +730,7 @@ public:
 private:
     bool matches(const std::string &s, size_t pos) const;
 
-    std::string s;
+    std::string source;
     std::vector<pattern> children;
     std::vector<char> chars;
     int from;
@@ -1345,7 +1345,7 @@ static int __pattern_greedyMatch(const std::string &s, size_t pos, const std::ve
 }
 
 std::string pattern::src() const {
-    return s;
+    return source;
 }
 
 bool pattern::matches(const std::string &s, size_t pos) const {
@@ -1528,7 +1528,7 @@ static std::vector<char> __pattern_scanCharSet(const std::string &s, size_t &pos
     return result;
 }
 
-pattern::pattern(std::string s) : s(s), from(0), to(0) {
+pattern::pattern(std::string s) : source(s), from(0), to(0) {
     std::string t;
     for (size_t i = 0; i < s.length(); i++)
         if (!__pattern_isCommandChar(s, i, ' '))
@@ -1774,7 +1774,7 @@ private:
             return EOFC;
     }
 
-    int getc(FILE *file) {
+    int getc() {
         int c;
         int rc;
 
@@ -1806,7 +1806,7 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
+    FileInputStreamReader(std::FILE *file, const std::string &streamName) : file(file), name(streamName), line(1) {
         // No operations.
     }
 
@@ -1824,7 +1824,7 @@ public:
         if (feof(file))
             return EOFC;
         else {
-            int c = getc(file);
+            int c = getc();
             ungetc(c/*, file*/);
             return postprocessGetc(c);
         }
@@ -1834,11 +1834,11 @@ public:
         if (feof(file))
             return EOFC;
         else
-            return postprocessGetc(getc(file));
+            return postprocessGetc(getc());
     }
 
     void skipChar() {
-        getc(file);
+        getc();
     }
 
     void unreadChar(int c) {
@@ -1920,7 +1920,7 @@ private:
     }
 
 public:
-    BufferedFileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
+    BufferedFileInputStreamReader(std::FILE *file, const std::string &streamName) : file(file), name(streamName), line(1) {
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
         bufferSize = MAX_UNREAD_COUNT;
@@ -2028,9 +2028,9 @@ struct InStream {
     size_t maxTokenLength;
     size_t maxMessageLength;
 
-    void init(std::string fileName, TMode mode);
+    void init(std::string fileName, TMode contentMode);
 
-    void init(std::FILE *f, TMode mode);
+    void init(std::FILE *f, TMode contentMode);
 
     void setTestCase(int testCase);
     std::vector<int> getReadChars();
@@ -3281,11 +3281,11 @@ void InStream::reset(std::FILE *file) {
     }
 }
 
-void InStream::init(std::string fileName, TMode mode) {
+void InStream::init(std::string fileName, TMode contentMode) {
     opened = false;
     name = fileName;
     stdfile = false;
-    this->mode = mode;
+    this->mode = contentMode;
 
     std::ifstream stream;
     stream.open(fileName.c_str(), std::ios::in);
@@ -3305,10 +3305,10 @@ void InStream::init(std::string fileName, TMode mode) {
     reset();
 }
 
-void InStream::init(std::FILE *f, TMode mode) {
+void InStream::init(std::FILE *f, TMode contentMode) {
     opened = false;
     name = "untitled";
-    this->mode = mode;
+    this->mode = contentMode;
 
     if (f == stdin)
         name = "stdin", stdfile = true;
@@ -4642,7 +4642,7 @@ void registerGen(int argc, char *argv[]) {
 }
 #endif
 
-void setAppesModeEncoding(std::string appesModeEncoding) {
+void setAppesModeEncoding(std::string newAppesModeEncoding) {
     static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
 "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
 "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
@@ -4654,16 +4654,16 @@ void setAppesModeEncoding(std::string appesModeEncoding) {
 "cp1006", "cp775", "cp858", "cp737", "cp853", "cp856", "cp922", "cp1046", "cp1125", "cp1131", 
 "ptcp154", "koi8-t", "koi8-ru", "mulelao-1", "cp1133", "iso-ir-166", "tcvn", "iso-ir-14", "iso-ir-87", "iso-ir-159"};
     
-    appesModeEncoding = lowerCase(appesModeEncoding);
+    newAppesModeEncoding = lowerCase(newAppesModeEncoding);
     bool valid = false;
     for (size_t i = 0; i < sizeof(ENCODINGS) / sizeof(ENCODINGS[0]); i++)
-        if (appesModeEncoding == ENCODINGS[i]) {
+        if (newAppesModeEncoding == ENCODINGS[i]) {
             valid = true;
             break;
         }
     if (!valid)
         quit(_fail, "Unexpected encoding for setAppesModeEncoding(encoding)");
-    ::appesModeEncoding = appesModeEncoding;
+    ::appesModeEncoding = newAppesModeEncoding;
 }
 
 void registerInteraction(int argc, char *argv[]) {
