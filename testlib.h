@@ -63,7 +63,8 @@
  */
 
 const char *latestFeatures[] = {
-        "Dirty fixes to use testlib println/format",
+        "Reserve println()/format() for testlib instead of std::println/std::format",
+        "Detect std::format-style placeholders in testlib println()/format(); use suppressStdFormatSyntaxCheck() for intentional braces",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
