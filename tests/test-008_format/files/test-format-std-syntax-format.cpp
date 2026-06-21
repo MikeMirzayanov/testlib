@@ -10,10 +10,10 @@ int main(int argc, char** argv) {
     string mode = argc > 1 ? argv[1] : "";
 
     if (mode == "braces") {
-        println(format("answer {}", 42));
+        println(format("answer %d {}", 42));
     } else if (mode == "suppress") {
         suppressStdFormatSyntaxCheck();
-        println(format("answer {}", 42));
+        println(format("answer %d {}", 42));
     } else {
         ensure(false);
     }
