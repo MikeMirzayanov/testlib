@@ -165,12 +165,24 @@ const char *latestFeatures[] = {
 #define _CRT_NO_VA_START_VALIDATION
 #endif
 
-#if __has_include(<format>)
-    #include <format>
+#if (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+    #define TESTLIB_HAS_CPLUSPLUS20_OR_LATER
 #endif
 
-#if __has_include(<print>)
-    #include <print>
+#if (defined(__cplusplus) && __cplusplus > 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)
+    #define TESTLIB_HAS_CPLUSPLUS23_OR_LATER
+#endif
+
+#if defined(TESTLIB_HAS_CPLUSPLUS20_OR_LATER) && defined(__has_include)
+    #if __has_include(<format>)
+        #include <format>
+    #endif
+#endif
+
+#if defined(TESTLIB_HAS_CPLUSPLUS23_OR_LATER) && defined(__has_include)
+    #if __has_include(<print>)
+        #include <print>
+    #endif
 #endif
 
 /* Overrides random() for Borland C++. */
@@ -5402,7 +5414,7 @@ void __testlib_print_line_rest(const T &value, const Args&... args) {
 }
 #endif
 
-#if defined(__cpp_lib_print) || (defined(__cplusplus) && __cplusplus >= 202302L)
+#if defined(__cpp_lib_print) || defined(TESTLIB_HAS_CPLUSPLUS23_OR_LATER)
     #define TESTLIB_NEEDS_PRINTLN_FIX
 #endif
 
@@ -6331,7 +6343,7 @@ std::string testlib_format_(const std::string fmt, ...) {
     return result;
 }
 
-#if defined(__cpp_lib_format) || (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+#if defined(__cpp_lib_format) || defined(TESTLIB_HAS_CPLUSPLUS20_OR_LATER)
     #define TESTLIB_NEEDS_FORMAT_FIX
 #endif
 
