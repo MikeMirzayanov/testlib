@@ -15,3 +15,21 @@ bash ../scripts/compile files/test-format-format2.cpp
 bash ../scripts/test-ref test-format-format2/r1 ./test-format-format2
 bash ../scripts/test-ref test-format-format2/r2 "$VALGRIND" ./test-format-format2
 rm -f test-format-format2 test-format-format2.exe
+
+bash ../scripts/compile files/test-format-std-syntax-println.cpp
+bash ../scripts/test-ref std-format-syntax-println/braces "$VALGRIND" ./test-format-std-syntax-println braces
+bash ../scripts/test-ref std-format-syntax-println/indexed "$VALGRIND" ./test-format-std-syntax-println indexed
+bash ../scripts/test-ref std-format-syntax-println/spec "$VALGRIND" ./test-format-std-syntax-println spec
+bash ../scripts/test-ref std-format-syntax-println/escaped "$VALGRIND" ./test-format-std-syntax-println escaped
+bash ../scripts/test-ref std-format-syntax-println/no-args "$VALGRIND" ./test-format-std-syntax-println no-args
+bash ../scripts/test-ref std-format-syntax-println/suppress "$VALGRIND" ./test-format-std-syntax-println suppress
+rm -f test-format-std-syntax-println test-format-std-syntax-println.exe
+
+case "$CPP_STANDARD" in
+  *c++20*|*c++23*|*c++26*)
+    bash ../scripts/compile files/test-format-std-syntax-format.cpp
+    bash ../scripts/test-ref std-format-syntax-format/braces "$VALGRIND" ./test-format-std-syntax-format braces
+    bash ../scripts/test-ref std-format-syntax-format/suppress "$VALGRIND" ./test-format-std-syntax-format suppress
+    rm -f test-format-std-syntax-format test-format-std-syntax-format.exe
+    ;;
+esac
