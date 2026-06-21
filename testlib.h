@@ -5330,12 +5330,84 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
+static bool __testlib_checkStdFormatSyntaxFlag = true;
+
+void suppressStdFormatSyntaxCheck() {
+    __testlib_checkStdFormatSyntaxFlag = false;
+}
+
+static bool __testlib_isStdFormatArgIdChar(char c) {
+    return '0' <= c && c <= '9';
+}
+
+static bool __testlib_hasStdFormatPlaceholder(const char *s) {
+    if (s == NULL)
+        return false;
+
+    for (size_t i = 0; s[i] != 0; i++) {
+        if (s[i] != '{')
+            continue;
+
+        if (s[i + 1] == '{') {
+            i++;
+            continue;
+        }
+
+        if (s[i + 1] == '}')
+            return true;
+
+        if (s[i + 1] == ':')
+            return true;
+
+        size_t j = i + 1;
+        while (__testlib_isStdFormatArgIdChar(s[j]))
+            j++;
+
+        if (j != i + 1 && (s[j] == '}' || s[j] == ':'))
+            return true;
+    }
+
+    return false;
+}
+
+static void __testlib_checkStdFormatSyntax(const char *functionName, const char *firstArgument) {
+    if (!__testlib_checkStdFormatSyntaxFlag || !__testlib_hasStdFormatPlaceholder(firstArgument))
+        return;
+
+    __testlib_fail(std::string("It looks like you passed a std::format/std::println-style format string '") +
+                   compress(firstArgument) + "' to testlib " + functionName + "(). This is not std::format/std::println. "
+                   "testlib format() uses printf-style placeholders like '%d', '%s', '%.10f'. "
+                   "testlib println() prints arguments separated by spaces. "
+                   "If this string is intentional, call suppressStdFormatSyntaxCheck().");
+}
+
+#if __cplusplus >= 201103L || defined(_MSC_VER)
+inline void __testlib_checkStdFormatSyntaxIfHasArgs(const char *, const char *) {
+}
+
+template<typename T, typename... Args>
+void __testlib_checkStdFormatSyntaxIfHasArgs(const char *functionName, const char *firstArgument, const T &, const Args&...) {
+    __testlib_checkStdFormatSyntax(functionName, firstArgument);
+}
+
+inline void __testlib_print_line_rest() {
+    std::cout << std::endl;
+}
+
+template<typename T, typename... Args>
+void __testlib_print_line_rest(const T &value, const Args&... args) {
+    std::cout << " ";
+    __testlib_print_one(value);
+    __testlib_print_line_rest(args...);
+}
+#endif
+
 #if defined(__cpp_lib_print) || (defined(__cplusplus) && __cplusplus >= 202302L)
     #define TESTLIB_NEEDS_PRINTLN_FIX
 #endif
 
 #ifdef TESTLIB_NEEDS_PRINTLN_FIX
-    #define println __testlib_println_impl
+    #define println __testlib_println_use_without_std
 #endif
 
 template<typename A, typename B>
@@ -5345,6 +5417,21 @@ typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A
     __testlib_print_one(b);
     std::cout << std::endl;
 }
+
+#if __cplusplus >= 201103L || defined(_MSC_VER)
+template<size_t N, typename B, typename... Args>
+typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(char (&a)[N], const B &b, const Args&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, args...);
+}
+
+template<size_t N, typename B, typename... Args>
+typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const char (&a)[N], const B &b, const Args&... args) {
+    __testlib_checkStdFormatSyntax("println", a);
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, args...);
+}
+#endif
 
 template<typename A, typename B>
 typename __testlib_enable_if<is_iterator<B>::value, void>::type println(const A &a, const B &b) {
@@ -5446,7 +5533,7 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
 
 #ifdef TESTLIB_NEEDS_PRINTLN_FIX
     #undef println 
-    #define println(...) __testlib_println_impl(__VA_ARGS__)
+    #define println(...) __testlib_println_use_without_std(__VA_ARGS__)
 #endif
 
 /* opts */
@@ -6280,8 +6367,25 @@ std::string format(const std::string fmt, ...) {
 }
 #endif
 #ifdef TESTLIB_NEEDS_FORMAT_FIX
-    #undef format 
-    #define format(...) __testlib_format_impl(__VA_ARGS__)
+    #undef format
+template <size_t N, typename... Args>
+std::string __testlib_format_use_without_std(char (&fmt)[N], Args&&... args) {
+    return __testlib_format_impl(static_cast<const char *>(fmt), args...);
+}
+
+template <size_t N, typename... Args>
+std::string __testlib_format_use_without_std(const char (&fmt)[N], Args&&... args) {
+    __testlib_checkStdFormatSyntaxIfHasArgs("format", fmt, args...);
+    return __testlib_format_impl(static_cast<const char *>(fmt), args...);
+}
+
+template <typename T, typename... Args>
+typename __testlib_enable_if<!std::is_array<T>::value, std::string>::type
+__testlib_format_use_without_std(const T &fmt, Args&&... args) {
+    return __testlib_format_impl(fmt, args...);
+}
+
+    #define format(...) __testlib_format_use_without_std(__VA_ARGS__)
 #endif
 
 #endif
