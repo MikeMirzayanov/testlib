@@ -25,11 +25,9 @@ bash ../scripts/test-ref std-format-syntax-println/no-args "$VALGRIND" ./test-fo
 bash ../scripts/test-ref std-format-syntax-println/suppress "$VALGRIND" ./test-format-std-syntax-println suppress
 rm -f test-format-std-syntax-println test-format-std-syntax-println.exe
 
-case "$CPP_STANDARD" in
-  *c++20*|*c++23*|*c++26*)
-    bash ../scripts/compile files/test-format-std-syntax-format.cpp
-    bash ../scripts/test-ref std-format-syntax-format/braces "$VALGRIND" ./test-format-std-syntax-format braces
-    bash ../scripts/test-ref std-format-syntax-format/suppress "$VALGRIND" ./test-format-std-syntax-format suppress
-    rm -f test-format-std-syntax-format test-format-std-syntax-format.exe
-    ;;
-esac
+if bash ../scripts/compile files/test-format-has-format-fix.cpp --check-only >/dev/null 2>&1; then
+  bash ../scripts/compile files/test-format-std-syntax-format.cpp
+  bash ../scripts/test-ref std-format-syntax-format/braces "$VALGRIND" ./test-format-std-syntax-format braces
+  bash ../scripts/test-ref std-format-syntax-format/suppress "$VALGRIND" ./test-format-std-syntax-format suppress
+  rm -f test-format-std-syntax-format test-format-std-syntax-format.exe
+fi
