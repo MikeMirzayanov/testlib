@@ -51,3 +51,36 @@ int main(int argc, char *argv[]) {
     else
         quitf(_ok, "%d numbers", n);
 }
+
+we can remove 
+//  int extraInAnsCount = 0;
+
+//     while (!ans.seekEof()) {
+//         ans.readLong();
+//         extraInAnsCount++;
+//     }
+
+//     int extraInOufCount = 0;
+
+//     while (!ouf.seekEof()) {
+//         ouf.readLong();
+//         extraInOufCount++;
+//     }
+
+// if (extraInAnsCount > 0)
+//         quitf(_wa, "Answer contains longer sequence [length = %d], but output contains %d elements",
+//               n + extraInAnsCount, n);
+
+//     if (extraInOufCount > 0)
+//         quitf(_wa, "Output contains longer sequence [length = %d], but answer contains %d elements",
+//               n + extraInOufCount, n);
+
+and directly print 
+
+// if (!ans.seekEof())
+//     quitf(_wa, "Answer contains longer sequence, but output contains %d elements", n);
+
+// if (!ouf.seekEof())
+//     quitf(_wa, "Output contains longer sequence, but answer contains %d elements", n);
+
+science the participant not need to know what the total length we usally so that your length is smaller/bigger it optimized the code aand speed
