@@ -212,6 +212,10 @@ const char *latestFeatures[] = {
 #include <functional>
 #include <cstdint>
 
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#include <type_traits>
+#endif
+
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
 #   include <exception>
 #endif
@@ -5394,7 +5398,7 @@ static void __testlib_checkStdFormatSyntax(const char *functionName, const char 
                    "If this string is intentional, call suppressStdFormatSyntaxCheck().");
 }
 
-#if __cplusplus >= 201103L || defined(_MSC_VER)
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
 inline void __testlib_checkStdFormatSyntaxIfHasArgs(const char *, const char *) {
 }
 
@@ -5415,34 +5419,22 @@ void __testlib_print_line_rest(const T &value, const Args&... args) {
 }
 #endif
 
-#if defined(__cpp_lib_print) || defined(TESTLIB_HAS_CPLUSPLUS23_OR_LATER)
-    #define TESTLIB_NEEDS_PRINTLN_FIX
-#endif
-
-#ifdef TESTLIB_NEEDS_PRINTLN_FIX
-    #define println __testlib_println_use_without_std
-#endif
-
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+template<typename A, typename B, typename... Args>
+typename __testlib_enable_if<
+        !is_iterator<typename std::remove_reference<B>::type>::value || sizeof...(Args) != 0,
+        void>::type
+println(const A &a, B &&b, Args&&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, args...);
+}
+#else
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
     std::cout << " ";
     __testlib_print_one(b);
     std::cout << std::endl;
-}
-
-#if __cplusplus >= 201103L || defined(_MSC_VER)
-template<size_t N, typename B, typename... Args>
-typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(char (&a)[N], const B &b, const Args&... args) {
-    __testlib_print_one(a);
-    __testlib_print_line_rest(b, args...);
-}
-
-template<size_t N, typename B, typename... Args>
-typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const char (&a)[N], const B &b, const Args&... args) {
-    __testlib_checkStdFormatSyntax("println", a);
-    __testlib_print_one(a);
-    __testlib_print_line_rest(b, args...);
 }
 #endif
 
@@ -5464,16 +5456,13 @@ void println<char>(const char *a, const char *b) {
     std::cout << std::endl;
 }
 
-void println() {
-    std::cout << std::endl;
-}
-
 template<typename T>
 void println(const T &x) {
     __testlib_print_one(x);
     std::cout << std::endl;
 }
 
+#if __cplusplus < 201103L && (!defined(_MSC_VER) || _MSC_VER < 1800)
 template<typename A, typename B, typename C>
 void println(const A &a, const B &b, const C &c) {
     __testlib_print_one(a);
@@ -5543,10 +5532,6 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
     __testlib_print_one(g);
     std::cout << std::endl;
 }
-
-#ifdef TESTLIB_NEEDS_PRINTLN_FIX
-    #undef println 
-    #define println(...) __testlib_println_use_without_std(__VA_ARGS__)
 #endif
 
 /* opts */
