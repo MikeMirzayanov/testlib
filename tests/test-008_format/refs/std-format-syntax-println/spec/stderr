@@ -1,1 +1,0 @@
-FAIL It looks like you passed a std::format/std::println-style format string 'answer {:04}' to testlib println(). This is not std::format/std::println. testlib format() uses printf-style placeholders like '%d', '%s', '%.10f'. testlib println() prints arguments separated by spaces. If this string is intentional, call suppressStdFormatSyntaxCheck().

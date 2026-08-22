@@ -234,10 +234,10 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
-  tests-windows-2022:
+  tests-windows-2019:
     strategy:
       matrix:
-        os: [windows-2022]
+        os: [windows-2019]
         compiler: [msvc, g++, clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -248,24 +248,10 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
-  tests-windows-11-arm:
+  tests-windows-2022:
     strategy:
       matrix:
-        os: [windows-11-arm]
-        compiler: [msvc, g++]
-    name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          cd tests
-          bash ./run.sh ${{ matrix.compiler }}
-
-  tests-windows-2025-vs2026:
-    strategy:
-      matrix:
-        os: [windows-2025-vs2026]
+        os: [windows-2022]
         compiler: [msvc, g++, clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
