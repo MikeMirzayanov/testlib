@@ -330,7 +330,8 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count++;                                         \
             va_list ap;                                                                    \
             va_start(ap, fmt);                                                             \
-            vsnprintf(__testlib_format_buffer, sizeof(__testlib_format_buffer), cstr, ap); \
+            int __testlib_format_result = vsnprintf(__testlib_format_buffer, sizeof(__testlib_format_buffer), cstr, ap); \
+            (void) __testlib_format_result;                                                \
             va_end(ap);                                                                    \
             __testlib_format_buffer[sizeof(__testlib_format_buffer) - 1] = 0;              \
             result = std::string(__testlib_format_buffer);                                 \
@@ -6289,11 +6290,15 @@ __attribute__ ((format (printf, 1, 2)))
 #endif
 std::string format(const char *fmt, ...) {
     FMT_TO_RESULT(fmt, fmt, result);
+    if (__testlib_format_result < 0)
+        __testlib_fail("format(): invalid format string");
     return result;
 }
 
 std::string format(const std::string fmt, ...) {
     FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    if (__testlib_format_result < 0)
+        __testlib_fail("format(): invalid format string");
     return result;
 }
 #endif
