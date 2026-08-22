@@ -63,8 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Reserve println()/format() for testlib instead of std::println/std::format",
-        "Detect std::format-style placeholders in testlib println()/format(); use suppressStdFormatSyntaxCheck() for intentional braces",
+        "Allow testlib format()/println() with using namespace std; use std::format/std::println explicitly for standard formatting",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -164,26 +163,6 @@ const char *latestFeatures[] = {
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NO_VA_START_VALIDATION
-#endif
-
-#if (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
-    #define TESTLIB_HAS_CPLUSPLUS20_OR_LATER
-#endif
-
-#if (defined(__cplusplus) && __cplusplus > 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)
-    #define TESTLIB_HAS_CPLUSPLUS23_OR_LATER
-#endif
-
-#if defined(TESTLIB_HAS_CPLUSPLUS20_OR_LATER) && defined(__has_include)
-    #if __has_include(<format>)
-        #include <format>
-    #endif
-#endif
-
-#if defined(TESTLIB_HAS_CPLUSPLUS23_OR_LATER) && defined(__has_include)
-    #if __has_include(<print>)
-        #include <print>
-    #endif
 #endif
 
 /* Overrides random() for Borland C++. */
@@ -5347,66 +5326,7 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
-static bool __testlib_checkStdFormatSyntaxFlag = true;
-
-void suppressStdFormatSyntaxCheck() {
-    __testlib_checkStdFormatSyntaxFlag = false;
-}
-
-static bool __testlib_isStdFormatArgIdChar(char c) {
-    return '0' <= c && c <= '9';
-}
-
-static bool __testlib_hasStdFormatPlaceholder(const char *s) {
-    if (s == NULL)
-        return false;
-
-    for (size_t i = 0; s[i] != 0; i++) {
-        if (s[i] != '{')
-            continue;
-
-        if (s[i + 1] == '{') {
-            i++;
-            continue;
-        }
-
-        if (s[i + 1] == '}')
-            return true;
-
-        if (s[i + 1] == ':')
-            return true;
-
-        size_t j = i + 1;
-        while (__testlib_isStdFormatArgIdChar(s[j]))
-            j++;
-
-        if (j != i + 1 && (s[j] == '}' || s[j] == ':'))
-            return true;
-    }
-
-    return false;
-}
-
-static void __testlib_checkStdFormatSyntax(const char *functionName, const char *firstArgument) {
-    if (!__testlib_checkStdFormatSyntaxFlag || !__testlib_hasStdFormatPlaceholder(firstArgument))
-        return;
-
-    __testlib_fail(std::string("It looks like you passed a std::format/std::println-style format string '") +
-                   compress(firstArgument) + "' to testlib " + functionName + "(). This is not std::format/std::println. "
-                   "testlib format() uses printf-style placeholders like '%d', '%s', '%.10f'. "
-                   "testlib println() prints arguments separated by spaces. "
-                   "If this string is intentional, call suppressStdFormatSyntaxCheck().");
-}
-
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
-inline void __testlib_checkStdFormatSyntaxIfHasArgs(const char *, const char *) {
-}
-
-template<typename T, typename... Args>
-void __testlib_checkStdFormatSyntaxIfHasArgs(const char *functionName, const char *firstArgument, const T &, const Args&...) {
-    __testlib_checkStdFormatSyntax(functionName, firstArgument);
-}
-
 inline void __testlib_print_line_rest() {
     std::cout << std::endl;
 }
@@ -6329,26 +6249,39 @@ std::string testlib_format_(const std::string fmt, ...) {
     return result;
 }
 
-#if defined(__cpp_lib_format) || defined(TESTLIB_HAS_CPLUSPLUS20_OR_LATER)
-    #define TESTLIB_NEEDS_FORMAT_FIX
+#if defined(__cpp_lib_format)
+    #define TESTLIB_INTERNAL_HAS_STD_FORMAT
+#elif (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+    #if defined(__has_include)
+        #if __has_include(<format>)
+            #define TESTLIB_INTERNAL_HAS_STD_FORMAT
+        #endif
+    #endif
 #endif
 
-#ifdef TESTLIB_NEEDS_FORMAT_FIX
-#define format __testlib_format_impl
+#ifdef TESTLIB_INTERNAL_HAS_STD_FORMAT
 template <typename... Args>
 std::string format(const char* fmt, Args&&... args) {
-    size_t size = size_t(std::snprintf(nullptr, 0, fmt, args...) + 1);
-    std::vector<char> buffer(size);
-    std::snprintf(buffer.data(), size, fmt, args...);
-    return std::string(buffer.data());
+    int size = std::snprintf(NULL, 0, fmt, args...);
+    if (size < 0)
+        __testlib_fail("format(): invalid format string");
+    std::vector<char> buffer(size_t(size) + 1);
+    int written = std::snprintf(buffer.data(), buffer.size(), fmt, args...);
+    if (written != size)
+        __testlib_fail("format(): snprintf failed");
+    return std::string(buffer.data(), size_t(written));
 }
 
 template <typename... Args>
 std::string format(const std::string fmt, Args&&... args) {
-    size_t size = size_t(std::snprintf(nullptr, 0, fmt.c_str(), args...) + 1);
-    std::vector<char> buffer(size);
-    std::snprintf(buffer.data(), size, fmt.c_str(), args...);
-    return std::string(buffer.data());
+    int size = std::snprintf(NULL, 0, fmt.c_str(), args...);
+    if (size < 0)
+        __testlib_fail("format(): invalid format string");
+    std::vector<char> buffer(size_t(size) + 1);
+    int written = std::snprintf(buffer.data(), buffer.size(), fmt.c_str(), args...);
+    if (written != size)
+        __testlib_fail("format(): snprintf failed");
+    return std::string(buffer.data(), size_t(written));
 }
 #else
 #ifdef __GNUC__
@@ -6364,26 +6297,7 @@ std::string format(const std::string fmt, ...) {
     return result;
 }
 #endif
-#ifdef TESTLIB_NEEDS_FORMAT_FIX
-    #undef format
-template <size_t N, typename... Args>
-std::string __testlib_format_use_without_std(char (&fmt)[N], Args&&... args) {
-    return __testlib_format_impl(static_cast<const char *>(fmt), args...);
-}
 
-template <size_t N, typename... Args>
-std::string __testlib_format_use_without_std(const char (&fmt)[N], Args&&... args) {
-    __testlib_checkStdFormatSyntaxIfHasArgs("format", fmt, args...);
-    return __testlib_format_impl(static_cast<const char *>(fmt), args...);
-}
-
-template <typename T, typename... Args>
-typename __testlib_enable_if<!std::is_array<T>::value, std::string>::type
-__testlib_format_use_without_std(const T &fmt, Args&&... args) {
-    return __testlib_format_impl(fmt, args...);
-}
-
-    #define format(...) __testlib_format_use_without_std(__VA_ARGS__)
-#endif
+#undef TESTLIB_INTERNAL_HAS_STD_FORMAT
 
 #endif
