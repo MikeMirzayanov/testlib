@@ -246,6 +246,7 @@ jobs:
 
   tests-windows-2025:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-2025, windows-2025-vs2026]
         compiler: [msvc, g++, clang++]
