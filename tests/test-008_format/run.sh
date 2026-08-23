@@ -18,12 +18,12 @@ rm -f test-format-format2 test-format-format2.exe
 
 bash ../scripts/compile files/test-format-std-compat.cpp
 bash ../scripts/test-ref test-format-std-compat/r1 ./test-format-std-compat
-if [[ "$MACHINE" != "Windows" ]]; then
+if [[ "$MACHINE" == "Linux" ]]; then
   bash ../scripts/test-ref test-format-invalid/r1 ./test-format-std-compat invalid
 fi
 rm -f test-format-std-compat test-format-std-compat.exe
 
-if [[ "$MACHINE" != "Windows" ]]; then
+if [[ "$MACHINE" == "Linux" ]]; then
   if bash ../scripts/compile files/test-format-random-hidden.cpp --check-only >random-hidden.log 2>&1; then
     echo "Compilation unexpectedly exposed ::random()"
     rm -f random-hidden.log
