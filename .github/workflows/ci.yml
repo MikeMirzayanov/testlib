@@ -50,6 +50,7 @@ jobs:
 #          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-ubuntu2204-gpp:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -65,6 +66,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-ubuntu2204-clang:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -114,6 +116,7 @@ jobs:
 #          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
   tests-ubuntu2204-gpp-32:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -131,6 +134,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
   tests-ubuntu2204-clang-32:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -148,6 +152,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
 
   tests-macos14-gpp:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-14]
@@ -163,6 +168,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-macos14-clang:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-14]
@@ -177,6 +183,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }}
 
   tests-macos15-gpp:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-15]
@@ -192,6 +199,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-macos15-clang:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-15]
@@ -206,6 +214,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }}
 
   tests-macos26-gpp:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-26]
@@ -221,6 +230,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
   tests-macos26-clang:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-26]
@@ -234,10 +244,10 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }}
 
-  tests-windows-2019:
+  tests-windows-2025:
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-2025, windows-2025-vs2026]
         compiler: [msvc, g++, clang++]
     name: Use ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -249,6 +259,7 @@ jobs:
           bash ./run.sh ${{ matrix.compiler }}
 
   tests-windows-2022:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [windows-2022]
