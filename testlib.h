@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Allow testlib format()/println() with using namespace std; use std::format/std::println explicitly for standard formatting",
+        "Allow testlib format()/println() with using namespace std; use std::format/std::println explicitly for standard formatting; in C++23/MSVC latest pass bit-fields as +field or with an explicit integral cast",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -5341,14 +5341,32 @@ void __testlib_print_line_rest(const T &value, const Args&... args) {
 #endif
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
-template<typename A, typename B, typename... Args>
-typename __testlib_enable_if<
-        !is_iterator<typename std::remove_reference<B>::type>::value || sizeof...(Args) != 0,
-        void>::type
-println(const A &a, B &&b, Args&&... args) {
+#if __cplusplus > 202002L || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)
+template<typename A, typename B>
+typename __testlib_enable_if<!is_iterator<typename std::remove_reference<B>::type>::value, void>::type
+println(const A &a, B &&b) {
     __testlib_print_one(a);
-    __testlib_print_line_rest(b, args...);
+    __testlib_print_line_rest(b);
 }
+
+template<typename A, typename B, typename C, typename... Args>
+void println(const A &a, B &&b, C &&c, Args&&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, c, args...);
+}
+#else
+template<typename A, typename B>
+typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b);
+}
+
+template<typename A, typename B, typename C, typename... Args>
+void println(const A &a, const B &b, const C &c, const Args&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, c, args...);
+}
+#endif
 #else
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
@@ -6265,24 +6283,24 @@ template <typename... Args>
 std::string format(const char* fmt, Args&&... args) {
     int size = std::snprintf(NULL, 0, fmt, args...);
     if (size < 0)
-        __testlib_fail("format(): invalid format string");
+        __testlib_fail("format(): formatting failed");
     std::vector<char> buffer(size_t(size) + 1);
     int written = std::snprintf(buffer.data(), buffer.size(), fmt, args...);
-    if (written != size)
-        __testlib_fail("format(): snprintf failed");
-    return std::string(buffer.data(), size_t(written));
+    if (written < 0)
+        __testlib_fail("format(): formatting failed");
+    return std::string(buffer.data());
 }
 
 template <typename... Args>
 std::string format(const std::string fmt, Args&&... args) {
     int size = std::snprintf(NULL, 0, fmt.c_str(), args...);
     if (size < 0)
-        __testlib_fail("format(): invalid format string");
+        __testlib_fail("format(): formatting failed");
     std::vector<char> buffer(size_t(size) + 1);
     int written = std::snprintf(buffer.data(), buffer.size(), fmt.c_str(), args...);
-    if (written != size)
-        __testlib_fail("format(): snprintf failed");
-    return std::string(buffer.data(), size_t(written));
+    if (written < 0)
+        __testlib_fail("format(): formatting failed");
+    return std::string(buffer.data());
 }
 #else
 #ifdef __GNUC__
@@ -6291,14 +6309,14 @@ __attribute__ ((format (printf, 1, 2)))
 std::string format(const char *fmt, ...) {
     FMT_TO_RESULT(fmt, fmt, result);
     if (__testlib_format_result < 0)
-        __testlib_fail("format(): invalid format string");
+        __testlib_fail("format(): formatting failed");
     return result;
 }
 
 std::string format(const std::string fmt, ...) {
     FMT_TO_RESULT(fmt, fmt.c_str(), result);
     if (__testlib_format_result < 0)
-        __testlib_fail("format(): invalid format string");
+        __testlib_fail("format(): formatting failed");
     return result;
 }
 #endif

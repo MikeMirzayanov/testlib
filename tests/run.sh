@@ -93,7 +93,11 @@ MSVC_CPP_STANDARDS=()
 for v in 11 14 17 20 23; do
   if [[ "$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,$v,* ]]; then
     CPP_STANDARDS+=("--std=c++$v")
-    MSVC_CPP_STANDARDS+=("-std:c++$v")
+    if [[ "$v" == "23" ]]; then
+      MSVC_CPP_STANDARDS+=("-std:c++latest")
+    elif [[ "$v" != "11" ]]; then
+      MSVC_CPP_STANDARDS+=("-std:c++$v")
+    fi
   fi
 done
 echo ""
@@ -200,6 +204,13 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
       done
     done
   done
+fi
+
+if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") &&
+      ("$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,23,*) &&
+      "$done" != *"@-std:c++latest"* ]]; then
+  echo -e "${RED}[ERROR]${NC} Requested MSVC C++23, but no -std:c++latest run completed"
+  exit 1
 fi
 
 # Find /c/Programs/*/bin/g++ in case of Windows and no ARGS_CPP
