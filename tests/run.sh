@@ -206,7 +206,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
   done
 fi
 
-if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") &&
+if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "msvc" || -n "$done") &&
       ("$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,23,*) &&
       "$done" != *"@-std:c++latest"* ]]; then
   echo -e "${RED}[ERROR]${NC} Requested MSVC C++23, but no -std:c++latest run completed"
