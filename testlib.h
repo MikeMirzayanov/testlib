@@ -5286,6 +5286,32 @@ __testlib_print_one<std::string>(const std::string &t) {
     std::cout << t;
 }
 
+template<typename T>
+typename __testlib_enable_if<!is_iterable<T>::value, bool>::type __testlib_prints_nothing(const T &) {
+    return false;
+}
+
+template<typename T>
+typename __testlib_enable_if<is_iterable<T>::value, bool>::type __testlib_prints_nothing(const T &t) {
+    return t.begin() == t.end();
+}
+
+template<>
+bool __testlib_prints_nothing<std::string>(const std::string &) {
+    return false;
+}
+
+/* Prints t separated by a space from the previous output, skipping empty containers so no extra spaces appear. */
+template<typename T>
+void __testlib_print_next(bool &first, const T &t) {
+    if (__testlib_prints_nothing(t))
+        return;
+    if (!first)
+        std::cout << " ";
+    first = false;
+    __testlib_print_one(t);
+}
+
 template<typename A, typename B>
 void __println_range(A begin, B end) {
     bool first = true;
@@ -5323,9 +5349,9 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
 
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
     std::cout << std::endl;
 }
 
@@ -5341,9 +5367,9 @@ void println(const A *a, const A *b) {
 
 template<>
 void println<char>(const char *a, const char *b) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
     std::cout << std::endl;
 }
 
@@ -5355,71 +5381,56 @@ void println(const T &x) {
 
 template<typename A, typename B, typename C>
 void println(const A &a, const B &b, const C &c) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
+    __testlib_print_next(first, c);
     std::cout << std::endl;
 }
 
 template<typename A, typename B, typename C, typename D>
 void println(const A &a, const B &b, const C &c, const D &d) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
+    __testlib_print_next(first, c);
+    __testlib_print_next(first, d);
     std::cout << std::endl;
 }
 
 template<typename A, typename B, typename C, typename D, typename E>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
+    __testlib_print_next(first, c);
+    __testlib_print_next(first, d);
+    __testlib_print_next(first, e);
     std::cout << std::endl;
 }
 
 template<typename A, typename B, typename C, typename D, typename E, typename F>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
+    __testlib_print_next(first, c);
+    __testlib_print_next(first, d);
+    __testlib_print_next(first, e);
+    __testlib_print_next(first, f);
     std::cout << std::endl;
 }
 
 template<typename A, typename B, typename C, typename D, typename E, typename F, typename G>
 void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g) {
-    __testlib_print_one(a);
-    std::cout << " ";
-    __testlib_print_one(b);
-    std::cout << " ";
-    __testlib_print_one(c);
-    std::cout << " ";
-    __testlib_print_one(d);
-    std::cout << " ";
-    __testlib_print_one(e);
-    std::cout << " ";
-    __testlib_print_one(f);
-    std::cout << " ";
-    __testlib_print_one(g);
+    bool first = true;
+    __testlib_print_next(first, a);
+    __testlib_print_next(first, b);
+    __testlib_print_next(first, c);
+    __testlib_print_next(first, d);
+    __testlib_print_next(first, e);
+    __testlib_print_next(first, f);
+    __testlib_print_next(first, g);
     std::cout << std::endl;
 }
 
