@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting. Pass bit-fields as +field to format() since C++20 and to println() since C++23 (MSVC /std:c++latest)",
+        "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
