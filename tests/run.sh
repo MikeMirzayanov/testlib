@@ -187,7 +187,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
               for cpp_standard in "${MSVC_CPP_STANDARDS[@]}"; do
                 touch empty_file.cpp
-                if cl.exe "$cpp_standard" -c empty_file.cpp >/dev/null 2>&1; then
+                if cl_output=$(cl.exe "$cpp_standard" -c empty_file.cpp 2>&1) && [[ "$cl_output" != *D9002* ]]; then
                   echo Testing msvc-"$version"-$bits@"$cpp_standard"
                   run_tests "cl.exe" "$cpp_standard"
                   if [[ ! "$done" == "" ]]; then
