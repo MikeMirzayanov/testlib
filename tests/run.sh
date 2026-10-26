@@ -15,7 +15,7 @@ export GREEN='\033[1;32m'
 export NC='\033[0m'
 
 ARGS_CPP=""
-ARGS_VALID_CPP_STANDARDS=",11,14,17,20,23,"
+ARGS_VALID_CPP_STANDARDS=",11,14,17,20,23,26,"
 ARGS_CPP_STANDARDS=","
 ARGS_CPP_VERSIONS=","
 ARGS_TESTS=","
@@ -90,10 +90,14 @@ printf '    %s\n' "${COMPILERS[@]}"
 
 CPP_STANDARDS=()
 MSVC_CPP_STANDARDS=()
-for v in 11 14 17 20 23; do
+for v in 11 14 17 20 23 26; do
   if [[ "$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,$v,* ]]; then
     CPP_STANDARDS+=("--std=c++$v")
-    MSVC_CPP_STANDARDS+=("-std:c++$v")
+    if [[ "$v" == "23" ]]; then
+      MSVC_CPP_STANDARDS+=("-std:c++latest")
+    elif [[ "$v" != "11" ]]; then
+      MSVC_CPP_STANDARDS+=("-std:c++$v")
+    fi
   fi
 done
 echo ""
@@ -168,7 +172,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
 
   for vs_release in "${VS_RELEASES[@]}"; do
     for program_files in "${PROGRAM_FILES[@]}"; do
-      for ((version = 2000; version <= 2100; version++)); do
+      for version in 18 {2000..2100}; do
         vs_dir="$program_files\\Microsoft Visual Studio\\$version\\$vs_release\\VC\\Auxiliary\\Build"
         if [[ -d $vs_dir ]]; then
           for bits in 32 64; do
@@ -183,9 +187,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
               rm -f do-vcvars.bat vcvars.env vcvars_filtered.env
               for cpp_standard in "${MSVC_CPP_STANDARDS[@]}"; do
                 touch empty_file.cpp
-                cpp_output=$(cl.exe "$cpp_standard" empty_file.cpp 2>&1 || true)
-                rm -f empty_file.*
-                if [[ ! $cpp_output == *"unknown"* ]]; then
+                if cl_output=$(cl.exe "$cpp_standard" -c empty_file.cpp 2>&1) && [[ "$cl_output" != *D9002* ]]; then
                   echo Testing msvc-"$version"-$bits@"$cpp_standard"
                   run_tests "cl.exe" "$cpp_standard"
                   if [[ ! "$done" == "" ]]; then
@@ -193,6 +195,7 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
                   fi
                   done="${done}msvc-$version-$bits@$cpp_standard"
                 fi
+                rm -f empty_file.*
               done
             fi
           done
@@ -200,6 +203,13 @@ if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "" || "$ARGS_CPP" == "msvc") ]]
       done
     done
   done
+fi
+
+if [[ "$machine" == "Windows" && ("$ARGS_CPP" == "msvc" || -n "$done") &&
+      ("$ARGS_CPP_STANDARDS" == "," || "$ARGS_CPP_STANDARDS" == *,23,*) &&
+      "$done" != *"@-std:c++latest"* ]]; then
+  echo -e "${RED}[ERROR]${NC} Requested MSVC C++23, but no -std:c++latest run completed"
+  exit 1
 fi
 
 # Find /c/Programs/*/bin/g++ in case of Windows and no ARGS_CPP
@@ -213,8 +223,7 @@ if [[ "$MACHINE" == "Windows" && "$ARGS_CPP" == "" ]]; then
     if [[ $gpp_output == *"no input files"* ]]; then
       for gpp_standard in "${CPP_STANDARDS[@]}"; do
         touch empty_file.cpp
-        gpp_output=$($gpp "$gpp_standard" empty_file.cpp 2>&1 || true)
-        if [[ ! $gpp_output == *"unrecognized"* && ! $gpp_output == *"standard"* ]]; then
+        if $gpp "$gpp_standard" -c empty_file.cpp >/dev/null 2>&1; then
           run_tests "$gpp" "$gpp_standard"
           if [[ ! "$done" == "" ]]; then
             done="$done, "
@@ -240,9 +249,9 @@ for compiler in "${COMPILERS[@]}"; do
         echo "Compiler '$cpp' has been found"
         for cpp_standard in "${CPP_STANDARDS[@]}"; do
           touch empty_file.cpp
-          cpp_output=$($cpp "$cpp_standard" empty_file.cpp 2>&1 || true)
-          if [[ ! $cpp_output == *"unrecognized"* && ! $cpp_output == *"standard"* ]]; then
+          if $cpp "$cpp_standard" -c empty_file.cpp >/dev/null 2>&1; then
             if [[ "$machine" == "Windows" && "$cpp" == "clang++" && "$cpp_standard" == "--std=c++11" ]]; then
+              rm -f empty_file.*
               echo Ignore "$cpp" "$cpp_standard" on $machine
               continue
             fi

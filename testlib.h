@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2025
+ * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.45"
+#define VERSION "0.9.46"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -189,6 +190,10 @@ const char *latestFeatures[] = {
 #include <fcntl.h>
 #include <functional>
 #include <cstdint>
+
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#include <type_traits>
+#endif
 
 #ifdef TESTLIB_THROW_EXIT_EXCEPTION_INSTEAD_OF_EXIT
 #   include <exception>
@@ -325,7 +330,8 @@ static int __testlib_format_buffer_usage_count = 0;
             __testlib_format_buffer_usage_count++;                                         \
             va_list ap;                                                                    \
             va_start(ap, fmt);                                                             \
-            vsnprintf(__testlib_format_buffer, sizeof(__testlib_format_buffer), cstr, ap); \
+            int __testlib_format_result = vsnprintf(__testlib_format_buffer, sizeof(__testlib_format_buffer), cstr, ap); \
+            (void) __testlib_format_result;                                                \
             va_end(ap);                                                                    \
             __testlib_format_buffer[sizeof(__testlib_format_buffer) - 1] = 0;              \
             result = std::string(__testlib_format_buffer);                                 \
@@ -4528,7 +4534,7 @@ void quitif(bool condition, TResult result, const char *format, ...) {
 NORETURN void __testlib_help() {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2020\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2026\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
@@ -5321,6 +5327,53 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+inline void __testlib_print_line_rest() {
+    std::cout << std::endl;
+}
+
+template<typename T, typename... Args>
+void __testlib_print_line_rest(const T &value, const Args&... args) {
+    std::cout << " ";
+    __testlib_print_one(value);
+    __testlib_print_line_rest(args...);
+}
+#endif
+
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+// C++23: Args&& beats std::println on mutable lvalues; the const& overloads below serve the rest:
+// explicit template arguments (the empty int&... pack keeps them away) and calls where Args&& would
+// bind exactly like const& (only const lvalues and functions).
+#if __cplusplus > 202002L || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)
+template<typename... Ts>
+constexpr bool __testlib_all_const_lvalues = ((std::is_lvalue_reference<Ts>::value && std::is_same<typename std::remove_reference<Ts>::type, const typename std::remove_reference<Ts>::type>::value) && ...);
+
+template<int&... ExplicitArgumentBarrier, typename A, typename B>
+typename __testlib_enable_if<!is_iterator<typename std::remove_reference<B>::type>::value && !__testlib_all_const_lvalues<B>, void>::type
+println(const A &a, B &&b) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b);
+}
+
+template<int&... ExplicitArgumentBarrier, typename A, typename B, typename C, typename... Args>
+typename __testlib_enable_if<!__testlib_all_const_lvalues<B, C, Args...>, void>::type
+println(const A &a, B &&b, C &&c, Args&&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, c, args...);
+}
+#endif
+template<typename A, typename B>
+typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b);
+}
+
+template<typename A, typename B, typename C, typename... Args>
+void println(const A &a, const B &b, const C &c, const Args&... args) {
+    __testlib_print_one(a);
+    __testlib_print_line_rest(b, c, args...);
+}
+#else
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
@@ -5328,6 +5381,7 @@ typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A
     __testlib_print_one(b);
     std::cout << std::endl;
 }
+#endif
 
 template<typename A, typename B>
 typename __testlib_enable_if<is_iterator<B>::value, void>::type println(const A &a, const B &b) {
@@ -5353,6 +5407,7 @@ void println(const T &x) {
     std::cout << std::endl;
 }
 
+#if __cplusplus < 201103L && (!defined(_MSC_VER) || _MSC_VER < 1800)
 template<typename A, typename B, typename C>
 void println(const A &a, const B &b, const C &c) {
     __testlib_print_one(a);
@@ -5422,6 +5477,7 @@ void println(const A &a, const B &b, const C &c, const D &d, const E &e, const F
     __testlib_print_one(g);
     std::cout << std::endl;
 }
+#endif
 
 /* opts */
 
@@ -6218,21 +6274,39 @@ std::string testlib_format_(const std::string fmt, ...) {
     return result;
 }
 
-#if (__cplusplus >= 202002L && __has_include(<format>)) || __cpp_lib_format
+#if defined(__cpp_lib_format)
+    #define TESTLIB_INTERNAL_HAS_STD_FORMAT
+#elif (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+    #if defined(__has_include)
+        #if __has_include(<format>)
+            #define TESTLIB_INTERNAL_HAS_STD_FORMAT
+        #endif
+    #endif
+#endif
+
+#ifdef TESTLIB_INTERNAL_HAS_STD_FORMAT
+// Copies the arguments once, so both passes see the same values (%n). The trailing 0 is ignored by
+// snprintf and keeps -Wformat-security quiet for a format without arguments.
 template <typename... Args>
-std::string format(const char* fmt, Args&&... args) {
-    size_t size = size_t(std::snprintf(nullptr, 0, fmt, args...) + 1);
-    std::vector<char> buffer(size);
-    std::snprintf(buffer.data(), size, fmt, args...);
+std::string __testlib_format_values(const char* fmt, Args... args) {
+    int size = std::snprintf(NULL, 0, fmt, args..., 0);
+    if (size < 0)
+        __testlib_fail("format(): formatting failed");
+    std::vector<char> buffer(size_t(size) + 1);
+    int written = std::snprintf(buffer.data(), buffer.size(), fmt, args..., 0);
+    if (written < 0)
+        __testlib_fail("format(): formatting failed");
     return std::string(buffer.data());
 }
 
 template <typename... Args>
+std::string format(const char* fmt, Args&&... args) {
+    return __testlib_format_values(fmt, args...);
+}
+
+template <typename... Args>
 std::string format(const std::string fmt, Args&&... args) {
-    size_t size = size_t(std::snprintf(nullptr, 0, fmt.c_str(), args...) + 1);
-    std::vector<char> buffer(size);
-    std::snprintf(buffer.data(), size, fmt.c_str(), args...);
-    return std::string(buffer.data());
+    return __testlib_format_values(fmt.c_str(), args...);
 }
 #else
 #ifdef __GNUC__
@@ -6240,13 +6314,19 @@ __attribute__ ((format (printf, 1, 2)))
 #endif
 std::string format(const char *fmt, ...) {
     FMT_TO_RESULT(fmt, fmt, result);
+    if (__testlib_format_result < 0)
+        __testlib_fail("format(): formatting failed");
     return result;
 }
 
 std::string format(const std::string fmt, ...) {
     FMT_TO_RESULT(fmt, fmt.c_str(), result);
+    if (__testlib_format_result < 0)
+        __testlib_fail("format(): formatting failed");
     return result;
 }
 #endif
+
+#undef TESTLIB_INTERNAL_HAS_STD_FORMAT
 
 #endif
