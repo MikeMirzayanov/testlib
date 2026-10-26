@@ -22,10 +22,10 @@
 #define _TESTLIB_H_
 
 /*
- * Copyright (c) 2005-2025
+ * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.45"
+#define VERSION "0.9.46"
 
 /*
  * Mike Mirzayanov
@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Allow testlib format()/println() with using namespace std; use std::format/std::println explicitly for standard formatting; in C++23/MSVC latest pass bit-fields as +field or with an explicit integral cast",
+        "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting. Pass bit-fields as +field to format() since C++20 and to println() since C++23 (MSVC /std:c++latest)",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
         "Use setAppesModeEncoding to change xml encoding from windows-1251 to other",
@@ -4534,7 +4534,7 @@ void quitif(bool condition, TResult result, const char *format, ...) {
 NORETURN void __testlib_help() {
     InStream::textColor(InStream::LightCyan);
     std::fprintf(stderr, "TESTLIB %s, https://github.com/MikeMirzayanov/testlib/ ", VERSION);
-    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2020\n");
+    std::fprintf(stderr, "by Mike Mirzayanov, copyright(c) 2005-2026\n");
     std::fprintf(stderr, "Checker name: \"%s\"\n", checkerName.c_str());
     InStream::textColor(InStream::LightGray);
 
