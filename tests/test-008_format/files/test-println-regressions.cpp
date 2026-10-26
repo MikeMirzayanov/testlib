@@ -85,6 +85,19 @@ int main(int argc, char *argv[]) {
     std::string adlText = "adl";
     println(adlText, 8);
 
+    int first = 1, second = 2, third = 3;
+    ::println<int, int>(first, second);
+    ::println<int, int, int>(first, second, third);
+    ::println<int, std::string>(first, adlText);
+    ::println<int, std::string, int>(first, adlText, third);
+    void (*printThree)(const int &, const int &, const int &) = ::println<int, int, int>;
+    printThree(first, second, third);
+    auto printThreeAuto = &::println<int, int, int>;
+    printThreeAuto(first, second, third);
+    const std::string constText = "const";
+    println(constText, constText);
+    println(constText, constText, constText);
+
 #ifdef __cpp_lib_print
     if (false)
         std::println("{}", 47);

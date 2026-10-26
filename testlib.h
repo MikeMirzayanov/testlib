@@ -5341,20 +5341,27 @@ void __testlib_print_line_rest(const T &value, const Args&... args) {
 #endif
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+// C++23: Args&& beats std::println on mutable lvalues; the const& overloads below serve the rest:
+// explicit template arguments (the empty int&... pack keeps them away) and calls where Args&& would
+// bind exactly like const& (only const lvalues and functions).
 #if __cplusplus > 202002L || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)
-template<typename A, typename B>
-typename __testlib_enable_if<!is_iterator<typename std::remove_reference<B>::type>::value, void>::type
+template<typename... Ts>
+constexpr bool __testlib_all_const_lvalues = ((std::is_lvalue_reference<Ts>::value && std::is_same<typename std::remove_reference<Ts>::type, const typename std::remove_reference<Ts>::type>::value) && ...);
+
+template<int&... ExplicitArgumentBarrier, typename A, typename B>
+typename __testlib_enable_if<!is_iterator<typename std::remove_reference<B>::type>::value && !__testlib_all_const_lvalues<B>, void>::type
 println(const A &a, B &&b) {
     __testlib_print_one(a);
     __testlib_print_line_rest(b);
 }
 
-template<typename A, typename B, typename C, typename... Args>
-void println(const A &a, B &&b, C &&c, Args&&... args) {
+template<int&... ExplicitArgumentBarrier, typename A, typename B, typename C, typename... Args>
+typename __testlib_enable_if<!__testlib_all_const_lvalues<B, C, Args...>, void>::type
+println(const A &a, B &&b, C &&c, Args&&... args) {
     __testlib_print_one(a);
     __testlib_print_line_rest(b, c, args...);
 }
-#else
+#endif
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
@@ -5366,7 +5373,6 @@ void println(const A &a, const B &b, const C &c, const Args&... args) {
     __testlib_print_one(a);
     __testlib_print_line_rest(b, c, args...);
 }
-#endif
 #else
 template<typename A, typename B>
 typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {

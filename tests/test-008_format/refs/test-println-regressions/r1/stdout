@@ -6,3 +6,11 @@ a b
 noncopyable 9 7
 copies 10 7
 adl 8
+1 2
+1 2 3
+1 adl
+1 adl 3
+1 2 3
+1 2 3
+const const
+const const const
