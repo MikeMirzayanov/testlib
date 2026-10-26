@@ -67,7 +67,6 @@ int main(int argc, char *argv[]) {
 #ifdef __cpp_lib_print
     if (false) {
         std::println("{}", 47);
-        println();
     }
 #endif
 }

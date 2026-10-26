@@ -41,7 +41,7 @@ if [[ "$MACHINE" == "Linux" ]]; then
     rm -f random-hidden.log
     exit 1
   fi
-  if ! grep -Eiq "random.*(not.*declared|undeclared|no member)|no member.*random" random-hidden.log; then
+  if ! grep -Eq "error: .*(::random[^[:alnum:]_].* has not been declared|no member named .random[^[:alnum:]_])" random-hidden.log; then
     cat random-hidden.log
     rm -f random-hidden.log
     exit 1
@@ -55,8 +55,8 @@ if [[ "$MACHINE" == "Linux" ]]; then
     rm -f println-bitfield-negative.log
     exit 1
   fi
-  if ! grep -q "TEST_PRINTLN_NEGATIVE_NOT_APPLICABLE" println-bitfield-negative.log &&
-     ! grep -Eiq "bit[- ]?field|cannot bind.*reference|reference.*cannot bind" println-bitfield-negative.log; then
+  if ! grep -Eq "error: (#error )?TEST_PRINTLN_NEGATIVE_NOT_APPLICABLE" println-bitfield-negative.log &&
+     ! grep -Eq "error: .*cannot bind (to )?bit-field" println-bitfield-negative.log; then
     cat println-bitfield-negative.log
     rm -f println-bitfield-negative.log
     exit 1
