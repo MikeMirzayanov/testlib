@@ -58,6 +58,11 @@ int main(int argc, char *argv[]) {
     println("answer {}", 45);
 #ifdef __cpp_lib_format
     ensure(std::format("{}", 46) == "46");
+    ensure(format("%s", string(16777217, 'x').c_str()).size() == 16777217);
+#if defined(__linux__)
+    int width = 2;
+    ensure(::format<int &>("%*sX%n", width, "", &width) == "  X" && width == 3);
+#endif
 #endif
 #ifdef __cpp_lib_print
     if (false) {

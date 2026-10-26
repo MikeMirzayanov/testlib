@@ -6285,28 +6285,28 @@ std::string testlib_format_(const std::string fmt, ...) {
 #endif
 
 #ifdef TESTLIB_INTERNAL_HAS_STD_FORMAT
+// Copies the arguments once, so both passes see the same values (%n). The trailing 0 is ignored by
+// snprintf and keeps -Wformat-security quiet for a format without arguments.
 template <typename... Args>
-std::string format(const char* fmt, Args&&... args) {
-    int size = std::snprintf(NULL, 0, fmt, args...);
+std::string __testlib_format_values(const char* fmt, Args... args) {
+    int size = std::snprintf(NULL, 0, fmt, args..., 0);
     if (size < 0)
         __testlib_fail("format(): formatting failed");
     std::vector<char> buffer(size_t(size) + 1);
-    int written = std::snprintf(buffer.data(), buffer.size(), fmt, args...);
+    int written = std::snprintf(buffer.data(), buffer.size(), fmt, args..., 0);
     if (written < 0)
         __testlib_fail("format(): formatting failed");
     return std::string(buffer.data());
 }
 
 template <typename... Args>
+std::string format(const char* fmt, Args&&... args) {
+    return __testlib_format_values(fmt, args...);
+}
+
+template <typename... Args>
 std::string format(const std::string fmt, Args&&... args) {
-    int size = std::snprintf(NULL, 0, fmt.c_str(), args...);
-    if (size < 0)
-        __testlib_fail("format(): formatting failed");
-    std::vector<char> buffer(size_t(size) + 1);
-    int written = std::snprintf(buffer.data(), buffer.size(), fmt.c_str(), args...);
-    if (written < 0)
-        __testlib_fail("format(): formatting failed");
-    return std::string(buffer.data());
+    return __testlib_format_values(fmt.c_str(), args...);
 }
 #else
 #ifdef __GNUC__
