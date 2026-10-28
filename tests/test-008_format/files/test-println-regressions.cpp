@@ -98,6 +98,16 @@ int main(int argc, char *argv[]) {
     println(constText, constText);
     println(constText, constText, constText);
 
+    const char *pointerText = "pointer";
+    bool flag = argc > 100;
+    println(first, flag ? "YES" : "NO");
+    println(adlText, flag ? "YES" : "NO");
+    println(adlText, pointerText);
+    println(first, adlText.c_str());
+    int numbers[3] = {4, 5, 6};
+    const int *constBegin = numbers;
+    println(constBegin, numbers + 3);
+
 #ifdef __cpp_lib_print
     if (false)
         std::println("{}", 47);
