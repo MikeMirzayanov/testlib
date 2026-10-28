@@ -79,6 +79,21 @@ jobs:
           cd tests
           bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
 
+  tests-ubuntu2404-gpp:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        compiler: [g++]
+        version: [14]
+    name: Use ${{ matrix.compiler }}-${{ matrix.version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          cd tests
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+
 #  tests-ubuntu2004-gpp-32:
 #    strategy:
 #      matrix:
