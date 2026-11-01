@@ -20,6 +20,10 @@ bash ../scripts/compile files/test-println-regressions.cpp
 bash ../scripts/test-ref test-println-regressions/r1 ./test-println-regressions
 rm -f test-println-regressions test-println-regressions.exe
 
+bash ../scripts/compile files/test-println-ranges.cpp
+bash ../scripts/test-ref test-println-ranges/r1 ./test-println-ranges
+rm -f test-println-ranges test-println-ranges.exe
+
 bash ../scripts/compile files/test-println-bitfield-policy.cpp
 bash ../scripts/test-ref test-println-bitfield-policy/r1 ./test-println-bitfield-policy
 rm -f test-println-bitfield-policy test-println-bitfield-policy.exe

@@ -5327,10 +5327,25 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
-// println(begin, end) prints a range only for an iterator pair: println(n, flag ? "YES" : "NO") prints two values.
-template<typename A, typename B>
+// println(a, b) prints the range [a, b) only if b is an iterator and __println_range can start from a:
+// println(n, flag ? "YES" : "NO") prints two values. If b is not an iterator, a is not inspected at all.
+template<typename A, typename B, bool = is_iterator<B>::value>
 struct __testlib_is_range {
-    static const bool value = is_iterator<B>::value && (std::is_convertible<A, B>::value || std::is_pointer<A>::value);
+    // __println_range takes a copy of const A&, then constructs B from that local lvalue.
+    typedef typename std::decay<const A>::type Begin;
+    typedef typename std::decay<const B>::type End;
+    static const bool legacy = std::is_convertible<A, B>::value || std::is_pointer<A>::value;
+    struct ExplicitRange : std::conditional<
+        std::is_convertible<const A &, Begin>::value && std::is_convertible<const B &, End>::value,
+        std::is_constructible<End, Begin &>, std::false_type>::type {};
+    // Do not inspect explicit constructors for an existing range.
+    typedef typename std::conditional<!legacy, ExplicitRange, std::false_type>::type Range;
+    static const bool value = legacy || Range::value;
+};
+
+template<typename A, typename B>
+struct __testlib_is_range<A, B, false> {
+    static const bool value = false;
 };
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
