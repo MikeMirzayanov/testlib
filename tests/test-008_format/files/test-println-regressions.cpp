@@ -1,5 +1,7 @@
 #include "testlib.h"
 
+#include <iterator>
+
 #if defined(__has_include)
 #if ((__cplusplus > 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG > 202002L)) && __has_include(<print>)
 #include <print>
@@ -57,6 +59,14 @@ std::ostream &operator<<(std::ostream &out, const CopyTrackedValue &value) {
     return out << value.value;
 }
 
+struct LvalueRangeBegin {
+    std::vector<int>::iterator value;
+
+    explicit operator std::vector<int>::iterator() & {
+        return value;
+    }
+};
+
 int main(int argc, char *argv[]) {
     registerGen(argc, argv, 1);
 
@@ -73,6 +83,17 @@ int main(int argc, char *argv[]) {
     values.push_back(2);
     values.push_back(3);
     println(values.begin(), values.end());
+    // Explicit adapters must remain ranges for both temporary and const lvalue end iterators.
+    println(values.end(), values.rend());
+    println(values.begin(), std::make_move_iterator(values.end()));
+    const std::vector<int>::reverse_iterator reverseEnd = values.rend();
+    const std::move_iterator<std::vector<int>::iterator> moveEnd = std::make_move_iterator(values.end());
+    println(values.end(), reverseEnd);
+    println(values.begin(), moveEnd);
+    println(values.end(), values.rbegin());
+    println(values.begin(), std::make_move_iterator(values.begin()));
+    LvalueRangeBegin lvalueBegin = {values.begin()};
+    println(lvalueBegin, values.end());
     println("a", "b");
 
     NonCopyableValue nonCopyableValue(9);
@@ -97,6 +118,29 @@ int main(int argc, char *argv[]) {
     const std::string constText = "const";
     println(constText, constText);
     println(constText, constText, constText);
+
+    const char *pointerText = "pointer";
+    bool flag = argc > 100;
+    println(first, flag ? "YES" : "NO");
+    println(adlText, flag ? "YES" : "NO");
+    println(adlText, pointerText);
+    println(first, adlText.c_str());
+    int numbers[3] = {4, 5, 6};
+    const int *constBegin = numbers;
+    println(constBegin, numbers + 3);
+    println(numbers + 0, constBegin + 3);
+    println(numbers, numbers + 3);
+    println(values.begin(), values.cend());
+    char mutableText[] = "mutable";
+    char *mutablePointer = mutableText;
+    const char *const constantPointer = pointerText;
+    println(first, mutablePointer);
+    println(adlText, mutablePointer);
+    println(first, constantPointer);
+    println(adlText, constantPointer);
+    println(first, !flag ? "YES" : "NO");
+    println(nonCopyableValue, pointerText);
+    println(abstractValue, pointerText);
 
 #ifdef __cpp_lib_print
     if (false)

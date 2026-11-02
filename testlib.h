@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.46"
+#define VERSION "0.9.47"
 
 /*
  * Mike Mirzayanov
@@ -5327,6 +5327,27 @@ struct is_iterator<T, typename __testlib_enable_if<std::is_array<T>::value>::typ
     static const bool value = false;
 };
 
+// println(a, b) prints the range [a, b) only if b is an iterator and __println_range can start from a:
+// println(n, flag ? "YES" : "NO") prints two values. If b is not an iterator, a is not inspected at all.
+template<typename A, typename B, bool = is_iterator<B>::value>
+struct __testlib_is_range {
+    // __println_range takes a copy of const A&, then constructs B from that local lvalue.
+    typedef typename std::decay<const A>::type Begin;
+    typedef typename std::decay<const B>::type End;
+    static const bool legacy = std::is_convertible<A, B>::value || std::is_pointer<A>::value;
+    struct ExplicitRange : std::conditional<
+        std::is_convertible<const A &, Begin>::value && std::is_convertible<const B &, End>::value,
+        std::is_constructible<End, Begin &>, std::false_type>::type {};
+    // Do not inspect explicit constructors for an existing range.
+    typedef typename std::conditional<!legacy, ExplicitRange, std::false_type>::type Range;
+    static const bool value = legacy || Range::value;
+};
+
+template<typename A, typename B>
+struct __testlib_is_range<A, B, false> {
+    static const bool value = false;
+};
+
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
 inline void __testlib_print_line_rest() {
     std::cout << std::endl;
@@ -5349,7 +5370,7 @@ template<typename... Ts>
 constexpr bool __testlib_all_const_lvalues = ((std::is_lvalue_reference<Ts>::value && std::is_same<typename std::remove_reference<Ts>::type, const typename std::remove_reference<Ts>::type>::value) && ...);
 
 template<int&... ExplicitArgumentBarrier, typename A, typename B>
-typename __testlib_enable_if<!is_iterator<typename std::remove_reference<B>::type>::value && !__testlib_all_const_lvalues<B>, void>::type
+typename __testlib_enable_if<!__testlib_is_range<A, typename std::remove_reference<B>::type>::value && !__testlib_all_const_lvalues<B>, void>::type
 println(const A &a, B &&b) {
     __testlib_print_one(a);
     __testlib_print_line_rest(b);
@@ -5363,7 +5384,7 @@ println(const A &a, B &&b, C &&c, Args&&... args) {
 }
 #endif
 template<typename A, typename B>
-typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
+typename __testlib_enable_if<!__testlib_is_range<A, B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
     __testlib_print_line_rest(b);
 }
@@ -5375,7 +5396,7 @@ void println(const A &a, const B &b, const C &c, const Args&... args) {
 }
 #else
 template<typename A, typename B>
-typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A &a, const B &b) {
+typename __testlib_enable_if<!__testlib_is_range<A, B>::value, void>::type println(const A &a, const B &b) {
     __testlib_print_one(a);
     std::cout << " ";
     __testlib_print_one(b);
@@ -5384,7 +5405,7 @@ typename __testlib_enable_if<!is_iterator<B>::value, void>::type println(const A
 #endif
 
 template<typename A, typename B>
-typename __testlib_enable_if<is_iterator<B>::value, void>::type println(const A &a, const B &b) {
+typename __testlib_enable_if<__testlib_is_range<A, B>::value, void>::type println(const A &a, const B &b) {
     __println_range(a, b);
 }
 
