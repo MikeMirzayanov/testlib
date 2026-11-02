@@ -114,6 +114,29 @@ std::ostream &operator<<(std::ostream &out, const MutablePointerIterator &) {
     return out << "iterator";
 }
 
+// The same iterator over constant values: an array reaches __println_range as const int*.
+struct ConstPointerIterator {
+    typedef std::forward_iterator_tag iterator_category;
+    typedef int value_type;
+    typedef std::ptrdiff_t difference_type;
+    typedef const int *pointer;
+    typedef const int &reference;
+
+    const int *value;
+
+    explicit ConstPointerIterator(const int *value) : value(value) {}
+
+    const int &operator*() const { return *value; }
+    ConstPointerIterator &operator++() { ++value; return *this; }
+    ConstPointerIterator operator++(int) {
+        ConstPointerIterator previous = *this;
+        ++*this;
+        return previous;
+    }
+    bool operator==(const ConstPointerIterator &other) const { return value == other.value; }
+    bool operator!=(const ConstPointerIterator &other) const { return value != other.value; }
+};
+
 template<typename T>
 struct NestedType {
     typedef typename T::type type;
@@ -254,6 +277,7 @@ int main(int argc, char *argv[]) {
     arrayAndIterator << static_cast<const void *>(numbers) << " iterator\n";
     checkOutput("array and mutable iterator", arrayAndIterator.str(), [&] { println(numbers, mutableEnd); });
     checkOutput("pointer and mutable iterator", "4 5 6\n", [&] { println(numbers + 0, mutableEnd); });
+    checkOutput("array and const iterator", "4 5 6\n", [&] { println(numbers, ConstPointerIterator(numbers + 3)); });
 
     ExplicitValue explicitValue;
     checkOutput("integer and non-iterator", "1 value\n", [&] { println(1, explicitValue); });
