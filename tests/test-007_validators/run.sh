@@ -17,3 +17,10 @@ for version in v1 v2 v3 v4; do
     
     rm -f "$version" "$version".exe
 done
+
+# Byte 0xFF is data, not EOF: bytes after a valid test or inside a token must fail validation
+bash ../scripts/compile src/v1.cpp
+for test_num in 07 08 09; do
+    bash ../scripts/test-ref v1-"$test_num" "$VALGRIND" ./v1 --testOverviewLogFileName stderr < files/"$os"/input."$test_num"
+done
+rm -f v1 v1.exe

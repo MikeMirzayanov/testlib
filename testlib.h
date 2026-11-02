@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.47"
+#define VERSION "0.9.48"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Byte 0xFF in input is data, not EOF: EOFC is -1 now, readers return bytes as unsigned char",
         "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting",
         "Remove incorrect const attributes",
         "Added ConstantBoundsLog, VariablesLog to validator testOverviewLogFile",
@@ -235,7 +236,7 @@ const char *latestFeatures[] = {
 #define CR ((char)13)
 #define TAB ((char)9)
 #define SPACE ((char)' ')
-#define EOFC (255)
+#define EOFC (-1)
 
 #ifndef OK_EXIT_CODE
 #   ifdef CONTESTER
@@ -1594,7 +1595,7 @@ pattern::pattern(std::string s) : s(s), from(0), to(0) {
 
 template<typename C>
 inline bool isEof(C c) {
-    return c == EOFC;
+    return c == EOFC || c == C(EOFC);
 }
 
 template<typename C>
@@ -1724,7 +1725,7 @@ public:
         if (pos >= s.length())
             return EOFC;
         else
-            return s[pos];
+            return (unsigned char) s[pos];
     }
 
     int nextChar() {
@@ -1732,7 +1733,7 @@ public:
             pos++;
             return EOFC;
         } else
-            return s[pos++];
+            return (unsigned char) s[pos++];
     }
 
     void skipChar() {
@@ -1918,11 +1919,11 @@ private:
             return true;
     }
 
-    char increment() {
+    int increment() {
         char c;
         if ((c = buffer[bufferPos++]) == LF)
             line++;
-        return c;
+        return (unsigned char) c;
     }
 
 public:
@@ -1956,7 +1957,7 @@ public:
         if (!refill())
             return EOFC;
 
-        return isEof[bufferPos] ? EOFC : buffer[bufferPos];
+        return isEof[bufferPos] ? EOFC : (unsigned char) buffer[bufferPos];
     }
 
     int nextChar() {
