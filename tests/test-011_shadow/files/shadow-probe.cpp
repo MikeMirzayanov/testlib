@@ -42,15 +42,18 @@ int main(int argc, char *argv[]) {
     println(1, 2, 3, 4, 5, 6); println(1, 2, 3, 4, 5, 6, 7);
     println(vec); println(vec.begin(), vec.end()); println(str, std::string("t")); println(&vec[0], &vec[0] + 1);
     println("ab", "cd"); println('c'); println(strs); println(1, vec);
+    const int *cvec = &vec[0];
+    println(cvec, cvec + 1);
 
     (void)vtos(1); (void)vtos(1.5); (void)vtos(std::string("x")); (void)vtos(10ULL);
     (void)toString(1); (void)toString(-7LL);
     (void)toHumanReadableString(1000000); (void)toHumanReadableString(-123456789LL);
     (void)toHumanReadableString(1000000ULL);
-    (void)format("%d", 1); (void)testlib_format_("%d", 1);
+    (void)format("%d", 1); (void)format(std::string("%d"), 1); (void)testlib_format_("%d", 1);
 
     (void)opt<int>(1); (void)opt<long long>("n"); (void)opt<unsigned>("u"); (void)opt<bool>("b");
     (void)opt<double>("d"); (void)opt<std::string>("s");
+    (void)opt<double>(2); (void)opt<unsigned>(2);
     (void)opt<int>(1, 5); (void)opt<long long>("n", 5LL); (void)opt<bool>("b", false);
     (void)opt<double>("d", 1.0); (void)opt<std::string>("s", std::string("z"));
     (void)opt<unsigned long long>("ull"); (void)opt<short>("sh"); (void)opt<float>("f"); (void)opt<long double>("ld");
