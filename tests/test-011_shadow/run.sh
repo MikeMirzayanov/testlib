@@ -88,6 +88,12 @@ for probe in files/shadow-probe.cpp files/shadow-probe-exit-exception.cpp files/
   expect_clean "$probe" "$CPP_INCLUDE_DIR"
 done
 
+# A program's globals named like locals of testlib templates: MSVC checks template bodies where
+# they are instantiated, after these globals, so the locals carry a "_" prefix.
+expect_clean files/fixture-user-globals.cpp "$CPP_INCLUDE_DIR"
+# The "_x" names of those locals are not macros.
+expect_clean files/shadow-names.cpp "$CPP_INCLUDE_DIR"
+
 if [[ "$SHADOW_PROFILE" == "msvc" ]]; then
   # testlib.h disables C4458 for the rest of the translation unit. Check testlib.h itself against
   # C4458 with a copy without that one line.
