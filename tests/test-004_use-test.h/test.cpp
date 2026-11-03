@@ -13,6 +13,8 @@ using namespace std;
 #include "tests/test-pattern.cpp"
 #include "tests/test-stringToLongLong.cpp"
 #include "tests/test-stringToUnsignedLongLong.cpp"
+#include "tests/test-appes-mode-encoding.cpp"
+#include "tests/test-constructors.cpp"
 
 int main() {
     disableFinalizeGuard();

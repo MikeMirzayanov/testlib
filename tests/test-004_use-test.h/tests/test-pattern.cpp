@@ -38,3 +38,18 @@ TEST(pattern) {
         ensure(!pattern("oo(x(aa|ba)|y(ac|dd))|yes").matches("ooyddd"));
     }
 }
+
+TEST(pattern_src_and_errors) {
+    // src() returns the pattern as given; spaces are dropped only for matching.
+    ensure(pattern(" [a-c] {2} ").src() == " [a-c] {2} ");
+    ensure(pattern(" [a-c] {2} ").matches("ab"));
+    ensure(!pattern(" [a-c] {2} ").matches(" ab"));
+    ensure(pattern("No solution").src() == "No solution");
+    ensure(pattern("No solution").matches("Nosolution"));
+    ensure(!pattern("No solution").matches("No solution"));
+    ensure(pattern("No\\ solution").src() == "No\\ solution");
+    ensure(pattern("No\\ solution").matches("No solution"));
+    ensure(!pattern("No\\ solution").matches("Nosolution"));
+    // The error message shows the pattern without spaces: "ab)".
+    ensure_exit(3, [](){pattern("a b)");});
+}

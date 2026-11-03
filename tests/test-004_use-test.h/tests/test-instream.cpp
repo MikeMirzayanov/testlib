@@ -53,3 +53,42 @@ TEST(instream) {
         ensure(s.eof());
     }
 }
+
+TEST(instream_init_sets_mode) {
+    const char *path = "test-004-init.tmp";
+    const char *missing = "test-004-missing.tmp";
+    std::FILE *out = std::fopen(path, "wb");
+    ensure(out != NULL);
+    std::fputs("12 ab\n", out);
+    std::fclose(out);
+
+    const TMode modes[] = {_input, _output, _answer};
+    for (size_t i = 0; i < sizeof(modes) / sizeof(modes[0]); i++) {
+        {
+            InStream s;
+            s.init(path, modes[i]);
+            ensure(s.mode == modes[i]);
+            ensure(s.readInt() == 12);
+        }
+        {
+            std::FILE *in = std::fopen(path, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.init(in, modes[i]);
+            ensure(s.mode == modes[i]);
+            ensure(s.readToken() == "12");
+        }
+    }
+
+    // The mode is set before the file is opened: a missing file is not an error for input,
+    // a presentation error for output and a failure for answer.
+    {
+        InStream s;
+        s.init(missing, _input);
+        ensure(s.mode == _input);
+    }
+    ensure_exit(2, [&](){InStream s; s.init(missing, _output);});
+    ensure_exit(3, [&](){InStream s; s.init(missing, _answer);});
+
+    std::remove(path);
+}
