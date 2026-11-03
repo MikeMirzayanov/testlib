@@ -724,19 +724,19 @@ class random_t;
 class pattern {
 public:
     /* Create pattern instance by string. */
-    pattern(std::string s);
+    pattern(std::string ptrn);
 
     /* Generate new string by pattern and given random_t. */
     std::string next(random_t &rnd) const;
 
     /* Checks if given string match the pattern. */
-    bool matches(const std::string &s) const;
+    bool matches(const std::string &str) const;
 
     /* Returns source string of the pattern. */
     std::string src() const;
 
 private:
-    bool matches(const std::string &s, size_t pos) const;
+    bool matches(const std::string &str, size_t pos) const;
 
     std::string s;
     std::vector<pattern> children;
@@ -1302,8 +1302,8 @@ const unsigned long long random_t::mask = (1LL << 48) - 1;
 int random_t::version = -1;
 
 /* Pattern implementation */
-bool pattern::matches(const std::string &s) const {
-    return matches(s, 0);
+bool pattern::matches(const std::string &str) const {
+    return matches(str, 0);
 }
 
 static bool __pattern_isSlash(const std::string &s, size_t pos) {
@@ -1356,11 +1356,11 @@ std::string pattern::src() const {
     return s;
 }
 
-bool pattern::matches(const std::string &s, size_t pos) const {
+bool pattern::matches(const std::string &str, size_t pos) const {
     std::string result;
 
     if (to > 0) {
-        int size = __pattern_greedyMatch(s, pos, chars);
+        int size = __pattern_greedyMatch(str, pos, chars);
         if (size < from)
             return false;
         if (size > to)
@@ -1370,11 +1370,11 @@ bool pattern::matches(const std::string &s, size_t pos) const {
 
     if (children.size() > 0) {
         for (size_t child = 0; child < children.size(); child++)
-            if (children[child].matches(s, pos))
+            if (children[child].matches(str, pos))
                 return true;
         return false;
     } else
-        return pos == s.length();
+        return pos == str.length();
 }
 
 std::string pattern::next(random_t &rnd) const {
@@ -1536,24 +1536,24 @@ static std::vector<char> __pattern_scanCharSet(const std::string &s, size_t &pos
     return result;
 }
 
-pattern::pattern(std::string s) : s(s), from(0), to(0) {
+pattern::pattern(std::string ptrn) : s(ptrn), from(0), to(0) {
     std::string t;
-    for (size_t i = 0; i < s.length(); i++)
-        if (!__pattern_isCommandChar(s, i, ' '))
-            t += s[i];
-    s = t;
+    for (size_t i = 0; i < ptrn.length(); i++)
+        if (!__pattern_isCommandChar(ptrn, i, ' '))
+            t += ptrn[i];
+    ptrn = t;
 
     int opened = 0;
     int firstClose = -1;
     std::vector<int> seps;
 
-    for (size_t i = 0; i < s.length(); i++) {
-        if (__pattern_isCommandChar(s, i, '(')) {
+    for (size_t i = 0; i < ptrn.length(); i++) {
+        if (__pattern_isCommandChar(ptrn, i, '(')) {
             opened++;
             continue;
         }
 
-        if (__pattern_isCommandChar(s, i, ')')) {
+        if (__pattern_isCommandChar(ptrn, i, ')')) {
             opened--;
             if (opened == 0 && firstClose == -1)
                 firstClose = int(i);
@@ -1561,33 +1561,33 @@ pattern::pattern(std::string s) : s(s), from(0), to(0) {
         }
 
         if (opened < 0)
-            __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
+            __testlib_fail("pattern: Illegal pattern (or part) \"" + ptrn + "\"");
 
-        if (__pattern_isCommandChar(s, i, '|') && opened == 0)
+        if (__pattern_isCommandChar(ptrn, i, '|') && opened == 0)
             seps.push_back(int(i));
     }
 
     if (opened != 0)
-        __testlib_fail("pattern: Illegal pattern (or part) \"" + s + "\"");
+        __testlib_fail("pattern: Illegal pattern (or part) \"" + ptrn + "\"");
 
-    if (seps.size() == 0 && firstClose + 1 == (int) s.length()
-        && __pattern_isCommandChar(s, 0, '(') && __pattern_isCommandChar(s, s.length() - 1, ')')) {
-        children.push_back(pattern(s.substr(1, s.length() - 2)));
+    if (seps.size() == 0 && firstClose + 1 == (int) ptrn.length()
+        && __pattern_isCommandChar(ptrn, 0, '(') && __pattern_isCommandChar(ptrn, ptrn.length() - 1, ')')) {
+        children.push_back(pattern(ptrn.substr(1, ptrn.length() - 2)));
     } else {
         if (seps.size() > 0) {
-            seps.push_back(int(s.length()));
+            seps.push_back(int(ptrn.length()));
             int last = 0;
 
             for (size_t i = 0; i < seps.size(); i++) {
-                children.push_back(pattern(s.substr(last, seps[i] - last)));
+                children.push_back(pattern(ptrn.substr(last, seps[i] - last)));
                 last = seps[i] + 1;
             }
         } else {
             size_t pos = 0;
-            chars = __pattern_scanCharSet(s, pos);
-            __pattern_scanCounts(s, pos, from, to);
-            if (pos < s.length())
-                children.push_back(pattern(s.substr(pos)));
+            chars = __pattern_scanCharSet(ptrn, pos);
+            __pattern_scanCounts(ptrn, pos, from, to);
+            if (pos < ptrn.length())
+                children.push_back(pattern(ptrn.substr(pos)));
         }
     }
 }
@@ -1782,12 +1782,12 @@ private:
             return EOFC;
     }
 
-    int getc(FILE *file) {
+    int getc(FILE *f) {
         int c;
         int rc;
 
         if (undoChars.empty()) {
-            c = rc = ::getc(file);
+            c = rc = ::getc(f);
         } else {
             c = undoChars.back();
             undoChars.pop_back();
@@ -1814,7 +1814,7 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
+    FileInputStreamReader(std::FILE *f, const std::string &fileName) : file(f), name(fileName), line(1) {
         // No operations.
     }
 
@@ -1928,7 +1928,7 @@ private:
     }
 
 public:
-    BufferedFileInputStreamReader(std::FILE *file, const std::string &name) : file(file), name(name), line(1) {
+    BufferedFileInputStreamReader(std::FILE *f, const std::string &fileName) : file(f), name(fileName), line(1) {
         buffer = new char[BUFFER_SIZE];
         isEof = new bool[BUFFER_SIZE];
         bufferSize = MAX_UNREAD_COUNT;
@@ -2036,9 +2036,9 @@ struct InStream {
     size_t maxTokenLength;
     size_t maxMessageLength;
 
-    void init(std::string fileName, TMode mode);
+    void init(std::string fileName, TMode type);
 
-    void init(std::FILE *f, TMode mode);
+    void init(std::FILE *f, TMode type);
 
     void setTestCase(int testCase);
     std::vector<int> getReadChars();
@@ -2401,7 +2401,7 @@ struct ValidatorBoundsHit {
     bool minHit;
     bool maxHit;
 
-    ValidatorBoundsHit(bool minHit = false, bool maxHit = false) : minHit(minHit), maxHit(maxHit) {
+    ValidatorBoundsHit(bool lower = false, bool upper = false) : minHit(lower), maxHit(upper) {
     };
 
     ValidatorBoundsHit merge(const ValidatorBoundsHit &validatorBoundsHit, bool ignoreMinBound, bool ignoreMaxBound) {
@@ -2976,7 +2976,7 @@ class exit_exception: public std::exception {
 private:
     int exitCode;
 public:
-    exit_exception(int exitCode): exitCode(exitCode) {}
+    exit_exception(int code): exitCode(code) {}
     int getExitCode() { return exitCode; }
 };
 #endif
@@ -3289,11 +3289,11 @@ void InStream::reset(std::FILE *file) {
     }
 }
 
-void InStream::init(std::string fileName, TMode mode) {
+void InStream::init(std::string fileName, TMode type) {
     opened = false;
     name = fileName;
     stdfile = false;
-    this->mode = mode;
+    this->mode = type;
 
     std::ifstream stream;
     stream.open(fileName.c_str(), std::ios::in);
@@ -3313,10 +3313,10 @@ void InStream::init(std::string fileName, TMode mode) {
     reset();
 }
 
-void InStream::init(std::FILE *f, TMode mode) {
+void InStream::init(std::FILE *f, TMode type) {
     opened = false;
     name = "untitled";
-    this->mode = mode;
+    this->mode = type;
 
     if (f == stdin)
         name = "stdin", stdfile = true;
@@ -4651,7 +4651,7 @@ void registerGen(int argc, char *argv[]) {
 }
 #endif
 
-void setAppesModeEncoding(std::string appesModeEncoding) {
+void setAppesModeEncoding(std::string value) {
     static const char* const ENCODINGS[] = {"ascii", "utf-7", "utf-8", "utf-16", "utf-16le", "utf-16be", "utf-32", "utf-32le", "utf-32be", "iso-8859-1", 
 "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-9", "iso-8859-10", "iso-8859-11", 
 "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", 
@@ -4663,16 +4663,16 @@ void setAppesModeEncoding(std::string appesModeEncoding) {
 "cp1006", "cp775", "cp858", "cp737", "cp853", "cp856", "cp922", "cp1046", "cp1125", "cp1131", 
 "ptcp154", "koi8-t", "koi8-ru", "mulelao-1", "cp1133", "iso-ir-166", "tcvn", "iso-ir-14", "iso-ir-87", "iso-ir-159"};
     
-    appesModeEncoding = lowerCase(appesModeEncoding);
+    value = lowerCase(value);
     bool valid = false;
     for (size_t i = 0; i < sizeof(ENCODINGS) / sizeof(ENCODINGS[0]); i++)
-        if (appesModeEncoding == ENCODINGS[i]) {
+        if (value == ENCODINGS[i]) {
             valid = true;
             break;
         }
     if (!valid)
         quit(_fail, "Unexpected encoding for setAppesModeEncoding(encoding)");
-    ::appesModeEncoding = appesModeEncoding;
+    ::appesModeEncoding = value;
 }
 
 void registerInteraction(int argc, char *argv[]) {
