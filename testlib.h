@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.49"
+#define VERSION "0.9.50"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "No shadowing warnings from testlib.h: g++ -Wshadow, clang++ -Wshadow-all, MSVC C4456-C4459",
         "readLine()/readString(): a CR right before EOF no longer appends a 0xFF byte to the line",
         "Byte 0xFF in input is data, not EOF: EOFC is -1 now, readers return bytes as unsigned char",
         "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting",
