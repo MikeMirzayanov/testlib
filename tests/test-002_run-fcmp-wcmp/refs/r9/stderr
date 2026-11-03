@@ -1,0 +1,1 @@
+wrong answer 1st lines differ - expected: 'abc 01 \%test!$', found: 'abc 01 \%test!$ÿ junk'
