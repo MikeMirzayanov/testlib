@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.48"
+#define VERSION "0.9.49"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "readLine()/readString(): a CR right before EOF no longer appends a 0xFF byte to the line",
         "Byte 0xFF in input is data, not EOF: EOFC is -1 now, readers return bytes as unsigned char",
         "testlib format()/println() work with using namespace std; call std::format/std::println explicitly for standard formatting",
         "Remove incorrect const attributes",
@@ -4286,6 +4287,7 @@ void InStream::readStringTo(std::string &result) {
                 reader->unreadChar(cur);
                 break;
             }
+            continue;
         }
 
         lastLine = reader->getLine();
