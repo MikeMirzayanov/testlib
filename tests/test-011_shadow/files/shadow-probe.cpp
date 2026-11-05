@@ -1,5 +1,6 @@
 // Compile-only probe: instantiates the templates of testlib.h. GCC and Clang check template
 // bodies for shadowing where they are defined, MSVC only where they are instantiated.
+// Add here every new template of testlib.h, otherwise this test does not check it on MSVC.
 // fixture-user-globals.cpp includes this file after its globals: keep the names of the locals
 // here out of its list.
 #include "testlib.h"

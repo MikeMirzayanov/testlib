@@ -363,6 +363,11 @@ void unsetTestCase() {
 
 NORETURN static void __testlib_fail(const std::string &message);
 
+// Parameters and locals of templates have a "_" prefix (_n, _value, ...). MSVC, and Clang with
+// delayed template parsing, check a template body where it is instantiated, after the program's
+// own globals, so a plain name like "n" would hide a global "n" (C4459, -Wshadow) inside testlib.h.
+// Such names are reserved in the global namespace, so no program global has them. Instantiate new
+// templates in tests/test-011_shadow/files/shadow-probe.cpp.
 template<typename T>
 #ifdef __GNUC__
 __attribute__((const))
