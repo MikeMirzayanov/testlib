@@ -4512,9 +4512,9 @@ template<typename F>
 #ifdef __GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
-NORETURN void quitp(F _points, const char *format, ...) {
+NORETURN void quitp(F _pts, const char *format, ...) {
     FMT_TO_RESULT(format, format, _message);
-    quitp(_points, _message);
+    quitp(_pts, _message);
 }
 
 #ifdef __GNUC__

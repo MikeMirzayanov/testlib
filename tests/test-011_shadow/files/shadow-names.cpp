@@ -8,8 +8,8 @@
     || defined(_expectedString) || defined(_first) || defined(_fmt) || defined(_found) \
     || defined(_foundString) || defined(_from) || defined(_i) || defined(_index) || defined(_it) \
     || defined(_key) || defined(_last) || defined(_lower) || defined(_message) || defined(_min_part) \
-    || defined(_n) || defined(_negative) || defined(_nonnegative) || defined(_p) || defined(_points) \
-    || defined(_pos) || defined(_preparedVariableName) || defined(_prepend) || defined(_prependFormat) \
+    || defined(_n) || defined(_negative) || defined(_nonnegative) || defined(_p) || defined(_pos) \
+    || defined(_preparedVariableName) || defined(_prepend) || defined(_prependFormat) || defined(_pts) \
     || defined(_repeated) || defined(_rest) || defined(_result) || defined(_result_sum) || defined(_s) \
     || defined(_separator) || defined(_septums) || defined(_sign) || defined(_size) || defined(_ss) \
     || defined(_sum) || defined(_t) || defined(_t_string) || defined(_text) || defined(_to) \
