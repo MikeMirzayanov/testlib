@@ -24,16 +24,17 @@ check() {
   fi
 }
 
-# testlib.h itself: the probes must compile with shadowing diagnostics as errors.
+# testlib.h itself: the probes must compile with shadowing diagnostics as errors. $3 holds optional
+# extra flags.
 expect_clean() {
-  local src=$1 include_dir=$2 output status=0
-  output=$(check "$src" "$SHADOW_ERROR_FLAGS" "$include_dir") || status=$?
+  local src=$1 include_dir=$2 extra=$3 output status=0
+  output=$(check "$src" "$SHADOW_ERROR_FLAGS $extra" "$include_dir") || status=$?
   echo "$output"
   if [[ "$status" -ne 0 ]]; then
-    echo -e "${RED}[FAILED]${NC} $src: shadowing diagnostics (exit code $status)"
+    echo -e "${RED}[FAILED]${NC} $src${extra:+ ($extra)}: shadowing diagnostics (exit code $status)"
     exit 1
   fi
-  echo -e "${GREEN}[SUCCESS]${NC} $src: no shadowing diagnostics"
+  echo -e "${GREEN}[SUCCESS]${NC} $src${extra:+ ($extra)}: no shadowing diagnostics"
 }
 
 # A program's own shadowing after #include "testlib.h": $2 is the expected diagnostic
@@ -91,6 +92,11 @@ done
 # A program's globals named like locals of testlib templates: MSVC checks template bodies where
 # they are instantiated, after these globals, so the locals carry a "_" prefix.
 expect_clean files/fixture-user-globals.cpp "$CPP_INCLUDE_DIR"
+if [[ "$SHADOW_PROFILE" == clang-* ]]; then
+  # Clang with delayed template parsing checks the parameters there as well. It is the default
+  # only for the MSVC target before C++20, so request it on every target and in every standard.
+  expect_clean files/fixture-user-globals.cpp "$CPP_INCLUDE_DIR" -fdelayed-template-parsing
+fi
 # The "_x" names of those locals are not macros.
 expect_clean files/shadow-names.cpp "$CPP_INCLUDE_DIR"
 
