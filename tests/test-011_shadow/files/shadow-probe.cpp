@@ -45,6 +45,9 @@ int main(int argc, char *argv[]) {
     println("ab", "cd"); println('c'); println(strs); println(1, vec);
     const int *cvec = &vec[0];
     println(cvec, cvec + 1);
+    // Only const lvalues reach the const& overloads in C++23.
+    const int cval = 1;
+    println(cval, cval); println(cval, cval, cval);
 
     (void)vtos(1); (void)vtos(1.5); (void)vtos(std::string("x")); (void)vtos(10ULL);
     (void)toString(1); (void)toString(-7LL);
