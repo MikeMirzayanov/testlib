@@ -5674,7 +5674,7 @@ std::string __testlib_keyToOpts(const std::string &key) {
 }
 
 template<typename T>
-T optValueToIntegral(const std::string &s, bool nonnegative);
+T optValueToIntegral(const std::string &_text, bool _nonnegative);
 
 long double optValueToLongDouble(const std::string &s);
 
