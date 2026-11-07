@@ -1,0 +1,46 @@
+#!/bin/bash
+# Shadowing diagnostics for the compiler in $CPP. Source this file from a test's run.sh.
+#
+# Sets:
+#   SHADOW_PROFILE     gcc, clang-extended, clang-base or msvc
+#   SHADOW_WARN_FLAGS  flags that enable the shadowing warnings
+#   SHADOW_ERROR_FLAGS flags that enable them as errors
+#
+# cl.exe reads its options from the CL environment variable as well (tests/scripts/compile does
+# not pass CPP_OPTS to cl.exe), so the MSVC flags can be given either way. MSVC has no -Wshadow:
+# C4456/C4457/C4458/C4459 are its warnings for a local, a parameter, a member and a global hidden
+# by a declaration.
+
+if [[ -z "$CPP" ]]; then
+  echo "Must provide CPP in environment"
+  exit 1
+fi
+
+if [[ "$CPP" == "cl.exe" ]]; then
+  SHADOW_PROFILE="msvc"
+  # Dashes, not slashes: MSYS would take "/we4456" for a path and convert it.
+  SHADOW_WARN_FLAGS="-w14456 -w14457 -w14458 -w14459"
+  SHADOW_ERROR_FLAGS="-we4456 -we4457 -we4458 -we4459"
+else
+  if [[ "$("$CPP" --version 2>&1)" == *clang* ]]; then
+    shadow_flags_probe="shadow-flags-probe-$$.cpp"
+    echo "int main() { return 0; }" > "$shadow_flags_probe"
+    # -Wshadow-all (clang 3.9+) adds constructor parameters and other cases to -Wshadow.
+    if "$CPP" -Wshadow-all -Werror -fsyntax-only "$shadow_flags_probe" >/dev/null 2>&1; then
+      SHADOW_PROFILE="clang-extended"
+      SHADOW_WARN_FLAGS="-Wshadow-all"
+      SHADOW_ERROR_FLAGS="-Wshadow-all -Werror=shadow-all"
+    else
+      SHADOW_PROFILE="clang-base"
+      SHADOW_WARN_FLAGS="-Wshadow"
+      SHADOW_ERROR_FLAGS="-Wshadow -Werror=shadow"
+    fi
+    rm -f "$shadow_flags_probe"
+  else
+    SHADOW_PROFILE="gcc"
+    SHADOW_WARN_FLAGS="-Wshadow"
+    SHADOW_ERROR_FLAGS="-Wshadow -Werror=shadow"
+  fi
+fi
+
+export SHADOW_PROFILE SHADOW_WARN_FLAGS SHADOW_ERROR_FLAGS

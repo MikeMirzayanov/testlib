@@ -3,8 +3,12 @@ Running test 'split'                                                            
 Running test 'tokenize'                                                                             OK
 Running test 'opts'                                                                                 OK
 Running test 'instream'                                                                             OK
+Running test 'instream_init_sets_mode'                                                              OK
 Running test 'pattern'                                                                              OK
+Running test 'pattern_src_and_errors'                                                               OK
 Running test 'stringToLongLong'                                                                     OK
 Running test 'stringToUnsignedLongLong'                                                             OK
+Running test 'appes_mode_encoding'                                                                  OK
+Running test 'constructors'                                                                         OK
 
-SUCCESS 8 tests passed.
+SUCCESS 12 tests passed.

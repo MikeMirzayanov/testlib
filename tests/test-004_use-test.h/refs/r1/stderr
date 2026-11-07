@@ -19,6 +19,9 @@ FAIL Token parameter [name=n] equals to "abacab", doesn't correspond to pattern 
 FAIL Token parameter [name=n] equals to "abacabaa", doesn't correspond to pattern "a|test|abacaba|ok|abac" (based on )
 FAIL Token parameter [name=n] equals to "abacaba!", doesn't correspond to pattern "a|test|abacaba|ok|abac" (based on )
 FAIL Integer element a[4] equals to 4, violates the range [1, 3] (based on )
+wrong output format Output file not found: "test-004-missing.tmp"
+FAIL Answer file not found: "test-004-missing.tmp"
+FAIL pattern: Illegal pattern (or part) "ab)"
 FAIL Expected integer, but "" found ()
 FAIL Expected integer, but "-" found ()
 FAIL Expected integer, but "+" found ()
@@ -51,3 +54,4 @@ FAIL Expected unsigned integer, but "1 2" found ()
 FAIL Expected unsigned integer, but "-0" found ()
 FAIL Expected unsigned integer, but "--0" found ()
 FAIL Expected unsigned integer, but "-00" found ()
+FAIL Unexpected encoding for setAppesModeEncoding(encoding)
