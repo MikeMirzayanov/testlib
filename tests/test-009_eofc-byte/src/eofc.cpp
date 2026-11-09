@@ -18,6 +18,14 @@ int main(int argc, char *argv[]) {
     ensuref(!s.eof(), "string stream: eof() before reading");
     ensuref(!isEof(s.curChar()), "string stream: isEof(curChar()) before reading");
 
+    char s1 = s.nextChar();
+    char s2 = s.nextChar();
+    ensuref(s1 == 'x' && s2 == FF, "string stream: unexpected initial bytes");
+    s.unreadChar(s2);
+    ensuref(!s.eof() && s.reader->curChar() == 255, "string stream: unreadChar(0xFF) failed");
+    s.unreadChar(s1);
+    ensuref(!s.eof() && s.curChar() == 'x', "string stream: unreadChar('x') failed");
+
     string a = s.readToken();
     ensuref(a.size() == 3, "string stream: first token has %d bytes, expected 3", int(a.size()));
     ensuref(a[1] == FF, "string stream: byte 0xFF is lost in the first token");
@@ -35,6 +43,14 @@ int main(int argc, char *argv[]) {
     ensuref(f.eof(), "string stream: eof() after a single 0xFF byte");
 
     // File streams: the files contain "a<FF>b".
+    char o1 = ouf.nextChar();
+    char o2 = ouf.nextChar();
+    ensuref(o1 == 'a' && o2 == FF, "output: unexpected initial bytes");
+    ouf.unreadChar(o2);
+    ensuref(!ouf.eof() && ouf.reader->curChar() == 255, "output: unreadChar(0xFF) turned byte into EOF");
+    ouf.unreadChar(o1);
+    ensuref(!ouf.eof() && ouf.curChar() == 'a', "output: unreadChar('a') failed");
+
     string j = ans.readToken();
     string p = ouf.readToken();
     ensuref(j.size() == 3 && j[1] == FF, "answer: token has %d bytes, expected 3", int(j.size()));
@@ -42,6 +58,20 @@ int main(int argc, char *argv[]) {
     ensuref(j == p, "tokens differ");
     ensuref(ouf.seekEof(), "output: seekEof() at the end");
     ensuref(isEof(ouf.curChar()), "output: isEof(curChar()) at the end");
+
+    // Standard input stream (FileInputStreamReader): stdin receives files/output.01 ("a<FF>b").
+    InStream in;
+    in.init(stdin, _input);
+    ensuref(in.readChar() == 'a', "stdin: expected 'a'");
+    char inFF = in.nextChar();
+    ensuref(inFF == FF, "stdin: expected byte 0xFF");
+    in.unreadChar(inFF);
+    ensuref(!in.eof() && in.reader->curChar() == 255, "stdin: unreadChar(0xFF) turned byte into EOF");
+    string inRest = in.readToken();
+    ensuref(inRest.size() == 2 && inRest[0] == FF && inRest[1] == 'b',
+            "stdin: token after unreadChar(0xFF) has %d bytes, expected 2", int(inRest.size()));
+    ensuref(in.seekEof(), "stdin: seekEof() at the end");
+    ensuref(isEof(in.curChar()), "stdin: isEof(curChar()) at the end");
 
     quitf(_ok, "byte 0xFF is kept in %d-byte tokens", int(p.size()));
 }
