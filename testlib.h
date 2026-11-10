@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.50"
+#define VERSION "0.9.51"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "InStream::unreadChar(char) puts back bytes 0x80..0xFF as data (0xFF no longer becomes EOF); EOF cannot be put back through it",
         "No shadowing warnings from testlib.h: g++ -Wshadow, clang++ -Wshadow-all, MSVC C4456-C4459",
         "readLine()/readString(): a CR right before EOF no longer appends a 0xFF byte to the line",
         "Byte 0xFF in input is data, not EOF: EOFC is -1 now, readers return bytes as unsigned char",
@@ -2070,7 +2071,7 @@ struct InStream {
     /* As "readChar()" but ensures that the result is equal to the space (code=32). */
     char readSpace();
 
-    /* Puts back the character into the stream. */
+    /* Puts back the data byte into the stream (cannot put back EOF). */
     void unreadChar(char c);
 
     /* Reopens stream, you should not use it. */
@@ -3380,7 +3381,7 @@ char InStream::readSpace() {
 }
 
 void InStream::unreadChar(char c) {
-    reader->unreadChar(c);
+    reader->unreadChar((unsigned char) c);
 }
 
 void InStream::skipChar() {

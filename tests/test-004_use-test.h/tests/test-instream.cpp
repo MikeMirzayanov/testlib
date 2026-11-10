@@ -52,6 +52,157 @@ TEST(instream) {
         ensure(s.readWord() == "content");
         ensure(s.eof());
     }
+    {
+        const char *unreadPath = "test-004-unread.tmp";
+        const int bytes[] = {0x00, 0x7F, 0x80, 0xEF, 0xFE, 0xFF};
+        for (size_t i = 0; i < sizeof(bytes) / sizeof(bytes[0]); i++) {
+            int byte = bytes[i];
+            std::string content;
+            content += char(byte);
+            content += 'Z';
+
+            {
+                InStream s(inf, content);
+                char c = s.nextChar();
+                s.unreadChar(c);
+                ensure(!s.eof());
+                ensure(!isEof(s.reader->curChar()));
+                ensure(s.reader->curChar() == byte);
+                ensure(s.curChar() == char(byte));
+                ensure(s.readChar() == char(byte));
+                ensure(s.readChar() == 'Z');
+                ensure(s.eof());
+                ensure(isEof(s.curChar()));
+            }
+
+            {
+                std::FILE *out = std::fopen(unreadPath, "wb");
+                ensure(out != NULL);
+                ensure(std::fwrite(content.data(), 1, content.size(), out) == content.size());
+                std::fclose(out);
+            }
+
+            {
+                InStream s;
+                s.init(unreadPath, _input);
+                char c = s.nextChar();
+                s.unreadChar(c);
+                ensure(!s.eof());
+                ensure(!isEof(s.reader->curChar()));
+                ensure(s.reader->curChar() == byte);
+                ensure(s.curChar() == char(byte));
+                ensure(s.readChar() == char(byte));
+                ensure(s.readChar() == 'Z');
+                ensure(s.eof());
+                ensure(isEof(s.curChar()));
+            }
+
+            {
+                std::FILE *in = std::fopen(unreadPath, "rb");
+                ensure(in != NULL);
+                InStream s;
+                s.stdfile = true;
+                s.reset(in);
+                char c = s.nextChar();
+                s.unreadChar(c);
+                ensure(!s.eof());
+                ensure(!isEof(s.reader->curChar()));
+                ensure(s.reader->curChar() == byte);
+                ensure(s.curChar() == char(byte));
+                ensure(s.readChar() == char(byte));
+                ensure(s.readChar() == 'Z');
+                ensure(s.eof());
+                ensure(isEof(s.curChar()));
+            }
+        }
+
+        for (int strictMode = 0; strictMode <= 1; strictMode++) {
+#if (defined(ON_WINDOWS) && !defined(FOR_LINUX)) || defined(FOR_WINDOWS)
+            const std::string eolnStr = strictMode ? "\r\n" : "\n";
+#else
+            const std::string eolnStr = "\n";
+#endif
+            std::string data;
+            data += char(0xFF);
+            data += "ab";
+            data += eolnStr;
+            data += "42";
+            data += eolnStr;
+
+            {
+                std::FILE *out = std::fopen(unreadPath, "wb");
+                ensure(out != NULL);
+                ensure(std::fwrite(data.data(), 1, data.size(), out) == data.size());
+                std::fclose(out);
+            }
+
+            for (int useStdFile = 0; useStdFile <= 1; useStdFile++) {
+                InStream s;
+                if (useStdFile) {
+                    std::FILE *in = std::fopen(unreadPath, "rb");
+                    ensure(in != NULL);
+                    s.stdfile = true;
+                    s.reset(in);
+                } else {
+                    s.init(unreadPath, _input);
+                }
+                s.strict = (strictMode != 0);
+
+                char first = s.readChar();
+                ensure(first == char(0xFF));
+                s.unreadChar(first);
+                std::string tok = s.readToken();
+                ensure(tok.size() == 3 && tok[0] == char(0xFF) && tok[1] == 'a' && tok[2] == 'b');
+                s.readEoln();
+                char digit = s.readChar();
+                ensure(digit == '4');
+                s.unreadChar(digit);
+                ensure(s.readInt() == 42);
+                s.readEoln();
+                ensure(s.eof());
+            }
+        }
+
+        // Characterize unreadChar after reading at actual EOF:
+        // StringInputStreamReader and FileInputStreamReader remain at EOF, whereas
+        // BufferedFileInputStreamReader inserts a 0xFF byte (documented limitation:
+        // InStream::unreadChar(char) cannot put back EOF).
+        {
+            InStream s(inf, "");
+            char c = s.nextChar();
+            s.unreadChar(c);
+            ensure(s.eof());
+            ensure(s.reader->curChar() == EOFC);
+        }
+        {
+            std::FILE *out = std::fopen(unreadPath, "wb");
+            ensure(out != NULL);
+            std::fclose(out);
+        }
+        {
+            std::FILE *in = std::fopen(unreadPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+            char c = s.nextChar();
+            s.unreadChar(c);
+            ensure(s.eof());
+            ensure(s.reader->curChar() == EOFC);
+        }
+        {
+            InStream s;
+            s.init(unreadPath, _input);
+            char c = s.nextChar();
+            s.unreadChar(c);
+            ensure(!s.eof());
+            ensure(s.reader->curChar() == 255);
+            ensure(s.readChar() == char(255));
+            ensure(s.eof());
+        }
+
+        std::remove(unreadPath);
+    }
 }
 
 TEST(instream_init_sets_mode) {
