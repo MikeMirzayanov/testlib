@@ -25,7 +25,7 @@
  * Copyright (c) 2005-2026
  */
 
-#define VERSION "0.9.51"
+#define VERSION "0.9.52"
 
 /*
  * Mike Mirzayanov
@@ -63,6 +63,7 @@
  */
 
 const char *latestFeatures[] = {
+        "Interactors and scorers no longer keep a copy of all stdin input in memory (FileInputStreamReader records readChars only in validator mode)",
         "InStream::unreadChar(char) puts back bytes 0x80..0xFF as data (0xFF no longer becomes EOF); EOF cannot be put back through it",
         "No shadowing warnings from testlib.h: g++ -Wshadow, clang++ -Wshadow-all, MSVC C4456-C4459",
         "readLine()/readString(): a CR right before EOF no longer appends a 0xFF byte to the line",
@@ -1773,6 +1774,8 @@ public:
     }
 };
 
+extern TTestlibMode testlibMode;
+
 class FileInputStreamReader : public InputStreamReader {
 private:
     std::FILE *file;
@@ -1781,6 +1784,7 @@ private:
     std::vector<int> undoChars;
     std::vector<int> readChars;
     std::vector<int> undoReadChars;
+    bool recordReadChars;
 
     inline int postprocessGetc(int getcResult) {
         if (getcResult != EOF)
@@ -1798,19 +1802,23 @@ private:
         } else {
             c = undoChars.back();
             undoChars.pop_back();
-            rc = undoReadChars.back();
-            undoReadChars.pop_back();
+            if (recordReadChars) {
+                rc = undoReadChars.back();
+                undoReadChars.pop_back();
+            } else
+                rc = c;
         }
 
         if (c == LF)
             line++;
 
-        readChars.push_back(rc);
+        if (recordReadChars)
+            readChars.push_back(rc);
         return c;
     }
 
     int ungetc(int c/*, FILE* file*/) {
-        if (!readChars.empty()) {
+        if (recordReadChars && !readChars.empty()) {
             undoReadChars.push_back(readChars.back());
             readChars.pop_back();
         }
@@ -1821,14 +1829,16 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *f, const std::string &fileName) : file(f), name(fileName), line(1) {
+    FileInputStreamReader(std::FILE *f, const std::string &fileName)
+            : file(f), name(fileName), line(1), recordReadChars(testlibMode == _validator) {
         // No operations.
     }
 
     void setTestCase(int testCase) {
         if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
             __testlib_fail(testlib_format_("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
-        readChars.push_back(testCase + 256);
+        if (recordReadChars)
+            readChars.push_back(testCase + 256);
     }
 
     std::vector<int> getReadChars() {
