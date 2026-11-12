@@ -408,6 +408,41 @@ TEST(instream_reader_history) {
             ensure(s.reader->nextChar() == EOFC);
             ensure(s.reader->getReadChars() == vector<int>({80, 81, -1}));
         }
+
+        // Scenario C: switching testlibMode while a FileInputStreamReader has buffered lookahead/unread
+        // must not desynchronize undoChars and undoReadChars, because recordReadChars is fixed at construction.
+        {
+            testlibMode = _unknown;
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.curChar() == 'P');
+            testlibMode = _validator;
+            ensure(s.nextChar() == 'P');
+            s.unreadChar('Z');
+            ensure(s.nextChar() == 'Z');
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars().empty());
+        }
+        {
+            testlibMode = _validator;
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.curChar() == 'P');
+            testlibMode = _interactor;
+            ensure(s.nextChar() == 'P');
+            ensure(s.curChar() == 'Q');
+            testlibMode = _validator;
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars() == vector<int>({80, 81}));
+        }
     }
 
     // 3. Deterministic pseudo-random test with an independent semantic prefix oracle.
@@ -507,6 +542,8 @@ TEST(instream_reader_history) {
                         tc = tc % 5 + 1;
                         s.reader->setTestCase(tc);
                         model.push_back(256 + tc);
+                        // Reset budget so unreadChar is not called right after setTestCase(tc),
+                        // which would pop the testcase marker (tc + 256) from readChars.
                         budget = 0;
                         break;
                     }

@@ -1784,6 +1784,7 @@ private:
     std::vector<int> undoChars;
     std::vector<int> readChars;
     std::vector<int> undoReadChars;
+    bool recordReadChars;
 
     inline int postprocessGetc(int getcResult) {
         if (getcResult != EOF)
@@ -1801,7 +1802,7 @@ private:
         } else {
             c = undoChars.back();
             undoChars.pop_back();
-            if (testlibMode == _validator) {
+            if (recordReadChars) {
                 rc = undoReadChars.back();
                 undoReadChars.pop_back();
             } else
@@ -1811,13 +1812,13 @@ private:
         if (c == LF)
             line++;
 
-        if (testlibMode == _validator)
+        if (recordReadChars)
             readChars.push_back(rc);
         return c;
     }
 
     int ungetc(int c/*, FILE* file*/) {
-        if (testlibMode == _validator && !readChars.empty()) {
+        if (recordReadChars && !readChars.empty()) {
             undoReadChars.push_back(readChars.back());
             readChars.pop_back();
         }
@@ -1828,14 +1829,15 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *f, const std::string &fileName) : file(f), name(fileName), line(1) {
+    FileInputStreamReader(std::FILE *f, const std::string &fileName)
+            : file(f), name(fileName), line(1), recordReadChars(testlibMode == _validator) {
         // No operations.
     }
 
     void setTestCase(int testCase) {
         if (testCase < 0 || testCase > __TESTLIB_MAX_TEST_CASE)
             __testlib_fail(testlib_format_("testCase expected fit in [1,%d], but %d doesn't", __TESTLIB_MAX_TEST_CASE, testCase));
-        if (testlibMode == _validator)
+        if (recordReadChars)
             readChars.push_back(testCase + 256);
     }
 
