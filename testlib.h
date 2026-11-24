@@ -63,7 +63,7 @@
  */
 
 const char *latestFeatures[] = {
-        "Interactors and scorers no longer keep a copy of all stdin input in memory (FileInputStreamReader records readChars only in validator mode)",
+        "Interactors and scorers no longer keep a copy of all stdin input in memory (directly constructed FileInputStreamReader objects still record history by default)",
         "InStream::unreadChar(char) puts back bytes 0x80..0xFF as data (0xFF no longer becomes EOF); EOF cannot be put back through it",
         "No shadowing warnings from testlib.h: g++ -Wshadow, clang++ -Wshadow-all, MSVC C4456-C4459",
         "readLine()/readString(): a CR right before EOF no longer appends a 0xFF byte to the line",
@@ -1774,8 +1774,6 @@ public:
     }
 };
 
-extern TTestlibMode testlibMode;
-
 class FileInputStreamReader : public InputStreamReader {
 private:
     std::FILE *file;
@@ -1829,8 +1827,8 @@ private:
     }
 
 public:
-    FileInputStreamReader(std::FILE *f, const std::string &fileName)
-            : file(f), name(fileName), line(1), recordReadChars(testlibMode == _validator) {
+    FileInputStreamReader(std::FILE *f, const std::string &fileName, bool recordHistory = true)
+            : file(f), name(fileName), line(1), recordReadChars(recordHistory) {
         // No operations.
     }
 
@@ -3297,7 +3295,7 @@ void InStream::reset(std::FILE *file) {
         __testlib_set_binary(file);
 
         if (stdfile)
-            reader = new FileInputStreamReader(file, name);
+            reader = new FileInputStreamReader(file, name, testlibMode == _validator);
         else
             reader = new BufferedFileInputStreamReader(file, name);
     } else {
