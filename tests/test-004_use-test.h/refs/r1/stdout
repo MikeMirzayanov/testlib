@@ -4,6 +4,7 @@ Running test 'tokenize'                                                         
 Running test 'opts'                                                                                 OK
 Running test 'instream'                                                                             OK
 Running test 'instream_init_sets_mode'                                                              OK
+Running test 'instream_reader_history'                                                              OK
 Running test 'pattern'                                                                              OK
 Running test 'pattern_src_and_errors'                                                               OK
 Running test 'stringToLongLong'                                                                     OK
@@ -11,4 +12,4 @@ Running test 'stringToUnsignedLongLong'                                         
 Running test 'appes_mode_encoding'                                                                  OK
 Running test 'constructors'                                                                         OK
 
-SUCCESS 12 tests passed.
+SUCCESS 13 tests passed.

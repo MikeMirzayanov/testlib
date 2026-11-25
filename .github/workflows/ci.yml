@@ -229,6 +229,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+      - name: Use Clang bundled with Visual Studio
+        if: matrix.compiler == 'clang++'
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $clang = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -find 'VC\Tools\Llvm\x64\bin\clang++.exe'
+          & $clang --version
+          Split-Path -Parent $clang >> $env:GITHUB_PATH
       - name: Run tests
         run: |
           cd tests

@@ -30,8 +30,10 @@ TEST(constructors) {
         FileInputStreamReader reader(in, "name-1");
         ensure(reader.getName() == "name-1");
         ensure(reader.getLine() == 1);
+        reader.setTestCase(2);
         ensure(reader.curChar() == 'a');
         ensure(reader.nextChar() == 'a');
+        ensure(reader.getReadChars() == vector<int>({258, 'a'}));
         ensure(reader.nextChar() == 'b');
         ensure(reader.nextChar() == '\n');
         ensure(reader.getLine() == 2);

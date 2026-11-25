@@ -243,3 +243,328 @@ TEST(instream_init_sets_mode) {
 
     std::remove(path);
 }
+
+TEST(instream_reader_history) {
+    struct ModeGuard {
+        TTestlibMode saved;
+        ModeGuard() : saved(testlibMode) {}
+        ~ModeGuard() { testlibMode = saved; }
+    } modeGuard;
+
+    const char *historyPath = "test-004-history.tmp";
+
+    // 1. Non-validator modes must not record readChars or undoReadChars.
+    {
+        const unsigned char raw[] = {'A', 0x00, 0x80, 0xFF, '\n', '4', '2', '\n'};
+        std::FILE *out = std::fopen(historyPath, "wb");
+        ensure(out != NULL);
+        ensure(std::fwrite(raw, 1, sizeof(raw), out) == sizeof(raw));
+        std::fclose(out);
+
+        const TTestlibMode nonValidatorModes[] = {_unknown, _checker, _generator, _interactor, _scorer};
+        const int highBytes[] = {0x00, 0x80, 0xFF};
+
+        for (size_t mi = 0; mi < sizeof(nonValidatorModes) / sizeof(nonValidatorModes[0]); mi++) {
+            testlibMode = nonValidatorModes[mi];
+
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.curChar() == 'A');
+            ensure(s.reader->getReadChars().empty());
+            ensure(s.curChar() == 'A');
+            ensure(s.reader->getReadChars().empty());
+            ensure(s.nextChar() == 'A');
+            ensure(s.reader->getReadChars().empty());
+
+            s.unreadChar('X');
+            ensure(s.reader->getReadChars().empty());
+            ensure(s.curChar() == 'X');
+            ensure(s.reader->getReadChars().empty());
+            ensure(s.nextChar() == 'X');
+            ensure(s.reader->getReadChars().empty());
+
+            for (size_t bi = 0; bi < sizeof(highBytes) / sizeof(highBytes[0]); bi++) {
+                int byte = highBytes[bi];
+                ensure(s.reader->nextChar() == byte);
+                ensure(s.reader->getReadChars().empty());
+                s.unreadChar(char(byte));
+                ensure(s.reader->getReadChars().empty());
+                ensure(s.reader->curChar() == byte);
+                ensure(s.curChar() == char(byte));
+                ensure(s.readChar() == char(byte));
+                ensure(s.reader->getReadChars().empty());
+            }
+
+            ensure(s.reader->getLine() == 1);
+            ensure(s.nextChar() == '\n');
+            ensure(s.reader->getLine() == 2);
+            ensure(s.reader->getReadChars().empty());
+
+            s.reader->setTestCase(0);
+            s.reader->setTestCase(1);
+            s.reader->setTestCase(__TESTLIB_MAX_TEST_CASE);
+            ensure(s.reader->getReadChars().empty());
+            ensure_exit(3, [&]() { s.reader->setTestCase(-1); });
+            ensure_exit(3, [&]() { s.reader->setTestCase(__TESTLIB_MAX_TEST_CASE + 1); });
+            ensure(s.reader->getReadChars().empty());
+
+            ensure(s.readInt() == 42);
+            ensure(s.nextChar() == '\n');
+            ensure(s.reader->getLine() == 3);
+            ensure(s.eof());
+            ensure(s.reader->curChar() == EOFC);
+            ensure(s.curChar() == char(EOFC));
+            ensure(s.reader->nextChar() == EOFC);
+            ensure(s.nextChar() == char(EOFC));
+            ensure(s.reader->getReadChars().empty());
+        }
+    }
+
+    // 2. Validator mode must preserve exact readChars / undoReadChars semantics.
+    {
+        testlibMode = _validator;
+
+        // Scenario A: normal reads, unreadChar replacement, setTestCase, and EOF via nextChar().
+        {
+            const char raw[] = {'A', 'B', '\n', 'C'};
+            std::FILE *out = std::fopen(historyPath, "wb");
+            ensure(out != NULL);
+            ensure(std::fwrite(raw, 1, sizeof(raw), out) == sizeof(raw));
+            std::fclose(out);
+
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.reader->getReadChars() == vector<int>());
+            s.reader->setTestCase(1);
+            ensure(s.reader->getReadChars() == vector<int>({257}));
+            ensure(s.curChar() == 'A');
+            ensure(s.reader->getReadChars() == vector<int>({257}));
+            ensure(s.nextChar() == 'A');
+            ensure(s.reader->getReadChars() == vector<int>({257, 65}));
+            s.unreadChar('X');
+            ensure(s.reader->getReadChars() == vector<int>({257}));
+            ensure(s.nextChar() == 'X');
+            ensure(s.reader->getReadChars() == vector<int>({257, 65}));
+            ensure(s.curChar() == 'B');
+            ensure(s.reader->getReadChars() == vector<int>({257, 65}));
+            s.reader->setTestCase(2);
+            ensure(s.reader->getReadChars() == vector<int>({257, 65, 258}));
+            ensure(s.nextChar() == 'B');
+            ensure(s.reader->getReadChars() == vector<int>({257, 65, 258, 66}));
+            ensure(s.reader->getLine() == 1);
+            ensure(s.nextChar() == '\n');
+            ensure(s.reader->getLine() == 2);
+            ensure(s.nextChar() == 'C');
+            ensure(s.reader->getReadChars() == vector<int>({257, 65, 258, 66, 10, 67}));
+            ensure(s.reader->nextChar() == EOFC);
+            ensure(s.nextChar() == char(EOFC));
+            ensure(s.reader->getReadChars() == vector<int>({257, 65, 258, 66, 10, 67, -1}));
+        }
+
+        // Scenario B1: first reaching EOF via curChar() moves -1 to undoReadChars and sets feof().
+        {
+            const char raw[] = {'P', 'Q'};
+            std::FILE *out = std::fopen(historyPath, "wb");
+            ensure(out != NULL);
+            ensure(std::fwrite(raw, 1, sizeof(raw), out) == sizeof(raw));
+            std::fclose(out);
+
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.nextChar() == 'P');
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars() == vector<int>({80, 81}));
+            ensure(s.curChar() == char(EOFC));
+            ensure(s.reader->curChar() == EOFC);
+            ensure(s.reader->nextChar() == EOFC);
+            ensure(s.reader->getReadChars() == vector<int>({80, 81}));
+        }
+
+        // Scenario B2: first reaching EOF via eof() calls nextChar() without unreadChar(EOFC), keeping -1 in readChars.
+        {
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.nextChar() == 'P');
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars() == vector<int>({80, 81}));
+            ensure(s.eof());
+            ensure(s.reader->getReadChars() == vector<int>({80, 81, -1}));
+            ensure(s.reader->nextChar() == EOFC);
+            ensure(s.reader->getReadChars() == vector<int>({80, 81, -1}));
+        }
+
+        // Scenario C: switching testlibMode while a FileInputStreamReader has buffered lookahead/unread
+        // must not desynchronize undoChars and undoReadChars, because recordReadChars is fixed at construction.
+        {
+            testlibMode = _unknown;
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.curChar() == 'P');
+            testlibMode = _validator;
+            ensure(s.nextChar() == 'P');
+            s.unreadChar('Z');
+            ensure(s.nextChar() == 'Z');
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars().empty());
+        }
+        {
+            testlibMode = _validator;
+            std::FILE *in = std::fopen(historyPath, "rb");
+            ensure(in != NULL);
+            InStream s;
+            s.stdfile = true;
+            s.reset(in);
+
+            ensure(s.curChar() == 'P');
+            testlibMode = _interactor;
+            ensure(s.nextChar() == 'P');
+            ensure(s.curChar() == 'Q');
+            testlibMode = _validator;
+            ensure(s.nextChar() == 'Q');
+            ensure(s.reader->getReadChars() == vector<int>({80, 81}));
+        }
+    }
+
+    // 3. Deterministic pseudo-random test with an independent semantic prefix oracle.
+    {
+        struct Lcg {
+            unsigned s;
+            unsigned next() {
+                s = s * 1103515245u + 12345u;
+                return (s >> 16) & 0x7fff;
+            }
+        };
+        struct Step {
+            int op;
+            int ret;
+            int line;
+        };
+
+        const unsigned char raw[] = {
+            'a', 0x00, 0x7F, 0x80, 0xFE, 0xFF, '\r', '\n',
+            'b', 'c', '\n', 0xFF, '\r', 'd', 0x80, '\n',
+            'e', 0x00, 'f', '\r', '\n', 'g', 'h', 0xFE,
+            'i', '\n', 'j', 0xFF, 0xFF, 'k', '\r', 'l'
+        };
+        const std::string bytes(reinterpret_cast<const char *>(raw), sizeof(raw));
+
+        std::FILE *out = std::fopen(historyPath, "wb");
+        ensure(out != NULL);
+        ensure(std::fwrite(bytes.data(), 1, bytes.size(), out) == bytes.size());
+        std::fclose(out);
+
+        const TTestlibMode pairModes[2] = {_validator, _interactor};
+        for (unsigned seed = 1; seed <= 500; seed++) {
+            std::vector<Step> trace[2];
+            std::vector<int> model;
+
+            for (int mi = 0; mi < 2; mi++) {
+                testlibMode = pairModes[mi];
+                std::FILE *in = std::fopen(historyPath, "rb");
+                ensure(in != NULL);
+                InStream s;
+                s.stdfile = true;
+                s.reset(in);
+
+                Lcg g = {seed};
+                size_t pos = 0;
+                int budget = 0;
+                bool eofSeen = false;
+                int tc = 0;
+                model.clear();
+
+                for (int step = 0; step < 200; step++) {
+                    int op = int(g.next() % 6);
+                    int ret = 0;
+                    if ((op == 2 || op == 3) && eofSeen)
+                        op = 0;
+                    if (op == 3 && budget == 0)
+                        op = 1;
+
+                    switch (op) {
+                    case 0:
+                        ret = s.reader->curChar();
+                        if (ret == EOFC)
+                            eofSeen = true;
+                        break;
+                    case 1:
+                    case 2:
+                        if (op == 1)
+                            ret = s.reader->nextChar();
+                        else
+                            s.reader->skipChar();
+                        if (!eofSeen) {
+                            if (pos < bytes.size()) {
+                                model.push_back((unsigned char)bytes[pos++]);
+                                budget++;
+                            } else {
+                                model.push_back(-1);
+                                eofSeen = true;
+                            }
+                        }
+                        break;
+                    case 3:
+                        s.reader->unreadChar(int(g.next() % 256));
+                        pos--;
+                        budget--;
+                        model.pop_back();
+                        break;
+                    case 4:
+                        ret = s.reader->eof() ? 1 : 0;
+                        if (!eofSeen && pos == bytes.size()) {
+                            model.push_back(-1);
+                            eofSeen = true;
+                        } else if (ret) {
+                            eofSeen = true;
+                        }
+                        break;
+                    case 5:
+                        tc = tc % 5 + 1;
+                        s.reader->setTestCase(tc);
+                        model.push_back(256 + tc);
+                        // Reset budget so unreadChar is not called right after setTestCase(tc),
+                        // which would pop the testcase marker (tc + 256) from readChars.
+                        budget = 0;
+                        break;
+                    }
+                    Step st = {op, ret, s.reader->getLine()};
+                    trace[mi].push_back(st);
+                }
+
+                if (mi == 0)
+                    ensure(s.reader->getReadChars() == model);
+                else
+                    ensure(s.reader->getReadChars().empty());
+            }
+
+            ensure(trace[0].size() == trace[1].size());
+            for (size_t i = 0; i < trace[0].size(); i++) {
+                ensure(trace[0][i].op == trace[1][i].op);
+                ensure(trace[0][i].ret == trace[1][i].ret);
+                ensure(trace[0][i].line == trace[1][i].line);
+            }
+        }
+    }
+
+    std::remove(historyPath);
+}
